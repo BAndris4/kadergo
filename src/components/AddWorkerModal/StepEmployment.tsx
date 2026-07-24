@@ -103,7 +103,7 @@ export const StepEmployment: React.FC<StepEmploymentProps> = ({
                   : "bg-white text-[#556e75] border-[#bdcdcb]"
               }`}
             >
-              Повний day
+              Повний день
             </button>
             <button
               type="button"
@@ -114,7 +114,7 @@ export const StepEmployment: React.FC<StepEmploymentProps> = ({
                   : "bg-white text-[#556e75] border-[#bdcdcb]"
               }`}
             >
-              Неповний day
+              Неповний день
             </button>
           </div>
         </div>

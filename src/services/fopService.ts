@@ -3,6 +3,66 @@ import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, E
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
+const ROOT_FOLDER_STORAGE_KEY = "kadergo_root_folder_v1";
+const MIN_WAGE_STORAGE_KEY = "kadergo_min_wage_v1";
+
+export function getSavedRootFolder(): string {
+  return localStorage.getItem(ROOT_FOLDER_STORAGE_KEY) || "";
+}
+
+export function saveRootFolder(folderPath: string): void {
+  localStorage.setItem(ROOT_FOLDER_STORAGE_KEY, folderPath);
+}
+
+export function getSavedMinWage(): number {
+  const saved = localStorage.getItem(MIN_WAGE_STORAGE_KEY);
+  if (saved) {
+    const val = parseFloat(saved);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  return 8647; // Значення за замовчуванням (8647 грн)
+}
+
+export function saveMinWage(val: number): void {
+  localStorage.setItem(MIN_WAGE_STORAGE_KEY, String(val));
+}
+
+export async function pickRootFolder(): Promise<string | null> {
+  try {
+    const chosen = await invoke<string | null>("pick_folder");
+    if (chosen) {
+      saveRootFolder(chosen);
+      return chosen;
+    }
+  } catch (err) {
+    console.warn("Tauri pick_folder fallback:", err);
+  }
+  return null;
+}
+
+export async function ensureFopDirectory(rootDir: string, fopCode: string, fopName: string): Promise<string> {
+  if (!rootDir.trim()) return "";
+  try {
+    const createdPath = await invoke<string>("ensure_fop_directory", {
+      rootDir,
+      fopCode: fopCode || "",
+      fopName,
+    });
+    return createdPath;
+  } catch (err) {
+    console.warn("Tauri ensure_fop_directory fallback:", err);
+    return "";
+  }
+}
+
+export async function openFolderInExplorer(folderPath: string): Promise<void> {
+  if (!folderPath.trim()) return;
+  try {
+    await invoke("open_folder_in_explorer", { folderPath });
+  } catch (err) {
+    console.warn("Tauri open_folder_in_explorer fallback:", err);
+  }
+}
 
 export async function fetchFops(): Promise<FopData[]> {
   try {
@@ -77,6 +137,15 @@ export async function createFop(formData: CreateFopFormState, existingFops: FopD
       : undefined,
   };
 
+  const fopFullName = [formData.vezeteknev, formData.keresztnev, formData.apai_nev].filter(Boolean).join(" ");
+  const fopCode = formData.kod.trim() || formData.fop_kod.trim() || "";
+
+  // Auto-create directory structure if rootDirectory is set
+  const rootFolder = getSavedRootFolder();
+  if (rootFolder) {
+    await ensureFopDirectory(rootFolder, fopCode, fopFullName);
+  }
+
   try {
     const createdFop = await invoke<FopData>("create_fop", { input: inputData });
     const updatedList = [createdFop, ...existingFops];
@@ -145,6 +214,15 @@ export async function updateFop(formData: EditFopFormState, existingFops: FopDat
         }
       : undefined,
   };
+
+  const fopFullName = [formData.vezeteknev, formData.keresztnev, formData.apai_nev].filter(Boolean).join(" ");
+  const fopCode = formData.kod.trim() || formData.fop_kod.trim() || "";
+
+  // Auto-sync directory structure if root folder is set
+  const rootFolder = getSavedRootFolder();
+  if (rootFolder) {
+    await ensureFopDirectory(rootFolder, fopCode, fopFullName);
+  }
 
   try {
     const updatedFop = await invoke<FopData>("update_fop", { input: inputData });

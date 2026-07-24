@@ -6,6 +6,7 @@ import { Step1PersonalInfoWorker } from "./Step1PersonalInfoWorker";
 import { StepEmployment } from "./StepEmployment";
 import { Step2Address } from "../AddFopModal/Step2Address";
 import { Step3Document } from "../AddFopModal/Step3Document";
+import { getSavedMinWage } from "../../services/fopService";
 
 interface AddWorkerModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
     nem: "",
 
     foglalkozas_megnevezes: "",
-    fizetes: 8647, // Мінімальна заробітна плата в Україні (8647 грн)
+    fizetes: getSavedMinWage(),
     foallas: true,
     teljes_munkaido: true,
     munkakezdes_datum: getTodayString(),
@@ -75,10 +76,11 @@ export const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
   }>({});
 
   useEffect(() => {
-    if (fopId) {
+    if (fopId && isOpen) {
       setFormData((prev) => ({
         ...prev,
         fop_id: fopId,
+        fizetes: getSavedMinWage(),
         munkakezdes_datum: prev.munkakezdes_datum || getTodayString(),
         kerelem_datum: prev.kerelem_datum || getTodayString(),
       }));

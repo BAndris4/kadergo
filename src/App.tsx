@@ -9,6 +9,11 @@ import {
   updateWorker,
   dismissWorker,
   deleteWorker,
+  getSavedRootFolder,
+  saveRootFolder,
+  getSavedMinWage,
+  saveMinWage,
+  ensureFopDirectory,
 } from "./services/fopService";
 import { Header } from "./components/Header";
 import { StatsGrid } from "./components/StatsGrid";
@@ -20,16 +25,24 @@ import { AddWorkerModal } from "./components/AddWorkerModal/AddWorkerModal";
 import { EditWorkerModal } from "./components/EditWorkerModal";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 import { DeleteWorkerConfirmModal } from "./components/DeleteWorkerConfirmModal";
+import { SettingsModal } from "./components/SettingsModal";
 import { ToastNotice } from "./components/ToastNotice";
+import { DocumentGeneratorView } from "./views/DocumentGeneratorView";
 import "./App.css";
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"generator" | "management">("generator");
   const [fops, setFops] = useState<FopData[]>([]);
+  const [selectedFopId, setSelectedFopId] = useState<number | null>(null);
+  const [rootFolder, setRootFolder] = useState<string>("");
+  const [minWage, setMinWage] = useState<number>(8647);
+
   const [expandedFopIds, setExpandedFopIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [isAddFopModalOpen, setIsAddFopModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [fopToEdit, setFopToEdit] = useState<FopData | null>(null);
   const [fopToDelete, setFopToDelete] = useState<FopData | null>(null);
 
@@ -40,8 +53,15 @@ export default function App() {
   useEffect(() => {
     async function loadData() {
       const activeData = await fetchFops();
+      const savedRoot = getSavedRootFolder();
+      const savedWage = getSavedMinWage();
+
       setFops(activeData);
+      if (savedRoot) setRootFolder(savedRoot);
+      setMinWage(savedWage);
+
       if (activeData.length > 0) {
+        setSelectedFopId(activeData[0].id);
         setExpandedFopIds([activeData[0].id]);
       }
     }
@@ -61,13 +81,35 @@ export default function App() {
     }, 3500);
   };
 
+  const handleRootFolderChange = (newPath: string) => {
+    setRootFolder(newPath);
+    saveRootFolder(newPath);
+  };
+
+  const handleMinWageChange = (newWage: number) => {
+    setMinWage(newWage);
+    saveMinWage(newWage);
+  };
+
   const handleAddFopSubmit = async (formData: CreateFopFormState) => {
     const newFop = await createFop(formData, fops);
     setFops((prev) => [newFop, ...prev]);
+    setSelectedFopId(newFop.id);
     setExpandedFopIds((prev) => [...prev, newFop.id]);
     setIsAddFopModalOpen(false);
 
     const fopOwnerName = [newFop.vezeteknev, newFop.keresztnev, newFop.apai_nev].filter(Boolean).join(" ");
+    const fopCode = newFop.kod || newFop.fop_kod || "";
+
+    // Automatically create folder structure if rootFolder is set
+    if (rootFolder) {
+      const folderCreated = await ensureFopDirectory(rootFolder, fopCode, fopOwnerName);
+      if (folderCreated) {
+        showToast(`ФОП "${fopOwnerName}" збережено! Створено папку: "${folderCreated}"`);
+        return;
+      }
+    }
+
     showToast(`ФОП "${fopOwnerName}" успішно збережено!`);
   };
 
@@ -85,6 +127,9 @@ export default function App() {
     const fopOwnerName = [fopToDelete.vezeteknev, fopToDelete.keresztnev, fopToDelete.apai_nev].filter(Boolean).join(" ");
     const updated = await deleteFop(fopToDelete.id, fops);
     setFops(updated);
+    if (selectedFopId === fopToDelete.id) {
+      setSelectedFopId(updated.length > 0 ? updated[0].id : null);
+    }
     setFopToDelete(null);
     setFopToEdit(null);
     showToast(`ФОП "${fopOwnerName}" успішно видалено z бази!`);
@@ -156,43 +201,64 @@ export default function App() {
   const osszesMunkasCount = fops.reduce((acc, fop) => acc + fop.munkasok.length, 0);
 
   return (
-    <div className="w-full max-w-[1280px] mx-auto px-8 py-10 pb-20">
-      <Header onOpenAddModal={() => setIsAddFopModalOpen(true)} />
+    <div className="w-full max-w-[1600px] mx-auto px-10 py-10 pb-24">
+      <Header
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenAddModal={() => setIsAddFopModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+      />
 
-      <StatsGrid fopCount={fops.length} workerCount={osszesMunkasCount} />
+      {/* VIEW 1: Document Generator Main View */}
+      {activeTab === "generator" && (
+        <DocumentGeneratorView
+          fops={fops}
+          selectedFopId={selectedFopId}
+          onSelectFop={setSelectedFopId}
+          rootFolder={rootFolder}
+          onShowToast={showToast}
+        />
+      )}
 
-      <div className="mb-8">
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
-      </div>
+      {/* VIEW 2: FOP & Workers Database Management View */}
+      {activeTab === "management" && (
+        <div className="flex flex-col gap-6 animate-fadeIn">
+          <StatsGrid fopCount={fops.length} workerCount={osszesMunkasCount} />
 
-      <main>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-2xl font-black font-heading text-[#133b47] tracking-tight">
-            Список Фізичних Осіб-Підприємців (ФОП)
-          </h2>
-        </div>
+          <div className="mb-2">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </div>
 
-        <div className="flex flex-col gap-5">
-          {filteredFops.length === 0 ? (
-            <div className="p-10 text-center text-[#59747c] font-bold text-base bg-white rounded-3xl border-2 border-[#c6d7d5] shadow-sm">
-              ФОП за вашим запитом не знайдено.
+          <main>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-2xl font-black font-heading text-[#133b47] tracking-tight">
+                Реєстр Фізичних Осіб-Підприємців (ФОП)
+              </h2>
             </div>
-          ) : (
-            filteredFops.map((fop) => (
-              <FopCard
-                key={fop.id}
-                fop={fop}
-                isExpanded={expandedFopIds.includes(fop.id)}
-                onToggleExpand={toggleFopExpand}
-                onEditClick={(targetFop) => setFopToEdit(targetFop)}
-                onAddWorkerClick={(targetFop) => setFopForNewWorker(targetFop)}
-                onEditWorkerClick={(targetWorker) => setWorkerToEdit(targetWorker)}
-                onDeleteWorkerClick={(targetWorker) => setWorkerToDelete(targetWorker)}
-              />
-            ))
-          )}
+
+            <div className="flex flex-col gap-5">
+              {filteredFops.length === 0 ? (
+                <div className="p-10 text-center text-[#59747c] font-bold text-base bg-white rounded-3xl border-2 border-[#c6d7d5] shadow-sm">
+                  ФОП за вашим запитом не знайдено.
+                </div>
+              ) : (
+                filteredFops.map((fop) => (
+                  <FopCard
+                    key={fop.id}
+                    fop={fop}
+                    isExpanded={expandedFopIds.includes(fop.id)}
+                    onToggleExpand={toggleFopExpand}
+                    onEditClick={(targetFop) => setFopToEdit(targetFop)}
+                    onAddWorkerClick={(targetFop) => setFopForNewWorker(targetFop)}
+                    onEditWorkerClick={(targetWorker) => setWorkerToEdit(targetWorker)}
+                    onDeleteWorkerClick={(targetWorker) => setWorkerToDelete(targetWorker)}
+                  />
+                ))
+              )}
+            </div>
+          </main>
         </div>
-      </main>
+      )}
 
       <AddFopModal
         isOpen={isAddFopModalOpen}
@@ -206,6 +272,16 @@ export default function App() {
         onClose={() => setFopToEdit(null)}
         onSubmit={handleEditFopSubmit}
         onDeleteClick={(targetFop) => setFopToDelete(targetFop)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        rootFolder={rootFolder}
+        onRootFolderChange={handleRootFolderChange}
+        minWage={minWage}
+        onMinWageChange={handleMinWageChange}
+        onShowToast={showToast}
       />
 
       <DeleteConfirmModal
