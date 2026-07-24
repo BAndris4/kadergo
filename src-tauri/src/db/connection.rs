@@ -1,7 +1,6 @@
 use rusqlite::{Connection, Result as SqlResult};
 use std::fs;
 use std::path::PathBuf;
-use super::seed::seed_initial_data;
 
 pub fn get_db_path() -> PathBuf {
     let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -34,11 +33,6 @@ pub fn init_sqlite_db() -> SqlResult<Connection> {
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN fop_kod TEXT", []);
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN fop_kezdete_datum TEXT", []);
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN deleted_at TEXT", []);
-
-    let fop_count: i64 = conn.query_row("SELECT COUNT(*) FROM fop", [], |r| r.get(0))?;
-    if fop_count == 0 {
-        seed_initial_data(&conn)?;
-    }
 
     Ok(conn)
 }

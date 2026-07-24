@@ -5,7 +5,7 @@ import { DatePicker } from "../DatePicker";
 
 interface Step1Props {
   formData: CreateFopFormState;
-  errors: { vezeteknev?: string; keresztnev?: string; apai_nev?: string };
+  errors: { vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string };
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
@@ -29,7 +29,7 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, errors, onCh
             <input
               type="text"
               name="vezeteknev"
-            placeholder="Коваленко"
+              placeholder="Коваленко"
               value={formData.vezeteknev}
               onChange={onChange}
               className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
@@ -46,10 +46,10 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, errors, onCh
             <input
               type="text"
               name="keresztnev"
-            placeholder="Олександр"
+              placeholder="Олександр"
               value={formData.keresztnev}
               onChange={onChange}
-            className={`w-full px-4 py-3.5 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
+              className={`w-full px-4 py-3.5 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
                 errors.keresztnev ? "border-red-500" : "border-[#bdcdcb] focus:border-[#133b47]"
               }`}
             />
@@ -63,10 +63,10 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, errors, onCh
             <input
               type="text"
               name="apai_nev"
-            placeholder="Іванович"
+              placeholder="Іванович"
               value={formData.apai_nev}
               onChange={onChange}
-            className={`w-full px-4 py-3.5 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
+              className={`w-full px-4 py-3.5 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
                 errors.apai_nev ? "border-red-500" : "border-[#bdcdcb] focus:border-[#133b47]"
               }`}
             />
@@ -75,16 +75,19 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, errors, onCh
 
           <div className="flex flex-col gap-2">
             <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
-              Ідентифікаційний код
+              Ідентифікаційний код <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="kod"
-            placeholder="123456789"
+              placeholder="123456789"
               value={formData.kod}
               onChange={onChange}
-              className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
+                errors.kod ? "border-red-500" : "border-[#bdcdcb] focus:border-[#133b47]"
+              }`}
             />
+            {errors.kod && <span className="text-xs text-red-600 font-black">{errors.kod}</span>}
           </div>
 
           {/* Вибір статі (Чоловік / Жінка) - Чистий текстовий вибір */}

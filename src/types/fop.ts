@@ -191,3 +191,22 @@ export interface EditWorkerFormState {
   kiallitasi_datum: string;
   lejarati_datum: string;
 }
+
+export interface ScanFopsResult {
+  total_scanned: number;
+  imported_count: number;
+  existing_count: number;
+  imported_names: string[];
+}
+
+export interface DiscoveredFopDto {
+  folder_name: string;
+  folder_path: string;
+  kod: string;
+  vezeteknev: string;
+  keresztnev: string;
+  apai_nev: string;
+  already_exists: boolean;
+}
+
+

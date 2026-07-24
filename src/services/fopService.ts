@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas } from "../types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -64,12 +64,45 @@ export async function openFolderInExplorer(folderPath: string): Promise<void> {
   }
 }
 
+export async function scanDiscoveredFopFolders(rootDir: string): Promise<DiscoveredFopDto[]> {
+  if (!rootDir.trim()) return [];
+  try {
+    const result = await invoke<DiscoveredFopDto[]>("scan_fop_folders", { rootDir });
+    return result || [];
+  } catch (err) {
+    console.warn("Tauri scan_fop_folders fallback:", err);
+    return [];
+  }
+}
+
+export async function importSelectedFops(items: DiscoveredFopDto[]): Promise<FopData[]> {
+  try {
+    const updatedList = await invoke<FopData[]>("import_selected_fops", { items });
+    if (updatedList && Array.isArray(updatedList)) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+      return updatedList;
+    }
+  } catch (err) {
+    console.warn("Tauri import_selected_fops fallback:", err);
+  }
+  return fetchFops();
+}
+
+export function sortFopsAlphabetically(fops: FopData[]): FopData[] {
+  return [...fops].sort((a, b) => {
+    const nameA = [a.vezeteknev, a.keresztnev, a.apai_nev].filter(Boolean).join(" ");
+    const nameB = [b.vezeteknev, b.keresztnev, b.apai_nev].filter(Boolean).join(" ");
+    return nameA.localeCompare(nameB, "uk", { sensitivity: "base" });
+  });
+}
+
 export async function fetchFops(): Promise<FopData[]> {
   try {
     const dbData = await invoke<FopData[]>("get_fops");
     if (dbData && Array.isArray(dbData) && dbData.length > 0) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbData));
-      return dbData;
+      const sorted = sortFopsAlphabetically(dbData);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sorted));
+      return sorted;
     }
   } catch (err) {
     console.warn("Tauri get_fops fallback to localStorage:", err);
@@ -79,7 +112,7 @@ export async function fetchFops(): Promise<FopData[]> {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return sortFopsAlphabetically(parsed);
     } catch (e) {
       console.error("Failed to parse localStorage FOPs:", e);
     }

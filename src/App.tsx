@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas } from "./types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto } from "./types/fop";
 import {
   fetchFops,
   createFop,
@@ -14,6 +14,8 @@ import {
   getSavedMinWage,
   saveMinWage,
   ensureFopDirectory,
+  scanDiscoveredFopFolders,
+  importSelectedFops,
 } from "./services/fopService";
 import { Header } from "./components/Header";
 import { StatsGrid } from "./components/StatsGrid";
@@ -26,8 +28,10 @@ import { EditWorkerModal } from "./components/EditWorkerModal";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 import { DeleteWorkerConfirmModal } from "./components/DeleteWorkerConfirmModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { FolderScanModal } from "./components/FolderScanModal";
 import { ToastNotice } from "./components/ToastNotice";
 import { DocumentGeneratorView } from "./views/DocumentGeneratorView";
+import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/24/outline";
 import "./App.css";
 
 export default function App() {
@@ -43,6 +47,9 @@ export default function App() {
 
   const [isAddFopModalOpen, setIsAddFopModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [discoveredFops, setDiscoveredFops] = useState<DiscoveredFopDto[]>([]);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+
   const [fopToEdit, setFopToEdit] = useState<FopData | null>(null);
   const [fopToDelete, setFopToDelete] = useState<FopData | null>(null);
 
@@ -91,40 +98,68 @@ export default function App() {
     saveMinWage(newWage);
   };
 
+  const handleStartFolderScan = async () => {
+    if (!rootFolder) {
+      showToast("Спочатку оберіть головну папку збереження в Налаштуваннях!");
+      return;
+    }
+    const discovered = await scanDiscoveredFopFolders(rootFolder);
+    if (discovered.length === 0) {
+      showToast("У цій папці не знайдено підпапок у форматі 'КОД ПРІЗВИЩЕ ІМ'Я ПО БАТЬКОВІ'.");
+      return;
+    }
+    setDiscoveredFops(discovered);
+    setIsScanModalOpen(true);
+  };
+
+  const handleConfirmImportFops = async (selectedItems: DiscoveredFopDto[]) => {
+    const updatedFops = await importSelectedFops(selectedItems);
+    setFops(updatedFops);
+    if (updatedFops.length > 0) {
+      const newlyImported = updatedFops.find((f: FopData) =>
+        selectedItems.some((s) => s.kod === f.kod || s.kod === f.fop_kod)
+      );
+      if (newlyImported) {
+        setSelectedFopId(newlyImported.id);
+        setExpandedFopIds((prev) => [...new Set([...prev, newlyImported.id])]);
+      } else if (!selectedFopId) {
+        setSelectedFopId(updatedFops[0].id);
+      }
+    }
+    showToast(`Успішно імпортовано ${selectedItems.length} обраних ФОП з папки!`);
+  };
+
   const handleAddFopSubmit = async (formData: CreateFopFormState) => {
+    if (!rootFolder) {
+      showToast("Спочатку оберіть головну папку збереження в Налаштуваннях!");
+      setIsSettingsModalOpen(true);
+      return;
+    }
+
     const newFop = await createFop(formData, fops);
-    setFops((prev) => [newFop, ...prev]);
+    const fullName = [newFop.vezeteknev, newFop.keresztnev, newFop.apai_nev].filter(Boolean).join(" ");
+    await ensureFopDirectory(rootFolder, newFop.kod || newFop.fop_kod || "", fullName);
+
+    const updatedFops = await fetchFops();
+    setFops(updatedFops);
     setSelectedFopId(newFop.id);
     setExpandedFopIds((prev) => [...prev, newFop.id]);
     setIsAddFopModalOpen(false);
 
-    const fopOwnerName = [newFop.vezeteknev, newFop.keresztnev, newFop.apai_nev].filter(Boolean).join(" ");
-    const fopCode = newFop.kod || newFop.fop_kod || "";
-
-    // Automatically create folder structure if rootFolder is set
-    if (rootFolder) {
-      const folderCreated = await ensureFopDirectory(rootFolder, fopCode, fopOwnerName);
-      if (folderCreated) {
-        showToast(`ФОП "${fopOwnerName}" збережено! Створено папку: "${folderCreated}"`);
-        return;
-      }
-    }
-
-    showToast(`ФОП "${fopOwnerName}" успішно збережено!`);
+    showToast(`ФОП "${newFop.vezeteknev} ${newFop.keresztnev}" успішно створено та створено папку!`);
   };
 
   const handleEditFopSubmit = async (formData: EditFopFormState) => {
-    const updatedFop = await updateFop(formData, fops);
-    setFops((prev) => prev.map((f) => (f.id === updatedFop.id ? updatedFop : f)));
+    await updateFop(formData, fops);
+    const updated = await fetchFops();
+    setFops(updated);
     setFopToEdit(null);
-
-    const fopOwnerName = [updatedFop.vezeteknev, updatedFop.keresztnev, updatedFop.apai_nev].filter(Boolean).join(" ");
-    showToast(`ФОП "${fopOwnerName}" успішно оновлено!`);
+    showToast(`Дані ФОП "${formData.vezeteknev} ${formData.keresztnev}" оновлено!`);
   };
 
   const handleConfirmDeleteFop = async () => {
     if (!fopToDelete) return;
-    const fopOwnerName = [fopToDelete.vezeteknev, fopToDelete.keresztnev, fopToDelete.apai_nev].filter(Boolean).join(" ");
+    const fopName = [fopToDelete.vezeteknev, fopToDelete.keresztnev, fopToDelete.apai_nev].filter(Boolean).join(" ");
     const updated = await deleteFop(fopToDelete.id, fops);
     setFops(updated);
     if (selectedFopId === fopToDelete.id) {
@@ -132,37 +167,25 @@ export default function App() {
     }
     setFopToDelete(null);
     setFopToEdit(null);
-    showToast(`ФОП "${fopOwnerName}" успішно видалено z бази!`);
+    showToast(`ФОП "${fopName}" успішно видалено з системи!`);
   };
 
   const handleAddWorkerSubmit = async (formData: CreateWorkerFormState) => {
-    const createdWorker = await createWorker(formData, fops);
-    setFops((prev) =>
-      prev.map((fop) => {
-        if (fop.id === formData.fop_id) {
-          return { ...fop, munkasok: [...fop.munkasok, createdWorker] };
-        }
-        return fop;
-      })
-    );
+    if (!fopForNewWorker) return;
+    await createWorker(formData, fops);
+    const updated = await fetchFops();
+    setFops(updated);
     setFopForNewWorker(null);
-
-    const workerName = [createdWorker.vezeteknev, createdWorker.keresztnev, createdWorker.apai_nev].filter(Boolean).join(" ");
-    showToast(`Працівника "${workerName}" успішно оформлено!`);
+    showToast(`Працівника "${formData.vezeteknev} ${formData.keresztnev}" успішно додано!`);
   };
 
   const handleEditWorkerSubmit = async (formData: EditWorkerFormState) => {
-    const updatedWorker = await updateWorker(formData, fops);
-    setFops((prev) =>
-      prev.map((fop) => ({
-        ...fop,
-        munkasok: fop.munkasok.map((m) => (m.id === updatedWorker.id ? updatedWorker : m)),
-      }))
-    );
+    if (!workerToEdit) return;
+    await updateWorker(formData, fops);
+    const updated = await fetchFops();
+    setFops(updated);
     setWorkerToEdit(null);
-
-    const workerName = [updatedWorker.vezeteknev, updatedWorker.keresztnev, updatedWorker.apai_nev].filter(Boolean).join(" ");
-    showToast(`Дані працівника "${workerName}" успішно оновлено!`);
+    showToast(`Дані працівника "${formData.vezeteknev} ${formData.keresztnev}" успішно оновлено!`);
   };
 
   const handleDismissWorker = async (date: string) => {
@@ -183,20 +206,26 @@ export default function App() {
     showToast(`Працівника "${workerName}" успішно видалено з бази!`);
   };
 
-  const filteredFops = fops.filter((fop) => {
-    const fopNev = [fop.vezeteknev, fop.keresztnev, fop.apai_nev].filter(Boolean).join(" ").toLowerCase();
-    const fopKod = (fop.kod || "").toLowerCase();
-    const query = searchQuery.toLowerCase();
+  const filteredFops = fops
+    .filter((fop) => {
+      const fopNev = [fop.vezeteknev, fop.keresztnev, fop.apai_nev].filter(Boolean).join(" ").toLowerCase();
+      const fopKod = (fop.kod || "").toLowerCase();
+      const query = searchQuery.toLowerCase();
 
-    const matchesFop = fopNev.includes(query) || (fopKod ? fopKod.includes(query) : false);
-    const matchesWorker = fop.munkasok.some((m) => {
-      const mName = [m.vezeteknev, m.keresztnev, m.apai_nev].filter(Boolean).join(" ").toLowerCase();
-      const mKod = (m.kod || "").toLowerCase();
-      return mName.includes(query) || (mKod ? mKod.includes(query) : false);
+      const matchesFop = fopNev.includes(query) || (fopKod ? fopKod.includes(query) : false);
+      const matchesWorker = fop.munkasok.some((m) => {
+        const mName = [m.vezeteknev, m.keresztnev, m.apai_nev].filter(Boolean).join(" ").toLowerCase();
+        const mKod = (m.kod || "").toLowerCase();
+        return mName.includes(query) || (mKod ? mKod.includes(query) : false);
+      });
+
+      return matchesFop || matchesWorker;
+    })
+    .sort((a, b) => {
+      const nameA = [a.vezeteknev, a.keresztnev, a.apai_nev].filter(Boolean).join(" ");
+      const nameB = [b.vezeteknev, b.keresztnev, b.apai_nev].filter(Boolean).join(" ");
+      return nameA.localeCompare(nameB, "uk", { sensitivity: "base" });
     });
-
-    return matchesFop || matchesWorker;
-  });
 
   const osszesMunkasCount = fops.reduce((acc, fop) => acc + fop.munkasok.length, 0);
 
@@ -205,7 +234,6 @@ export default function App() {
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenAddModal={() => setIsAddFopModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
 
@@ -230,10 +258,26 @@ export default function App() {
           </div>
 
           <main>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <h2 className="text-2xl font-black font-heading text-[#133b47] tracking-tight">
                 Реєстр Фізичних Осіб-Підприємців (ФОП)
               </h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleStartFolderScan}
+                  className="px-5 py-2.5 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2 transform hover:-translate-y-0.5"
+                >
+                  <MagnifyingGlassIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                  <span>Розпізнати папки ФОП</span>
+                </button>
+                <button
+                  onClick={() => setIsAddFopModalOpen(true)}
+                  className="px-5 py-2.5 rounded-2xl bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2 transform hover:-translate-y-0.5"
+                >
+                  <PlusIcon className="w-4.5 h-4.5 stroke-[3]" />
+                  <span>Додати нового ФОП</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-5">
@@ -282,6 +326,15 @@ export default function App() {
         minWage={minWage}
         onMinWageChange={handleMinWageChange}
         onShowToast={showToast}
+        onScanFolders={handleStartFolderScan}
+      />
+
+      <FolderScanModal
+        isOpen={isScanModalOpen}
+        discoveredFops={discoveredFops}
+        onClose={() => setIsScanModalOpen(false)}
+        onImport={handleConfirmImportFops}
+        onOpenAddModal={() => setIsAddFopModalOpen(true)}
       />
 
       <DeleteConfirmModal

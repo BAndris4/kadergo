@@ -48,3 +48,24 @@ pub struct FopDto {
     pub munkas_szam: Option<String>,
     pub munkasok: Vec<MunkasDto>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScanFopsResult {
+    pub total_scanned: usize,
+    pub imported_count: usize,
+    pub existing_count: usize,
+    pub imported_names: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DiscoveredFopDto {
+    pub folder_name: String,
+    pub folder_path: String,
+    pub kod: String,
+    pub vezeteknev: String,
+    pub keresztnev: String,
+    pub apai_nev: String,
+    pub already_exists: bool,
+}
+
+

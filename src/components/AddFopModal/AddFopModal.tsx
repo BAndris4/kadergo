@@ -16,7 +16,7 @@ interface AddFopModalProps {
 export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [activeStep, setActiveStep] = useState<number>(1);
   const [formData, setFormData] = useState<CreateFopFormState>(INITIAL_FORM_STATE);
-  const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string }>({});
+  const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string }>({});
 
   if (!isOpen) return null;
 
@@ -24,7 +24,7 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev") {
+    if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev" || name === "kod") {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
@@ -34,7 +34,7 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
   };
 
   const validateStep1 = (): boolean => {
-    const errs: { vezeteknev?: string; keresztnev?: string; apai_nev?: string } = {};
+    const errs: { vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string } = {};
     if (!formData.vezeteknev.trim()) {
       errs.vezeteknev = "Прізвище є обов'язковим полім!";
     }
@@ -43,6 +43,9 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
     }
     if (!formData.apai_nev.trim()) {
       errs.apai_nev = "По батькові є обов'язковим полім!";
+    }
+    if (!formData.kod.trim()) {
+      errs.kod = "Ідентифікаційний код є обов'язковим полім!";
     }
 
     if (Object.keys(errs).length > 0) {

@@ -4,7 +4,8 @@ pub mod models;
 
 use commands::{
     create_fop, create_worker, delete_fop, delete_worker, dismiss_worker, ensure_fop_directory,
-    get_fops, open_folder_in_explorer, pick_folder, reseed_db, update_fop, update_worker,
+    get_fops, import_selected_fops, open_folder_in_explorer, pick_folder, reseed_db,
+    scan_and_import_fop_folders, scan_fop_folders, update_fop, update_worker,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,7 +24,10 @@ pub fn run() {
             delete_worker,
             pick_folder,
             ensure_fop_directory,
-            open_folder_in_explorer
+            open_folder_in_explorer,
+            scan_and_import_fop_folders,
+            scan_fop_folders,
+            import_selected_fops
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

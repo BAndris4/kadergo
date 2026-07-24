@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   BanknotesIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { pickRootFolder, saveRootFolder, saveMinWage } from "../services/fopService";
 
@@ -17,6 +18,7 @@ interface SettingsModalProps {
   minWage: number;
   onMinWageChange: (val: number) => void;
   onShowToast: (msg: string) => void;
+  onScanFolders: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -27,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   minWage,
   onMinWageChange,
   onShowToast,
+  onScanFolders,
 }) => {
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
 
@@ -107,13 +110,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               💡 Усі згенеровані кадорові документи ФОП будуть автоматично зберігатися у відповідних підпапках цієї директорії.
             </p>
 
-            <button
-              onClick={handleBrowseFolder}
-              className="px-6 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <FolderOpenIcon className="w-4.5 h-4.5 stroke-[2.2]" />
-              Огляд та вибір папки збереження...
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleBrowseFolder}
+                className="flex-1 px-5 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                <FolderOpenIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                Вибрати папку...
+              </button>
+
+              <button
+                onClick={onScanFolders}
+                disabled={!rootFolder}
+                className={`flex-1 px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                  rootFolder
+                    ? "bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47]"
+                    : "bg-[#e2eceb] text-[#8fa8aa] cursor-not-allowed opacity-60"
+                }`}
+              >
+                <MagnifyingGlassIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                Розпізнати папки ФОП
+              </button>
+            </div>
           </div>
 
           {/* Section 2: Minimum Wage Setting */}

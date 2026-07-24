@@ -3,7 +3,6 @@ import {
   SparklesIcon,
   ChevronDownIcon,
   ClockIcon,
-  ShieldCheckIcon,
   ExclamationCircleIcon,
   FolderOpenIcon,
   ArrowTopRightOnSquareIcon,
@@ -97,12 +96,18 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
     onShowToast(`Сформовано шаблон "${docTitle}"${workerContextStr} у папці: ${targetDir || "кадрові документи"}`);
   };
 
-  const filteredFopsDropdown = fops.filter((f) => {
-    const name = [f.vezeteknev, f.keresztnev, f.apai_nev].filter(Boolean).join(" ").toLowerCase();
-    const code = (f.kod || f.fop_kod || "").toLowerCase();
-    const q = fopSearchQuery.toLowerCase();
-    return name.includes(q) || code.includes(q);
-  });
+  const filteredFopsDropdown = fops
+    .filter((f) => {
+      const name = [f.vezeteknev, f.keresztnev, f.apai_nev].filter(Boolean).join(" ").toLowerCase();
+      const code = (f.kod || f.fop_kod || "").toLowerCase();
+      const q = fopSearchQuery.toLowerCase();
+      return name.includes(q) || code.includes(q);
+    })
+    .sort((a, b) => {
+      const nameA = [a.vezeteknev, a.keresztnev, a.apai_nev].filter(Boolean).join(" ");
+      const nameB = [b.vezeteknev, b.keresztnev, b.apai_nev].filter(Boolean).join(" ");
+      return nameA.localeCompare(nameB, "uk", { sensitivity: "base" });
+    });
 
   return (
     <div className="flex flex-col gap-9 animate-fadeIn">

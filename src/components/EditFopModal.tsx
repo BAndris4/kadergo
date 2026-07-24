@@ -13,7 +13,7 @@ interface EditFopModalProps {
 
 export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose, onSubmit, onDeleteClick }) => {
   const [formData, setFormData] = useState<EditFopFormState | null>(null);
-  const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string }>({});
+  const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string }>({});
 
   useEffect(() => {
     if (fop) {
@@ -59,7 +59,7 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
     const { name, value } = e.target;
     setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
 
-    if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev") {
+    if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev" || name === "kod") {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
@@ -69,7 +69,7 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
   };
 
   const validate = (): boolean => {
-    const errs: { vezeteknev?: string; keresztnev?: string; apai_nev?: string } = {};
+    const errs: { vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string } = {};
     if (!formData.vezeteknev.trim()) {
       errs.vezeteknev = "Прізвище є обов'язковим полім!";
     }
@@ -78,6 +78,9 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
     }
     if (!formData.apai_nev.trim()) {
       errs.apai_nev = "По батькові є обов'язковим полім!";
+    }
+    if (!formData.kod.trim()) {
+      errs.kod = "Ідентифікаційний код є обов'язковим полім!";
     }
 
     if (Object.keys(errs).length > 0) {
@@ -184,16 +187,19 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
 
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
-                    Ідентифікаційний код
+                    Ідентифікаційний код <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="kod"
-                    placeholder="КД-10492"
+                    placeholder="123456789"
                     value={formData.kod}
                     onChange={handleInputChange}
-                    className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+                    className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
+                      errors.kod ? "border-red-500" : "border-[#bdcdcb] focus:border-[#133b47]"
+                    }`}
                   />
+                  {errors.kod && <span className="text-xs text-red-600 font-black">{errors.kod}</span>}
                 </div>
 
                 {/* Чіткий текстовий вибір статі (Чоловік / Жінка) */}
@@ -258,7 +264,7 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
                   <input
                     type="text"
                     name="fop_kod"
-                    placeholder="ФОП-10492"
+                    placeholder="123456789"
                     value={formData.fop_kod}
                     onChange={handleInputChange}
                     className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"

@@ -1,14 +1,13 @@
 import React from "react";
-import { PlusIcon, DocumentTextIcon, UserGroupIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, UserGroupIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   activeTab: "generator" | "management";
   onTabChange: (tab: "generator" | "management") => void;
-  onOpenAddModal: () => void;
   onOpenSettings: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenAddModal, onOpenSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings }) => {
   return (
     <header className="flex flex-wrap items-center justify-between gap-6 pb-7 mb-9 border-b border-[#c8d9d7]">
       <div className="flex items-center gap-5">
@@ -61,14 +60,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenAd
           className="p-3.5 rounded-2xl bg-white hover:bg-[#f6faf9] text-[#133b47] border-2 border-[#cbd8d6] font-black transition-all cursor-pointer shadow-xs"
         >
           <Cog6ToothIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
-        </button>
-
-        <button
-          onClick={onOpenAddModal}
-          className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] font-black text-sm shadow-xl shadow-[#f8a44c]/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-        >
-          <PlusIcon className="w-5 h-5 stroke-[3]" />
-          Додати нового ФОП
         </button>
       </div>
     </header>

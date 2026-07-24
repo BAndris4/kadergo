@@ -12,23 +12,23 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                     f.fop_kod, f.fop_kezdete_datum, f.nakaz_szam, f.munkas_szam
              FROM fop f
              JOIN szemely s ON f.szemely_id = s.id
-             ORDER BY f.id DESC",
+             ORDER BY s.vezeteknev ASC, s.keresztnev ASC, s.apai_nev ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let fop_rows = stmt
         .query_map([], |row| {
             let fop_id: i64 = row.get(0)?;
-            let kod: Option<String> = row.get(1)?;
-            let vezeteknev: String = row.get(2)?;
-            let keresztnev: String = row.get(3)?;
-            let apai_nev: Option<String> = row.get(4)?;
-            let szuletesi_datum: Option<String> = row.get(5)?;
-            let nem: Option<String> = row.get(6)?;
-            let fop_kod: Option<String> = row.get(7)?;
-            let fop_kezdete_datum: Option<String> = row.get(8)?;
-            let nakaz_szam: Option<String> = row.get(9)?;
-            let munkas_szam: Option<String> = row.get(10)?;
+            let kod: Option<String> = row.get(1).ok().flatten();
+            let vezeteknev: String = row.get::<_, Option<String>>(2).ok().flatten().unwrap_or_default();
+            let keresztnev: String = row.get::<_, Option<String>>(3).ok().flatten().unwrap_or_default();
+            let apai_nev: Option<String> = row.get(4).ok().flatten();
+            let szuletesi_datum: Option<String> = row.get(5).ok().flatten();
+            let nem: Option<String> = row.get(6).ok().flatten();
+            let fop_kod: Option<String> = row.get(7).ok().flatten();
+            let fop_kezdete_datum: Option<String> = row.get(8).ok().flatten();
+            let nakaz_szam: Option<String> = row.get(9).ok().flatten();
+            let munkas_szam: Option<String> = row.get(10).ok().flatten();
 
             Ok((
                 fop_id,
@@ -61,67 +61,67 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             fop_kezdete_datum,
             nakaz_szam,
             munkas_szam,
-        ) = fop_res.map_err(|e| e.to_string())?;
+        ) = match fop_res {
+            Ok(tuple) => tuple,
+            Err(_) => continue,
+        };
 
-        let mut m_stmt = conn
-            .prepare(
-                "SELECT j.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
-                        j.foallas, j.teljes_munkaido, j.foglalkozas_megnevezes, j.fizetes, j.munkakezdes_datum, j.kerelem_datum, j.munkaviszony_vege,
-                        c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
-                        o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
-                 FROM jogviszony j
-                 JOIN szemely s ON j.munkavallalo_id = s.id
-                 LEFT JOIN cim c ON c.szemely_id = s.id
-                 LEFT JOIN okmany o ON o.szemely_id = s.id
-                 WHERE j.fop_id = ?1
-                 ORDER BY j.id ASC",
-            )
-            .map_err(|e| e.to_string())?;
-
-        let munkasok_rows = m_stmt
-            .query_map(params![fop_id], |r| {
+        let mut munkasok = Vec::new();
+        if let Ok(mut m_stmt) = conn.prepare(
+            "SELECT j.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
+                    j.foallas, j.teljes_munkaido, j.foglalkozas_megnevezes, j.fizetes, j.munkakezdes_datum, j.kerelem_datum, j.munkaviszony_vege,
+                    c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
+                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
+             FROM jogviszony j
+             JOIN szemely s ON j.munkavallalo_id = s.id
+             LEFT JOIN cim c ON c.szemely_id = s.id
+             LEFT JOIN okmany o ON o.szemely_id = s.id
+             WHERE j.fop_id = ?1
+             ORDER BY j.id ASC",
+        ) {
+            if let Ok(munkasok_rows) = m_stmt.query_map(params![fop_id], |r| {
                 let id: i64 = r.get(0)?;
-                let kod: Option<String> = r.get(1)?;
-                let vezeteknev: String = r.get(2)?;
-                let keresztnev: String = r.get(3)?;
-                let apai_nev: Option<String> = r.get(4)?;
-                let szuletesi_datum: Option<String> = r.get(5)?;
-                let nem: Option<String> = r.get(6)?;
-                let foallas: bool = r.get(7)?;
-                let teljes_munkaido: bool = r.get(8)?;
-                let foglalkozas_megnevezes: String = r.get(9)?;
-                let fizetes: f64 = r.get(10)?;
-                let munkakezdes_datum: Option<String> = r.get(11)?;
-                let kerelem_datum: Option<String> = r.get(12)?;
-                let munkaviszony_vege: Option<String> = r.get(13)?;
+                let kod: Option<String> = r.get(1).ok().flatten();
+                let vezeteknev: String = r.get::<_, Option<String>>(2).ok().flatten().unwrap_or_default();
+                let keresztnev: String = r.get::<_, Option<String>>(3).ok().flatten().unwrap_or_default();
+                let apai_nev: Option<String> = r.get(4).ok().flatten();
+                let szuletesi_datum: Option<String> = r.get(5).ok().flatten();
+                let nem: Option<String> = r.get(6).ok().flatten();
+                let foallas: bool = r.get::<_, Option<i32>>(7).ok().flatten().map(|v| v != 0).unwrap_or(true);
+                let teljes_munkaido: bool = r.get::<_, Option<i32>>(8).ok().flatten().map(|v| v != 0).unwrap_or(true);
+                let foglalkozas_megnevezes: String = r.get::<_, Option<String>>(9).ok().flatten().unwrap_or_default();
+                let fizetes: f64 = r.get::<_, Option<f64>>(10).ok().flatten().unwrap_or(0.0);
+                let munkakezdes_datum: Option<String> = r.get(11).ok().flatten();
+                let kerelem_datum: Option<String> = r.get(12).ok().flatten();
+                let munkaviszony_vege: Option<String> = r.get(13).ok().flatten();
 
-                let c_iranyitoszam: Option<String> = r.get(14)?;
-                let cim = if c_iranyitoszam.is_some() || r.get::<_, Option<String>>(15)?.is_some() {
+                let c_iranyitoszam: Option<String> = r.get(14).ok().flatten();
+                let cim = if c_iranyitoszam.is_some() || r.get::<_, Option<String>>(15).ok().flatten().is_some() {
                     Some(CimInput {
                         iranyitoszam: c_iranyitoszam,
-                        megye: r.get(15)?,
-                        jaras: r.get(16)?,
-                        kozseg: r.get(17)?,
-                        utca: r.get(18)?,
-                        hazszam: r.get(19)?,
-                        epulet: r.get(20)?,
-                        lakas_szoba: r.get(21)?,
-                        orszag: r.get(22)?,
+                        megye: r.get(15).ok().flatten(),
+                        jaras: r.get(16).ok().flatten(),
+                        kozseg: r.get(17).ok().flatten(),
+                        utca: r.get(18).ok().flatten(),
+                        hazszam: r.get(19).ok().flatten(),
+                        epulet: r.get(20).ok().flatten(),
+                        lakas_szoba: r.get(21).ok().flatten(),
+                        orszag: r.get(22).ok().flatten(),
                     })
                 } else {
                     None
                 };
 
-                let o_szam: Option<String> = r.get(25)?;
+                let o_szam: Option<String> = r.get(25).ok().flatten();
                 let okmany = if let Some(okmanyszam) = o_szam {
                     Some(OkmanyInput {
                         tipus: r.get::<_, i32>(23).unwrap_or(0),
-                        szeria: r.get(24)?,
+                        szeria: r.get(24).ok().flatten().unwrap_or_default(),
                         okmanyszam,
-                        kiallitott_hatosag: r.get(26)?,
-                        hatosagi_kod: r.get(27)?,
-                        kiallitasi_datum: r.get(28)?,
-                        lejarati_datum: r.get(29)?,
+                        kiallitott_hatosag: r.get(26).ok().flatten(),
+                        hatosagi_kod: r.get(27).ok().flatten(),
+                        kiallitasi_datum: r.get(28).ok().flatten(),
+                        lejarati_datum: r.get(29).ok().flatten(),
                     })
                 } else {
                     None
@@ -145,12 +145,13 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                     cim,
                     okmany,
                 })
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut munkasok = Vec::new();
-        for m in munkasok_rows {
-            munkasok.push(m.map_err(|e| e.to_string())?);
+            }) {
+                for m in munkasok_rows {
+                    if let Ok(munkas_dto) = m {
+                        munkasok.push(munkas_dto);
+                    }
+                }
+            }
         }
 
         result.push(FopDto {
@@ -195,7 +196,20 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
     let mut conn = init_sqlite_db().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
-    let person_code = input.kod.filter(|s| !s.trim().is_empty());
+    let person_code_str = input.kod.clone().unwrap_or_default().trim().to_string();
+    if person_code_str.is_empty() {
+        return Err("Ідентифікаційний код є обов'язковим полім!".to_string());
+    }
+    let person_code = Some(person_code_str);
+
+    let vezeteknev = crate::commands::fs_commands::to_human_readable_name(&input.vezeteknev);
+    let keresztnev = crate::commands::fs_commands::to_human_readable_name(&input.keresztnev);
+    let apai_nev = crate::commands::fs_commands::to_human_readable_name(&input.apai_nev);
+
+    if vezeteknev.is_empty() || keresztnev.is_empty() || apai_nev.is_empty() {
+        return Err("Прізвище, ім'я та по батькові є обов'язковими полями!".to_string());
+    }
+
     let fop_code = input.fop_kod.filter(|s| !s.trim().is_empty());
     let fop_start_date = input.fop_kezdete_datum.filter(|s| !s.trim().is_empty());
     let gender = input.nem.filter(|s| !s.trim().is_empty());
@@ -205,9 +219,9 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![
             person_code,
-            input.vezeteknev,
-            input.keresztnev,
-            input.apai_nev,
+            vezeteknev,
+            keresztnev,
+            apai_nev,
             input.szuletesi_datum,
             gender
         ],
@@ -277,9 +291,9 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
     Ok(FopDto {
         id: fop_id,
         kod: person_code,
-        vezeteknev: input.vezeteknev,
-        keresztnev: input.keresztnev,
-        apai_nev: Some(input.apai_nev),
+        vezeteknev,
+        keresztnev,
+        apai_nev: Some(apai_nev),
         szuletesi_datum: input.szuletesi_datum,
         nem: gender,
         fop_kod: fop_code,
@@ -303,7 +317,20 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
         )
         .map_err(|e| format!("ФОП не знайдено: {}", e))?;
 
-    let person_code = input.kod.filter(|s| !s.trim().is_empty());
+    let person_code_str = input.kod.clone().unwrap_or_default().trim().to_string();
+    if person_code_str.is_empty() {
+        return Err("Ідентифікаційний код є обов'язковим полім!".to_string());
+    }
+    let person_code = Some(person_code_str);
+
+    let vezeteknev = crate::commands::fs_commands::to_human_readable_name(&input.vezeteknev);
+    let keresztnev = crate::commands::fs_commands::to_human_readable_name(&input.keresztnev);
+    let apai_nev = crate::commands::fs_commands::to_human_readable_name(&input.apai_nev);
+
+    if vezeteknev.is_empty() || keresztnev.is_empty() || apai_nev.is_empty() {
+        return Err("Прізвище, ім'я та по батькові є обов'язковими полями!".to_string());
+    }
+
     let fop_code = input.fop_kod.filter(|s| !s.trim().is_empty());
     let fop_start_date = input.fop_kezdete_datum.filter(|s| !s.trim().is_empty());
     let gender = input.nem.filter(|s| !s.trim().is_empty());
@@ -313,9 +340,9 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
          WHERE id = ?7",
         params![
             person_code,
-            input.vezeteknev,
-            input.keresztnev,
-            input.apai_nev,
+            vezeteknev,
+            keresztnev,
+            apai_nev,
             input.szuletesi_datum,
             gender,
             szemely_id
@@ -516,9 +543,9 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
     Ok(FopDto {
         id: input.id,
         kod: person_code,
-        vezeteknev: input.vezeteknev,
-        keresztnev: input.keresztnev,
-        apai_nev: Some(input.apai_nev),
+        vezeteknev,
+        keresztnev,
+        apai_nev: Some(apai_nev),
         szuletesi_datum: input.szuletesi_datum,
         nem: gender,
         fop_kod: fop_code,
