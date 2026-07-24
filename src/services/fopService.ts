@@ -1,0 +1,382 @@
+import { invoke } from "@tauri-apps/api/core";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas } from "../types/fop";
+import { INITIAL_FOPS } from "../constants/initialData";
+
+const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
+
+export async function fetchFops(): Promise<FopData[]> {
+  try {
+    const dbData = await invoke<FopData[]>("get_fops");
+    if (dbData && Array.isArray(dbData) && dbData.length > 0) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbData));
+      return dbData;
+    }
+  } catch (err) {
+    console.warn("Tauri get_fops fallback to localStorage:", err);
+  }
+
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {
+      console.error("Failed to parse localStorage FOPs:", e);
+    }
+  }
+
+  return INITIAL_FOPS;
+}
+
+export async function reseedDatabase(): Promise<FopData[]> {
+  localStorage.removeItem(LOCAL_STORAGE_KEY);
+  try {
+    const dbData = await invoke<FopData[]>("reseed_db");
+    if (dbData && Array.isArray(dbData)) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dbData));
+      return dbData;
+    }
+  } catch (err) {
+    console.warn("Tauri reseed_db fallback to INITIAL_FOPS:", err);
+  }
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_FOPS));
+  return INITIAL_FOPS;
+}
+
+export async function createFop(formData: CreateFopFormState, existingFops: FopData[]): Promise<FopData> {
+  const inputData = {
+    kod: formData.kod.trim() || undefined,
+    vezeteknev: formData.vezeteknev.trim(),
+    keresztnev: formData.keresztnev.trim(),
+    apai_nev: formData.apai_nev.trim(),
+    szuletesi_datum: formData.szuletesi_datum || undefined,
+    nem: formData.nem.trim() || undefined,
+    fop_kod: formData.fop_kod.trim() || undefined,
+    fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
+    cim: {
+      iranyitoszam: formData.iranyitoszam.trim() || undefined,
+      megye: formData.megye.trim() || undefined,
+      jaras: formData.jaras.trim() || undefined,
+      kozseg: formData.kozseg.trim() || undefined,
+      utca: formData.utca.trim() || undefined,
+      hazszam: formData.hazszam.trim() || undefined,
+      epulet: formData.epulet.trim() || undefined,
+      lakas_szoba: formData.lakas_szoba.trim() || undefined,
+      orszag: formData.orszag.trim() || "Україна",
+    },
+    okmany: formData.okmanyszam.trim()
+      ? {
+          tipus: formData.okmany_tipus,
+          szeria: formData.okmany_tipus === 0 ? formData.szeria.trim() || undefined : undefined,
+          okmanyszam: formData.okmanyszam.trim(),
+          kiallitott_hatosag: formData.okmany_tipus === 0 ? formData.kiallitott_hatosag.trim() || undefined : undefined,
+          hatosagi_kod: formData.okmany_tipus === 1 ? formData.hatosagi_kod.trim() || undefined : undefined,
+          kiallitasi_datum: formData.kiallitasi_datum || undefined,
+          lejarati_datum: formData.lejarati_datum || undefined,
+        }
+      : undefined,
+  };
+
+  try {
+    const createdFop = await invoke<FopData>("create_fop", { input: inputData });
+    const updatedList = [createdFop, ...existingFops];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return createdFop;
+  } catch (err) {
+    console.warn("Tauri create_fop fallback to localStorage:", err);
+
+    const newFopId = Date.now();
+    const newFop: FopData = {
+      id: newFopId,
+      kod: formData.kod.trim() || undefined,
+      vezeteknev: formData.vezeteknev.trim(),
+      keresztnev: formData.keresztnev.trim(),
+      apai_nev: formData.apai_nev.trim(),
+      szuletesi_datum: formData.szuletesi_datum || undefined,
+      nem: formData.nem.trim() || undefined,
+      fop_kod: formData.fop_kod.trim() || undefined,
+      fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
+      nakaz_szam: "1",
+      munkas_szam: "1",
+      cim: inputData.cim,
+      okmany: inputData.okmany,
+      munkasok: [],
+    };
+
+    const updatedList = [newFop, ...existingFops];
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return newFop;
+  }
+}
+
+export async function updateFop(formData: EditFopFormState, existingFops: FopData[]): Promise<FopData> {
+  const inputData = {
+    id: formData.id,
+    kod: formData.kod.trim() || undefined,
+    vezeteknev: formData.vezeteknev.trim(),
+    keresztnev: formData.keresztnev.trim(),
+    apai_nev: formData.apai_nev.trim(),
+    szuletesi_datum: formData.szuletesi_datum || undefined,
+    nem: formData.nem.trim() || undefined,
+    fop_kod: formData.fop_kod.trim() || undefined,
+    fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
+    nakaz_szam: formData.nakaz_szam.trim() || undefined,
+    munkas_szam: formData.munkas_szam.trim() || undefined,
+    cim: {
+      iranyitoszam: formData.iranyitoszam.trim() || undefined,
+      megye: formData.megye.trim() || undefined,
+      jaras: formData.jaras.trim() || undefined,
+      kozseg: formData.kozseg.trim() || undefined,
+      utca: formData.utca.trim() || undefined,
+      hazszam: formData.hazszam.trim() || undefined,
+      epulet: formData.epulet.trim() || undefined,
+      lakas_szoba: formData.lakas_szoba.trim() || undefined,
+      orszag: formData.orszag.trim() || "Україна",
+    },
+    okmany: formData.okmanyszam.trim()
+      ? {
+          tipus: formData.okmany_tipus,
+          szeria: formData.okmany_tipus === 0 ? formData.szeria.trim() || undefined : undefined,
+          okmanyszam: formData.okmanyszam.trim(),
+          kiallitott_hatosag: formData.okmany_tipus === 0 ? formData.kiallitott_hatosag.trim() || undefined : undefined,
+          hatosagi_kod: formData.okmany_tipus === 1 ? formData.hatosagi_kod.trim() || undefined : undefined,
+          kiallitasi_datum: formData.kiallitasi_datum || undefined,
+          lejarati_datum: formData.lejarati_datum || undefined,
+        }
+      : undefined,
+  };
+
+  try {
+    const updatedFop = await invoke<FopData>("update_fop", { input: inputData });
+    const updatedList = existingFops.map((f) => (f.id === formData.id ? updatedFop : f));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return updatedFop;
+  } catch (err) {
+    console.warn("Tauri update_fop fallback to localStorage:", err);
+
+    const existingWorkers = existingFops.find((f) => f.id === formData.id)?.munkasok || [];
+    const updatedFop: FopData = {
+      id: formData.id,
+      kod: formData.kod.trim() || undefined,
+      vezeteknev: formData.vezeteknev.trim(),
+      keresztnev: formData.keresztnev.trim(),
+      apai_nev: formData.apai_nev.trim(),
+      szuletesi_datum: formData.szuletesi_datum || undefined,
+      nem: formData.nem.trim() || undefined,
+      fop_kod: formData.fop_kod.trim() || undefined,
+      fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
+      nakaz_szam: formData.nakaz_szam.trim() || "1",
+      munkas_szam: formData.munkas_szam.trim() || "1",
+      cim: inputData.cim,
+      okmany: inputData.okmany,
+      munkasok: existingWorkers,
+    };
+
+    const updatedList = existingFops.map((f) => (f.id === formData.id ? updatedFop : f));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return updatedFop;
+  }
+}
+
+export async function deleteFop(fopId: number, existingFops: FopData[]): Promise<FopData[]> {
+  try {
+    await invoke("delete_fop", { fopId });
+  } catch (err) {
+    console.warn("Tauri delete_fop fallback to localStorage:", err);
+  }
+
+  const updatedList = existingFops.filter((f) => f.id !== fopId);
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+  return updatedList;
+}
+
+export async function createWorker(formData: CreateWorkerFormState, existingFops: FopData[]): Promise<Munkas> {
+  const inputData = {
+    fop_id: formData.fop_id,
+    kod: formData.kod.trim() || undefined,
+    vezeteknev: formData.vezeteknev.trim(),
+    keresztnev: formData.keresztnev.trim(),
+    apai_nev: formData.apai_nev.trim(),
+    szuletesi_datum: formData.szuletesi_datum || undefined,
+    nem: formData.nem.trim() || undefined,
+    foglalkozas_megnevezes: formData.foglalkozas_megnevezes.trim(),
+    fizetes: formData.fizetes,
+    foallas: formData.foallas,
+    teljes_munkaido: formData.teljes_munkaido,
+    munkakezdes_datum: formData.munkakezdes_datum || undefined,
+    kerelem_datum: formData.kerelem_datum || undefined,
+    munkaviszony_vege: formData.munkaviszony_vege || undefined,
+    cim: {
+      iranyitoszam: formData.iranyitoszam.trim() || undefined,
+      megye: formData.megye.trim() || undefined,
+      jaras: formData.jaras.trim() || undefined,
+      kozseg: formData.kozseg.trim() || undefined,
+      utca: formData.utca.trim() || undefined,
+      hazszam: formData.hazszam.trim() || undefined,
+      epulet: formData.epulet.trim() || undefined,
+      lakas_szoba: formData.lakas_szoba.trim() || undefined,
+      orszag: formData.orszag.trim() || "Україна",
+    },
+    okmany: formData.okmanyszam.trim()
+      ? {
+          tipus: formData.okmany_tipus,
+          szeria: formData.okmany_tipus === 0 ? formData.szeria.trim() || undefined : undefined,
+          okmanyszam: formData.okmanyszam.trim(),
+          kiallitott_hatosag: formData.okmany_tipus === 0 ? formData.kiallitott_hatosag.trim() || undefined : undefined,
+          hatosagi_kod: formData.okmany_tipus === 1 ? formData.hatosagi_kod.trim() || undefined : undefined,
+          kiallitasi_datum: formData.kiallitasi_datum || undefined,
+          lejarati_datum: formData.lejarati_datum || undefined,
+        }
+      : undefined,
+  };
+
+  try {
+    const createdWorker = await invoke<Munkas>("create_worker", { input: inputData });
+    const updatedList = existingFops.map((fop) => {
+      if (fop.id === formData.fop_id) {
+        return { ...fop, munkasok: [...fop.munkasok, createdWorker] };
+      }
+      return fop;
+    });
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return createdWorker;
+  } catch (err) {
+    console.warn("Tauri create_worker fallback to localStorage:", err);
+
+    const createdWorker: Munkas = {
+      id: Date.now(),
+      kod: formData.kod.trim() || undefined,
+      vezeteknev: formData.vezeteknev.trim(),
+      keresztnev: formData.keresztnev.trim(),
+      apai_nev: formData.apai_nev.trim(),
+      nem: formData.nem.trim() || undefined,
+      foallas: formData.foallas,
+      teljes_munkaido: formData.teljes_munkaido,
+      foglalkozas_megnevezes: formData.foglalkozas_megnevezes.trim(),
+      fizetes: formData.fizetes,
+      munkakezdes_datum: formData.munkakezdes_datum || undefined,
+      kerelem_datum: formData.kerelem_datum || undefined,
+      munkaviszony_vege: formData.munkaviszony_vege || undefined,
+    };
+
+    const updatedList = existingFops.map((fop) => {
+      if (fop.id === formData.fop_id) {
+        return { ...fop, munkasok: [...fop.munkasok, createdWorker] };
+      }
+      return fop;
+    });
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return createdWorker;
+  }
+}
+
+export async function updateWorker(formData: EditWorkerFormState, existingFops: FopData[]): Promise<Munkas> {
+  const inputData = {
+    id: formData.id,
+    kod: formData.kod.trim() || undefined,
+    vezeteknev: formData.vezeteknev.trim(),
+    keresztnev: formData.keresztnev.trim(),
+    apai_nev: formData.apai_nev.trim(),
+    szuletesi_datum: formData.szuletesi_datum || undefined,
+    nem: formData.nem.trim() || undefined,
+    foglalkozas_megnevezes: formData.foglalkozas_megnevezes.trim(),
+    fizetes: formData.fizetes,
+    foallas: formData.foallas,
+    teljes_munkaido: formData.teljes_munkaido,
+    munkakezdes_datum: formData.munkakezdes_datum || undefined,
+    kerelem_datum: formData.kerelem_datum || undefined,
+    munkaviszony_vege: formData.munkaviszony_vege || undefined,
+    cim: {
+      iranyitoszam: formData.iranyitoszam.trim() || undefined,
+      megye: formData.megye.trim() || undefined,
+      jaras: formData.jaras.trim() || undefined,
+      kozseg: formData.kozseg.trim() || undefined,
+      utca: formData.utca.trim() || undefined,
+      hazszam: formData.hazszam.trim() || undefined,
+      epulet: formData.epulet.trim() || undefined,
+      lakas_szoba: formData.lakas_szoba.trim() || undefined,
+      orszag: formData.orszag.trim() || "Україна",
+    },
+    okmany: formData.okmanyszam.trim()
+      ? {
+          tipus: formData.okmany_tipus,
+          szeria: formData.okmany_tipus === 0 ? formData.szeria.trim() || undefined : undefined,
+          okmanyszam: formData.okmanyszam.trim(),
+          kiallitott_hatosag: formData.okmany_tipus === 0 ? formData.kiallitott_hatosag.trim() || undefined : undefined,
+          hatosagi_kod: formData.okmany_tipus === 1 ? formData.hatosagi_kod.trim() || undefined : undefined,
+          kiallitasi_datum: formData.kiallitasi_datum || undefined,
+          lejarati_datum: formData.lejarati_datum || undefined,
+        }
+      : undefined,
+  };
+
+  try {
+    const updatedWorker = await invoke<Munkas>("update_worker", { input: inputData });
+    const updatedList = existingFops.map((fop) => ({
+      ...fop,
+      munkasok: fop.munkasok.map((m) => (m.id === formData.id ? updatedWorker : m)),
+    }));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return updatedWorker;
+  } catch (err) {
+    console.warn("Tauri update_worker fallback to localStorage:", err);
+
+    const updatedWorker: Munkas = {
+      id: formData.id,
+      kod: formData.kod.trim() || undefined,
+      vezeteknev: formData.vezeteknev.trim(),
+      keresztnev: formData.keresztnev.trim(),
+      apai_nev: formData.apai_nev.trim(),
+      szuletesi_datum: formData.szuletesi_datum || undefined,
+      nem: formData.nem.trim() || undefined,
+      foallas: formData.foallas,
+      teljes_munkaido: formData.teljes_munkaido,
+      foglalkozas_megnevezes: formData.foglalkozas_megnevezes.trim(),
+      fizetes: formData.fizetes,
+      munkakezdes_datum: formData.munkakezdes_datum || undefined,
+      kerelem_datum: formData.kerelem_datum || undefined,
+      munkaviszony_vege: formData.munkaviszony_vege || undefined,
+      cim: inputData.cim,
+      okmany: inputData.okmany,
+    };
+
+    const updatedList = existingFops.map((fop) => ({
+      ...fop,
+      munkasok: fop.munkasok.map((m) => (m.id === formData.id ? updatedWorker : m)),
+    }));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return updatedWorker;
+  }
+}
+
+export async function dismissWorker(workerId: number, date: string, existingFops: FopData[]): Promise<FopData[]> {
+  try {
+    await invoke("dismiss_worker", { workerId, date });
+  } catch (err) {
+    console.warn("Tauri dismiss_worker fallback to localStorage:", err);
+  }
+
+  const updatedList = existingFops.map((fop) => ({
+    ...fop,
+    munkasok: fop.munkasok.map((m) =>
+      m.id === workerId ? { ...m, munkaviszony_vege: date || undefined } : m
+    ),
+  }));
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+  return updatedList;
+}
+
+export async function deleteWorker(workerId: number, existingFops: FopData[]): Promise<FopData[]> {
+  try {
+    await invoke("delete_worker", { workerId });
+  } catch (err) {
+    console.warn("Tauri delete_worker fallback to localStorage:", err);
+  }
+
+  const updatedList = existingFops.map((fop) => ({
+    ...fop,
+    munkasok: fop.munkasok.filter((m) => m.id !== workerId),
+  }));
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+  return updatedList;
+}
