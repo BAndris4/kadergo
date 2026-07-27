@@ -209,4 +209,58 @@ export interface DiscoveredFopDto {
   already_exists: boolean;
 }
 
+export interface WorkerPayrollOverride {
+  worker_id: number;
+  previous_kopeks: number;
+  manual_addition: number;
+}
+
+export interface GeneratePayrollRequest {
+  fop_id: number;
+  year: number;
+  month: number;
+  min_wage: number;
+  worker_overrides: WorkerPayrollOverride[];
+  save_dir?: string;
+}
+
+export interface PayrollCalculationRowDto {
+  worker_id: number;
+  pib: string;
+  posada: string;
+  work_days_str: string;
+  prev_kopeks: number;
+  rate: number;
+  worked_salary: number;
+  manual_addition: number;
+  total_salary_m: number;
+  esv_o: number;
+  pdfo_p: number;
+  vz_q: number;
+  total_tax_r: number;
+  net_s: number;
+  advance_t: number;
+  regular_pay_u: number;
+  total_paid_v: number;
+  remaining_kopeks_w: number;
+  month_name_ukr?: string;
+  year?: number;
+  month?: number;
+  is_hired_or_dismissed_this_month?: boolean;
+}
+
+
+
+export interface PayrollCalculationPreviewDto {
+  fop_name: string;
+  fop_code: string;
+  month_name_ukr: string;
+  month_name_upper: string;
+  year: number;
+  total_work_days: number;
+  work_days_up_to_20: number;
+  rows: PayrollCalculationRowDto[];
+}
+
+
 

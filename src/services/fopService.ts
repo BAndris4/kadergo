@@ -491,3 +491,81 @@ export async function deleteWorker(workerId: number, existingFops: FopData[]): P
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
   return updatedList;
 }
+
+export async function previewPayroll(
+  fopId: number,
+  year: number,
+  month: number,
+  minWage: number,
+  workerOverrides: Array<{ worker_id: number; previous_kopeks: number; manual_addition: number }>
+) {
+  return await invoke("preview_payroll", {
+    fopId,
+    year,
+    month,
+    minWage,
+    workerOverrides,
+  });
+}
+
+export async function previewPayrollPeriod(
+
+  fopId: number,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number,
+  minWage: number
+) {
+  return await invoke("preview_payroll_period", {
+    fopId,
+    startYear,
+    startMonth,
+    endYear,
+    endMonth,
+    minWage,
+  });
+}
+
+
+export async function generatePayrollExcel(req: {
+  fop_id: number;
+  year: number;
+  month: number;
+  min_wage: number;
+  worker_overrides: Array<{ worker_id: number; previous_kopeks: number; manual_addition: number }>;
+  save_dir?: string;
+}): Promise<string> {
+  return await invoke<string>("generate_payroll_excel", { req });
+}
+
+export async function generatePayrollPeriodExcel(req: {
+  fop_id: number;
+  start_year: number;
+  start_month: number;
+  end_year: number;
+  end_month: number;
+  min_wage: number;
+  save_dir?: string;
+}): Promise<string> {
+  return await invoke<string>("generate_payroll_period_excel", { req });
+}
+
+export async function saveWorkerKopek(
+  workerId: number,
+  fopId: number,
+  year: number,
+  month: number,
+  kopek: number
+): Promise<void> {
+  await invoke("save_worker_kopek", {
+    workerId,
+    fopId,
+    year,
+    month,
+    kopek,
+  });
+}
+
+
+

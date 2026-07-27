@@ -4,7 +4,7 @@
   body {
     background-color: #f3f6f5;
     color: #13272e;
-    font-family: 'Manrope', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, sans-serif;
     min-height: 100vh;
     background-image: 
       radial-gradient(at 10% 10%, rgba(248, 164, 76, 0.05) 0px, transparent 500px),
@@ -12,6 +12,11 @@
     background-attachment: fixed;
   }
 }
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace !important;
+}
+
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }

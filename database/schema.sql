@@ -78,3 +78,17 @@ CREATE TABLE IF NOT EXISTS jogviszony (
 
 -- Index a munkavállaló, FOP és munkakezdés dátuma alapján történő gyors kereséshez
 CREATE INDEX IF NOT EXISTS idx_jogviszony_munkavallalo_fop_kezdes ON jogviszony (munkavallalo_id, fop_id, munkakezdes_datum);
+
+-- 6. Kopek tábla (munkavállaló havi maradvány kopekjeinek tárolására)
+CREATE TABLE IF NOT EXISTS kopek (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    munkavallalo_id INTEGER NOT NULL,
+    fop_id INTEGER NOT NULL,
+    ev INTEGER NOT NULL,
+    honap INTEGER NOT NULL,
+    kopek NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    UNIQUE(munkavallalo_id, fop_id, ev, honap),
+    FOREIGN KEY (munkavallalo_id) REFERENCES szemely(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (fop_id) REFERENCES fop(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+

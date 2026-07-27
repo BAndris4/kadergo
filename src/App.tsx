@@ -68,9 +68,9 @@ export default function App() {
       setMinWage(savedWage);
 
       if (activeData.length > 0) {
-        setSelectedFopId(activeData[0].id);
         setExpandedFopIds([activeData[0].id]);
       }
+
     }
     loadData();
   }, []);
@@ -244,9 +244,11 @@ export default function App() {
           selectedFopId={selectedFopId}
           onSelectFop={setSelectedFopId}
           rootFolder={rootFolder}
+          minWage={minWage}
           onShowToast={showToast}
         />
       )}
+
 
       {/* VIEW 2: FOP & Workers Database Management View */}
       {activeTab === "management" && (

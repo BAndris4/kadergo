@@ -4,8 +4,8 @@ pub mod models;
 
 use commands::{
     create_fop, create_worker, delete_fop, delete_worker, dismiss_worker, ensure_fop_directory,
-    get_fops, import_selected_fops, open_folder_in_explorer, pick_folder, reseed_db,
-    scan_and_import_fop_folders, scan_fop_folders, update_fop, update_worker,
+    get_fops, import_selected_fops, open_folder_in_explorer, pick_folder, preview_payroll, preview_payroll_period,
+    generate_payroll_excel, generate_payroll_period_excel, save_worker_kopek, reseed_db, scan_and_import_fop_folders, scan_fop_folders, update_fop, update_worker,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,8 +27,17 @@ pub fn run() {
             open_folder_in_explorer,
             scan_and_import_fop_folders,
             scan_fop_folders,
-            import_selected_fops
+            import_selected_fops,
+            preview_payroll,
+            preview_payroll_period,
+            generate_payroll_excel,
+            generate_payroll_period_excel,
+            save_worker_kopek
         ])
+
+
+
+
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
