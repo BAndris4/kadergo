@@ -6,6 +6,8 @@ import {
   ArrowTopRightOnSquareIcon,
   ArrowLeftIcon,
   UserIcon,
+  UserGroupIcon,
+  PlusIcon,
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
   ArrowPathIcon,
@@ -21,7 +23,8 @@ import {
   CheckCircleIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, PayrollCalculationPreviewDto, PayrollCalculationRowDto } from "../types/fop";
+import { FopData, Munkas, PayrollCalculationPreviewDto, PayrollCalculationRowDto } from "../types/fop";
+import { WorkerCard } from "./WorkerCard";
 import {
   ensureFopDirectory,
   generatePayrollExcel,
@@ -41,7 +44,7 @@ interface ActiveFormulaInfo {
 }
 
 const FORMULA_EXPLANATIONS: Record<string, string> = {
-  "ОСНОВНА ЗАРПЛАТА": "Оплата праці за відпрацьований час у місяці",
+  "ОСНОВНА ЗАРПЛАТА": "Оплата праці за відпраційований час у місяці",
   "НАРАХОВАНО (БРУТТО)": "Загальний дохід (оклад + відпускні/доплати) до податків",
   "ЄДИНИЙ СОЦІАЛЬНИЙ ВНЕСОК": "ЄСВ 22% (сплачується роботодавцем)",
   "ПОДАТОК З ДОХОДІВ (18%)": "ПДФО 18% з нарахованого доходу",
@@ -91,7 +94,6 @@ const BottomFormulaToast: React.FC<{ info: ActiveFormulaInfo | null }> = ({ info
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] pointer-events-none max-w-2xl w-[92%] animate-slideUp">
       <div className="bg-[#133b47]/98 backdrop-blur-xl border border-[#f8a44c]/40 text-white rounded-[24px] p-4 px-6 shadow-2xl flex flex-col gap-3">
-        {/* Header Row: Heroicon, Title, Description, and Full PIB Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-[#2a5b6c]/60">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-2xl bg-[#f8a44c] text-[#133b47] flex items-center justify-center font-black shrink-0 shadow-md">
@@ -112,7 +114,6 @@ const BottomFormulaToast: React.FC<{ info: ActiveFormulaInfo | null }> = ({ info
           </div>
         </div>
 
-        {/* Calculation Row: Math Expression & Result Badge */}
         <div className="flex items-center justify-between gap-4 pt-0.5">
           <div className="flex items-center gap-2 text-xs font-mono text-slate-100">
             <span className="text-[#c3d9d6] font-sans font-bold text-[11px]">Формула:</span>
@@ -189,15 +190,20 @@ interface PayrollGeneratorViewProps {
   minWage: number;
   onBackToOptions: () => void;
   onShowToast: (msg: string) => void;
+  onEditWorker?: (worker: Munkas) => void;
+  onDeleteWorker?: (worker: Munkas) => void;
+  onAddWorker?: (fopId: number) => void;
 }
 
 export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
   activeFop,
-
   rootFolder,
   minWage,
   onBackToOptions,
   onShowToast,
+  onEditWorker,
+  onDeleteWorker,
+  onAddWorker,
 }) => {
   const [selectionMode, setSelectionMode] = useState<"month" | "period">("month");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -559,6 +565,40 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* ─── WORKERS MANAGEMENT SECTION ON PAYROLL VIEW (BELOW ZOOM BAR, ABOVE TABLE) ─── */}
+      {activeFop && activeFop.munkasok && (
+        <div className="bg-white rounded-[24px] border-2 border-[#cbd8d6] p-5 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <UserGroupIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
+              <h3 className="text-sm font-black text-[#133b47]">
+                Працівники ФОП ({activeFop.munkasok.length} осіб)
+              </h3>
+            </div>
+            {onAddWorker && (
+              <button
+                onClick={() => onAddWorker(activeFop.id)}
+                className="px-4 py-2 rounded-xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+              >
+                <PlusIcon className="w-4 h-4 stroke-[3]" />
+                <span>Додати працівника</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeFop.munkasok.map((worker) => (
+              <WorkerCard
+                key={worker.id}
+                worker={worker}
+                onEditClick={() => onEditWorker && onEditWorker(worker)}
+                onDeleteClick={() => onDeleteWorker && onDeleteWorker(worker)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {!activeFop ? (
         <div className="p-12 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-2xl border border-[#cbd8d6]">

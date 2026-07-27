@@ -27,6 +27,7 @@ export const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
         keresztnev: worker.keresztnev || "",
         apai_nev: worker.apai_nev || "",
         kod: worker.kod || "",
+        tabel_nomer: worker.tabel_nomer || "",
         szuletesi_datum: worker.szuletesi_datum || "",
         nem: worker.nem || "",
 
@@ -273,6 +274,20 @@ export const EditWorkerModal: React.FC<EditWorkerModalProps> = ({
                   {errors.foglalkozas_megnevezes && (
                     <span className="text-xs text-red-600 font-black">{errors.foglalkozas_megnevezes}</span>
                   )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
+                    Табельний номер
+                  </label>
+                  <input
+                    type="text"
+                    name="tabel_nomer"
+                    placeholder="001"
+                    value={formData.tabel_nomer}
+                    onChange={handleInputChange}
+                    className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-2">

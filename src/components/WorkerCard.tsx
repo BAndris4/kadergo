@@ -52,6 +52,13 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({ worker, onEditClick, onD
               {fullName}
             </span>
 
+            {/* Munkás табельний номер */}
+            {worker.tabel_nomer && worker.tabel_nomer.trim() ? (
+              <span className="px-3 py-0.5 rounded-full text-xs font-black bg-[#133b47] text-[#f8a44c] shadow-xs">
+                Таб. №{worker.tabel_nomer}
+              </span>
+            ) : null}
+
             {/* KIZÁRÓLAG a munkás kódja (szemely.kod) */}
             {worker.kod && worker.kod.trim() ? (
               <span className="px-3 py-0.5 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47] shadow-xs">

@@ -2,20 +2,19 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   SparklesIcon,
   ChevronDownIcon,
-  ClockIcon,
   ExclamationCircleIcon,
   FolderOpenIcon,
   ArrowTopRightOnSquareIcon,
-  DocumentPlusIcon,
-  DocumentTextIcon,
   TableCellsIcon,
+  CalendarDaysIcon,
   BuildingOffice2Icon,
   MagnifyingGlassIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline";
-import { FopData } from "../types/fop";
+import { FopData, Munkas } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
 import { PayrollGeneratorView } from "../components/PayrollGeneratorView";
+import { TabelGeneratorView } from "../components/TabelGeneratorView";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -24,6 +23,9 @@ interface DocumentGeneratorViewProps {
   rootFolder: string;
   minWage: number;
   onShowToast: (msg: string) => void;
+  onEditWorker?: (worker: Munkas) => void;
+  onDeleteWorker?: (worker: Munkas) => void;
+  onAddWorker?: (fopId: number) => void;
 }
 
 export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
@@ -33,8 +35,11 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   rootFolder,
   minWage,
   onShowToast,
+  onEditWorker,
+  onDeleteWorker,
+  onAddWorker,
 }) => {
-  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll">("menu");
+  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel">("menu");
 
   // Custom FOP Dropdown State
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -76,19 +81,6 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
       await openFolderInExplorer(targetDir);
       onShowToast(`Відкрито папку у Провіднику: ${targetDir}`);
     }
-  };
-
-  const handleGenerateTemplateDoc = async (docTitle: string) => {
-    if (!activeFop) {
-      onShowToast("⚠️ Спочатку оберіть ФОП зі списку!");
-      return;
-    }
-    if (!rootFolder) {
-      onShowToast("⚠️ Спочатку встановіть головну папку збереження в Налаштуваннях!");
-      return;
-    }
-    const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
-    onShowToast(`Сформовано шаблон "${docTitle}" у папці: ${targetDir || "FOP"}`);
   };
 
 
@@ -278,147 +270,91 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                 Оберіть тип документа для формування
               </h1>
               <p className="text-sm font-extrabold text-[#c3d9d6] max-w-xl leading-relaxed">
-                Натисніть на потрібний розділ для генерації розрахунково-платіжних відомостей, наказів або трудових договорів.
+                Натисніть на потрібний розділ для генерації розрахунково-платіжних відомостей або табеля обліку робочого часу.
               </p>
             </div>
           </div>
 
-          {/* Action Cards Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-7">
-            {/* CARD 1: PAYROLL SHEET GENERATOR (DISABLED IF NO WORKERS OR NO FOP) */}
-            <div
-              onClick={() => isFopValidForPayroll && setActiveDocView("payroll")}
-              className={`rounded-[32px] p-8 border-2 transition-all shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
-                isFopValidForPayroll
-                  ? "bg-gradient-to-br from-white to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-2xl transform hover:-translate-y-1 cursor-pointer"
-                  : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+          {/* UNIFIED CATEGORY: Кадрові та розрахункові відомості */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#354f57]">
+              <TableCellsIcon className="w-4.5 h-4.5 text-[#133b47] stroke-[2.2]" />
+              Кадрові та розрахункові відомості
+            </div>
+
+            {/* 2-Column Bento Grid for Implemented Documents */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+              {/* CARD 1: PAYROLL SHEET GENERATOR */}
+              <div
+                onClick={() => isFopValidForPayroll && setActiveDocView("payroll")}
+                className={`rounded-[32px] p-8 border-2 transition-all shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
+                  isFopValidForPayroll
+                    ? "bg-gradient-to-br from-white to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-2xl transform hover:-translate-y-1 cursor-pointer"
+                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <div className="flex flex-col gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md">
                     <TableCellsIcon className="w-8 h-8 stroke-[2.2]" />
                   </div>
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47] shadow-xs">
-                    Основний інструмент ✓
-                  </span>
+
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-2xl font-black text-[#133b47] font-heading group-hover:text-[#0f3440] transition-colors">
+                      Відомість заробітної плати
+                    </h3>
+                    <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
+                      Розрахунково-платіжна відомість заробітної плати працівників за обраний місяць або період.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-2xl font-black text-[#133b47] font-heading group-hover:text-[#0f3440] transition-colors">
-                    Відомість заробітної плати (Excel)
-                  </h3>
-                  <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
-                    Розрахунково-платіжна відомість заробітної плати працівників за обраний місяць або період.
-                  </p>
-                </div>
+                <button
+                  disabled={!isFopValidForPayroll}
+                  className={`w-full py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+                    isFopValidForPayroll
+                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-lg shadow-[#133b47]/20 cursor-pointer"
+                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  {isFopValidForPayroll ? "Відкрити розрахунок відомості →" : "⚠️ Оберіть ФОП з працівниками"}
+                </button>
               </div>
 
-              <button
-                disabled={!isFopValidForPayroll}
-                className={`w-full py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+              {/* CARD 2: TABEL (TIMESHEET) */}
+              <div
+                onClick={() => isFopValidForPayroll && setActiveDocView("tabel")}
+                className={`rounded-[32px] p-8 border-2 transition-all shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
                   isFopValidForPayroll
-                    ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-lg shadow-[#133b47]/20 cursor-pointer"
-                    : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                    ? "bg-gradient-to-br from-white to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-2xl transform hover:-translate-y-1 cursor-pointer"
+                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                 }`}
               >
-                {isFopValidForPayroll ? "Відкрити розрахунок відомості →" : "⚠️ Оберіть ФОП з працівниками"}
-              </button>
-            </div>
-
-            {/* CARD 2: WORD NAKAZI */}
-            <div className="rounded-[32px] p-8 border-2 bg-white border-[#cbd8d6] hover:border-[#133b47] shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border-2 border-blue-200 shadow-sm">
-                    <DocumentTextIcon className="w-8 h-8 stroke-[2.2]" />
+                <div className="flex flex-col gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md">
+                    <CalendarDaysIcon className="w-8 h-8 stroke-[2.2]" />
                   </div>
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1.5">
-                    <ClockIcon className="w-4 h-4 text-amber-700" />
-                    В розробці
-                  </span>
-                </div>
 
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-2xl font-black text-[#133b47] font-heading">
-                    Кадрові накази Word (.docx)
-                  </h3>
-                  <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
-                    Накази про прийняття на роботу, звільнення, переведення та відпустки.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleGenerateTemplateDoc("Накази_Word")}
-                disabled={!activeFop}
-                className="w-full py-4 rounded-2xl font-black text-xs bg-slate-100 hover:bg-slate-200 text-[#133b47] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Згенерувати Наказ Word
-              </button>
-            </div>
-
-            {/* CARD 3: CONTRACTS */}
-            <div className="rounded-[32px] p-8 border-2 bg-white border-[#cbd8d6] hover:border-[#133b47] shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border-2 border-indigo-200 shadow-sm">
-                    <DocumentTextIcon className="w-8 h-8 stroke-[2.2]" />
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-2xl font-black text-[#133b47] font-heading group-hover:text-[#0f3440] transition-colors">
+                      Табель обліку робочого часу
+                    </h3>
+                    <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
+                      Типова форма № П-5. Облік відпрацьованих годин та неявок працівників за обраний місяць або період.
+                    </p>
                   </div>
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1.5">
-                    <ClockIcon className="w-4 h-4 text-amber-700" />
-                    В розробці
-                  </span>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-2xl font-black text-[#133b47] font-heading">
-                    Трудові договори та угоди
-                  </h3>
-                  <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
-                    Двосторонні трудові договори та цивільно-правові угоди з працівниками.
-                  </p>
-                </div>
+                <button
+                  disabled={!isFopValidForPayroll}
+                  className={`w-full py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+                    isFopValidForPayroll
+                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-lg shadow-[#133b47]/20 cursor-pointer"
+                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  {isFopValidForPayroll ? "Відкрити табель обліку →" : "⚠️ Оберіть ФОП з працівниками"}
+                </button>
               </div>
-
-              <button
-                onClick={() => handleGenerateTemplateDoc("Трудові_договори")}
-                disabled={!activeFop}
-                className="w-full py-4 rounded-2xl font-black text-xs bg-slate-100 hover:bg-slate-200 text-[#133b47] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Згенерувати Договір
-              </button>
-            </div>
-
-            {/* CARD 4: BLANK / CUSTOM TEMPLATES */}
-            <div className="rounded-[32px] p-8 border-2 border-dashed bg-gradient-to-br from-[#fefbf6] to-[#f8f5ee] border-[#f8a44c] shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden group">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-16 h-16 rounded-2xl bg-[#f8a44c]/20 text-[#133b47] flex items-center justify-center border-2 border-[#f8a44c]/40 shadow-sm">
-                    <DocumentPlusIcon className="w-8 h-8 stroke-[2.2]" />
-                  </div>
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47]">
-                    ➕ Власний бланк
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-2xl font-black text-[#133b47] font-heading">
-                    Порожній бланк / Власний шаблон
-                  </h3>
-                  <p className="text-xs font-extrabold text-[#7e6241] leading-relaxed">
-                    Створення довільного кадрового документа з автоматичним імпортом шапки обраного ФОП.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleGenerateTemplateDoc("Порожній_бланк")}
-                disabled={!activeFop}
-                className="w-full py-4 rounded-2xl font-black text-xs bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Створити порожній бланк ➕
-              </button>
             </div>
           </div>
         </div>
@@ -432,6 +368,22 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           minWage={minWage}
           onBackToOptions={() => setActiveDocView("menu")}
           onShowToast={onShowToast}
+          onEditWorker={onEditWorker}
+          onDeleteWorker={onDeleteWorker}
+          onAddWorker={onAddWorker}
+        />
+      )}
+
+      {/* VIEW 3: TABEL GENERATOR VIEW (Opened when user selects Tabel Card) */}
+      {activeDocView === "tabel" && (
+        <TabelGeneratorView
+          activeFop={activeFop}
+          rootFolder={rootFolder}
+          onBackToOptions={() => setActiveDocView("menu")}
+          onShowToast={onShowToast}
+          onEditWorker={onEditWorker}
+          onDeleteWorker={onDeleteWorker}
+          onAddWorker={onAddWorker}
         />
       )}
 

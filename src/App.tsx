@@ -246,6 +246,12 @@ export default function App() {
           rootFolder={rootFolder}
           minWage={minWage}
           onShowToast={showToast}
+          onEditWorker={(w) => setWorkerToEdit(w)}
+          onDeleteWorker={(w) => setWorkerToDelete(w)}
+          onAddWorker={(fId) => {
+            const targetFop = fops.find((f) => f.id === fId) || null;
+            setFopForNewWorker(targetFop);
+          }}
         />
       )}
 
@@ -329,6 +335,10 @@ export default function App() {
         onMinWageChange={handleMinWageChange}
         onShowToast={showToast}
         onScanFolders={handleStartFolderScan}
+        onFopsCleared={() => {
+          setFops([]);
+          setSelectedFopId(null);
+        }}
       />
 
       <FolderScanModal

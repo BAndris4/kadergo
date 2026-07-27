@@ -33,6 +33,7 @@ pub fn init_sqlite_db() -> SqlResult<Connection> {
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN fop_kod TEXT", []);
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN fop_kezdete_datum TEXT", []);
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN deleted_at TEXT", []);
+    let _ = conn.execute("ALTER TABLE jogviszony ADD COLUMN tabel_nomer TEXT", []);
 
     Ok(conn)
 }

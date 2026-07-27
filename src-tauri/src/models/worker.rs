@@ -18,6 +18,7 @@ pub struct CreateWorkerInput {
     pub munkakezdes_datum: Option<String>,
     pub kerelem_datum: Option<String>,
     pub munkaviszony_vege: Option<String>,
+    pub tabel_nomer: Option<String>,
 
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
@@ -40,6 +41,7 @@ pub struct UpdateWorkerInput {
     pub munkakezdes_datum: Option<String>,
     pub kerelem_datum: Option<String>,
     pub munkaviszony_vege: Option<String>,
+    pub tabel_nomer: Option<String>,
 
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
@@ -61,6 +63,7 @@ pub struct MunkasDto {
     pub munkakezdes_datum: Option<String>,
     pub kerelem_datum: Option<String>,
     pub munkaviszony_vege: Option<String>,
+    pub tabel_nomer: Option<String>,
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
 }

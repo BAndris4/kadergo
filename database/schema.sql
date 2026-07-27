@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS jogviszony (
     munkakezdes_datum TEXT, -- ÉÉÉÉ-HH-NN
     munkaviszony_vege TEXT, -- ÉÉÉÉ-HH-NN
     felveteli_nakaz_szam TEXT,
+    tabel_nomer TEXT,
     FOREIGN KEY (munkavallalo_id) REFERENCES szemely(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (fop_id) REFERENCES fop(id) ON DELETE CASCADE ON UPDATE CASCADE
 );

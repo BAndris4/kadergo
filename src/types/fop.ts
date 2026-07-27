@@ -23,6 +23,7 @@ export interface Okmany {
 export interface Munkas {
   id: number;
   kod?: string; // Внутрішній код особи (szemely.kod)
+  tabel_nomer?: string; // Табельний номер
   vezeteknev: string;
   keresztnev: string;
   apai_nev?: string;
@@ -126,6 +127,7 @@ export interface CreateWorkerFormState {
   keresztnev: string;
   apai_nev: string;
   kod: string;
+  tabel_nomer: string;
   szuletesi_datum: string;
   nem: string;
 
@@ -162,6 +164,7 @@ export interface EditWorkerFormState {
   keresztnev: string;
   apai_nev: string;
   kod: string;
+  tabel_nomer: string;
   szuletesi_datum: string;
   nem: string;
 
@@ -262,5 +265,54 @@ export interface PayrollCalculationPreviewDto {
   rows: PayrollCalculationRowDto[];
 }
 
+// ─── Табель (Timesheet) Types ───────────────────────────────────────
 
+export interface TabelDayEntry {
+  day: number;
+  is_weekday: boolean;
+  is_worked: boolean;
+  code: string;
+  hours: number;
+}
 
+export interface TabelPreviewRowDto {
+  worker_id: number;
+  worker_kod: string;
+  pib_posada: string;
+  nem: string;
+  rate: number;
+  days: TabelDayEntry[];
+  total_days: number;
+  total_hours: number;
+  missing_fields: string[];
+  month_name_ukr?: string;
+  year?: number;
+  month?: number;
+}
+
+export interface TabelPreviewDto {
+  fop_name: string;
+  fop_code: string;
+  fop_short_name: string;
+  month_name_ukr: string;
+  month_name_upper: string;
+  year: number;
+  month: number;
+  total_work_days: number;
+  rows: TabelPreviewRowDto[];
+}
+
+export interface WorkerDayOverride {
+  worker_id: number;
+  day: number;
+  code: string;
+  hours: number;
+}
+
+export interface GenerateTabelRequest {
+  fop_id: number;
+  year: number;
+  month: number;
+  worker_day_overrides: WorkerDayOverride[];
+  save_dir?: string;
+}

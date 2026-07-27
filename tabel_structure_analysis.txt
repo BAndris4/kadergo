@@ -1,0 +1,850 @@
+=== SHEET SUMMARY ===
+Sheet Name: TDSheet
+Ref Range: A1:AP52
+
+=== MERGED RANGES ===
+Merge #0: AM1:AP3 (r0:c38 to r2:c41)
+Merge #1: B2:AI2 (r1:c1 to r1:c34)
+Merge #2: B3:AI3 (r2:c1 to r2:c34)
+Merge #3: B5:AI5 (r4:c1 to r4:c34)
+Merge #4: B6:AI6 (r5:c1 to r5:c34)
+Merge #5: AJ7:AK7 (r6:c35 to r6:c36)
+Merge #6: AL7:AO7 (r6:c37 to r6:c40)
+Merge #7: G8:U8 (r7:c6 to r7:c20)
+Merge #8: AJ8:AK9 (r7:c35 to r8:c36)
+Merge #9: AL8:AM8 (r7:c37 to r7:c38)
+Merge #10: AN8:AO8 (r7:c39 to r7:c40)
+Merge #11: AL9:AM9 (r8:c37 to r8:c38)
+Merge #12: AN9:AO9 (r8:c39 to r8:c40)
+Merge #13: B10:AI10 (r9:c1 to r9:c34)
+Merge #14: B13:U14 (r12:c1 to r13:c20)
+Merge #15: V13:Z13 (r12:c21 to r12:c25)
+Merge #16: AB13:AL14 (r12:c27 to r13:c37)
+Merge #17: AM13:AP13 (r12:c38 to r12:c41)
+Merge #18: V14:X14 (r13:c21 to r13:c23)
+Merge #19: Y14:Z14 (r13:c24 to r13:c25)
+Merge #20: AM14:AN14 (r13:c38 to r13:c39)
+Merge #21: AO14:AP14 (r13:c40 to r13:c41)
+Merge #22: B15:U15 (r14:c1 to r14:c20)
+Merge #23: V15:X15 (r14:c21 to r14:c23)
+Merge #24: Y15:Z15 (r14:c24 to r14:c25)
+Merge #25: AB15:AL15 (r14:c27 to r14:c37)
+Merge #26: AM15:AN15 (r14:c38 to r14:c39)
+Merge #27: AO15:AP15 (r14:c40 to r14:c41)
+Merge #28: B16:U16 (r15:c1 to r15:c20)
+Merge #29: V16:X16 (r15:c21 to r15:c23)
+Merge #30: Y16:Z16 (r15:c24 to r15:c25)
+Merge #31: AB16:AL16 (r15:c27 to r15:c37)
+Merge #32: AM16:AN16 (r15:c38 to r15:c39)
+Merge #33: AO16:AP16 (r15:c40 to r15:c41)
+Merge #34: B17:U17 (r16:c1 to r16:c20)
+Merge #35: V17:X17 (r16:c21 to r16:c23)
+Merge #36: Y17:Z17 (r16:c24 to r16:c25)
+Merge #37: AB17:AL17 (r16:c27 to r16:c37)
+Merge #38: AM17:AN17 (r16:c38 to r16:c39)
+Merge #39: AO17:AP17 (r16:c40 to r16:c41)
+Merge #40: B18:U18 (r17:c1 to r17:c20)
+Merge #41: V18:X18 (r17:c21 to r17:c23)
+Merge #42: Y18:Z18 (r17:c24 to r17:c25)
+Merge #43: AB18:AL18 (r17:c27 to r17:c37)
+Merge #44: AM18:AN18 (r17:c38 to r17:c39)
+Merge #45: AO18:AP18 (r17:c40 to r17:c41)
+Merge #46: B19:U19 (r18:c1 to r18:c20)
+Merge #47: V19:X19 (r18:c21 to r18:c23)
+Merge #48: Y19:Z19 (r18:c24 to r18:c25)
+Merge #49: AB19:AL19 (r18:c27 to r18:c37)
+Merge #50: AM19:AN19 (r18:c38 to r18:c39)
+Merge #51: AO19:AP19 (r18:c40 to r18:c41)
+Merge #52: B20:U20 (r19:c1 to r19:c20)
+Merge #53: V20:X20 (r19:c21 to r19:c23)
+Merge #54: Y20:Z20 (r19:c24 to r19:c25)
+Merge #55: AB20:AL20 (r19:c27 to r19:c37)
+Merge #56: AM20:AN20 (r19:c38 to r19:c39)
+Merge #57: AO20:AP20 (r19:c40 to r19:c41)
+Merge #58: B21:U21 (r20:c1 to r20:c20)
+Merge #59: V21:X21 (r20:c21 to r20:c23)
+Merge #60: Y21:Z21 (r20:c24 to r20:c25)
+Merge #61: AB21:AL21 (r20:c27 to r20:c37)
+Merge #62: AM21:AN21 (r20:c38 to r20:c39)
+Merge #63: AO21:AP21 (r20:c40 to r20:c41)
+Merge #64: B22:U22 (r21:c1 to r21:c20)
+Merge #65: V22:X22 (r21:c21 to r21:c23)
+Merge #66: Y22:Z22 (r21:c24 to r21:c25)
+Merge #67: AB22:AL22 (r21:c27 to r21:c37)
+Merge #68: AM22:AN22 (r21:c38 to r21:c39)
+Merge #69: AO22:AP22 (r21:c40 to r21:c41)
+Merge #70: B23:U23 (r22:c1 to r22:c20)
+Merge #71: V23:X23 (r22:c21 to r22:c23)
+Merge #72: Y23:Z23 (r22:c24 to r22:c25)
+Merge #73: AB23:AL23 (r22:c27 to r22:c37)
+Merge #74: AM23:AN23 (r22:c38 to r22:c39)
+Merge #75: AO23:AP23 (r22:c40 to r22:c41)
+Merge #76: B24:U24 (r23:c1 to r23:c20)
+Merge #77: V24:X24 (r23:c21 to r23:c23)
+Merge #78: Y24:Z24 (r23:c24 to r23:c25)
+Merge #79: AB24:AL24 (r23:c27 to r23:c37)
+Merge #80: AM24:AN24 (r23:c38 to r23:c39)
+Merge #81: AO24:AP24 (r23:c40 to r23:c41)
+Merge #82: B25:U25 (r24:c1 to r24:c20)
+Merge #83: V25:X25 (r24:c21 to r24:c23)
+Merge #84: Y25:Z25 (r24:c24 to r24:c25)
+Merge #85: AB25:AL25 (r24:c27 to r24:c37)
+Merge #86: AM25:AN25 (r24:c38 to r24:c39)
+Merge #87: AO25:AP25 (r24:c40 to r24:c41)
+Merge #88: B26:U26 (r25:c1 to r25:c20)
+Merge #89: V26:X26 (r25:c21 to r25:c23)
+Merge #90: Y26:Z26 (r25:c24 to r25:c25)
+Merge #91: AB26:AL26 (r25:c27 to r25:c37)
+Merge #92: AM26:AN26 (r25:c38 to r25:c39)
+Merge #93: AO26:AP26 (r25:c40 to r25:c41)
+Merge #94: B27:U27 (r26:c1 to r26:c20)
+Merge #95: V27:X27 (r26:c21 to r26:c23)
+Merge #96: Y27:Z27 (r26:c24 to r26:c25)
+Merge #97: AB27:AL27 (r26:c27 to r26:c37)
+Merge #98: AM27:AN27 (r26:c38 to r26:c39)
+Merge #99: AO27:AP27 (r26:c40 to r26:c41)
+Merge #100: B28:U28 (r27:c1 to r27:c20)
+Merge #101: V28:X28 (r27:c21 to r27:c23)
+Merge #102: Y28:Z28 (r27:c24 to r27:c25)
+Merge #103: AB28:AL28 (r27:c27 to r27:c37)
+Merge #104: AM28:AN28 (r27:c38 to r27:c39)
+Merge #105: AO28:AP28 (r27:c40 to r27:c41)
+Merge #106: B29:U29 (r28:c1 to r28:c20)
+Merge #107: V29:X29 (r28:c21 to r28:c23)
+Merge #108: Y29:Z29 (r28:c24 to r28:c25)
+Merge #109: AB29:AL29 (r28:c27 to r28:c37)
+Merge #110: AM29:AN29 (r28:c38 to r28:c39)
+Merge #111: AO29:AP29 (r28:c40 to r28:c41)
+Merge #112: A31:A36 (r30:c0 to r35:c0)
+Merge #113: B31:B36 (r30:c1 to r35:c1)
+Merge #114: C31:C36 (r30:c2 to r35:c2)
+Merge #115: D31:F36 (r30:c3 to r35:c5)
+Merge #116: G31:V31 (r30:c6 to r30:c21)
+Merge #117: W31:AB31 (r30:c22 to r30:c27)
+Merge #118: N32:N33 (r31:c13 to r32:c13)
+Merge #119: O32:O33 (r31:c14 to r32:c14)
+Merge #120: P32:P33 (r31:c15 to r32:c15)
+Merge #121: Q32:Q33 (r31:c16 to r32:c16)
+Merge #122: AP31:AP36 (r30:c41 to r35:c41)
+Merge #123: G32:G33 (r31:c6 to r32:c6)
+Merge #124: H32:H33 (r31:c7 to r32:c7)
+Merge #125: I32:I33 (r31:c8 to r32:c8)
+Merge #126: J32:J33 (r31:c9 to r32:c9)
+Merge #127: K32:K33 (r31:c10 to r32:c10)
+Merge #128: L32:L33 (r31:c11 to r32:c11)
+Merge #129: M32:M33 (r31:c12 to r32:c12)
+Merge #130: R32:R33 (r31:c17 to r32:c17)
+Merge #131: S32:S33 (r31:c18 to r32:c18)
+Merge #132: T32:T33 (r31:c19 to r32:c19)
+Merge #133: U32:U33 (r31:c20 to r32:c20)
+Merge #134: V32:V33 (r31:c21 to r32:c21)
+Merge #135: W32:W36 (r31:c22 to r35:c22)
+Merge #136: T34:T36 (r33:c19 to r35:c19)
+Merge #137: U34:U36 (r33:c20 to r35:c20)
+Merge #138: V34:V36 (r33:c21 to r35:c21)
+Merge #139: X32:AB32 (r31:c23 to r31:c27)
+Merge #140: AD32:AD33 (r31:c29 to r32:c29)
+Merge #141: AE32:AE33 (r31:c30 to r32:c30)
+Merge #142: AF32:AF33 (r31:c31 to r32:c31)
+Merge #143: AG32:AG33 (r31:c32 to r32:c32)
+Merge #144: AH32:AH33 (r31:c33 to r32:c33)
+Merge #145: AC31:AC33 (r30:c28 to r32:c28)
+Merge #146: AD31:AO31 (r30:c29 to r30:c40)
+Merge #147: AI32:AI33 (r31:c34 to r32:c34)
+Merge #148: AJ32:AJ33 (r31:c35 to r32:c35)
+Merge #149: AK32:AK33 (r31:c36 to r32:c36)
+Merge #150: AL32:AL33 (r31:c37 to r32:c37)
+Merge #151: AM32:AM33 (r31:c38 to r32:c38)
+Merge #152: AN32:AN33 (r31:c39 to r32:c39)
+Merge #153: AO32:AO33 (r31:c40 to r32:c40)
+Merge #154: X33:X36 (r32:c23 to r35:c23)
+Merge #155: Y33:AB33 (r32:c24 to r32:c27)
+Merge #156: AD34:AD35 (r33:c29 to r34:c29)
+Merge #157: AE34:AE35 (r33:c30 to r34:c30)
+Merge #158: AF34:AF35 (r33:c31 to r34:c31)
+Merge #159: G34:G36 (r33:c6 to r35:c6)
+Merge #160: H34:H36 (r33:c7 to r35:c7)
+Merge #161: I34:I36 (r33:c8 to r35:c8)
+Merge #162: J34:J36 (r33:c9 to r35:c9)
+Merge #163: K34:K36 (r33:c10 to r35:c10)
+Merge #164: L34:L36 (r33:c11 to r35:c11)
+Merge #165: M34:M36 (r33:c12 to r35:c12)
+Merge #166: N34:N36 (r33:c13 to r35:c13)
+Merge #167: O34:O36 (r33:c14 to r35:c14)
+Merge #168: P34:P36 (r33:c15 to r35:c15)
+Merge #169: Q34:Q36 (r33:c16 to r35:c16)
+Merge #170: R34:R36 (r33:c17 to r35:c17)
+Merge #171: S34:S36 (r33:c18 to r35:c18)
+Merge #172: Y34:Y36 (r33:c24 to r35:c24)
+Merge #173: Z34:Z36 (r33:c25 to r35:c25)
+Merge #174: AA34:AA36 (r33:c26 to r35:c26)
+Merge #175: AB34:AB36 (r33:c27 to r35:c27)
+Merge #176: AC34:AC35 (r33:c28 to r34:c28)
+Merge #177: AG34:AG35 (r33:c32 to r34:c32)
+Merge #178: AH34:AH35 (r33:c33 to r34:c33)
+Merge #179: AI34:AI35 (r33:c34 to r34:c34)
+Merge #180: AJ34:AJ35 (r33:c35 to r34:c35)
+Merge #181: AK34:AK35 (r33:c36 to r34:c36)
+Merge #182: AL34:AL35 (r33:c37 to r34:c37)
+Merge #183: AM34:AM35 (r33:c38 to r34:c38)
+Merge #184: AN34:AN35 (r33:c39 to r34:c39)
+Merge #185: AO34:AO35 (r33:c40 to r34:c40)
+Merge #186: A37:A40 (r36:c0 to r39:c0)
+Merge #187: B37:B40 (r36:c1 to r39:c1)
+Merge #188: C37:C40 (r36:c2 to r39:c2)
+Merge #189: D37:F40 (r36:c3 to r39:c5)
+Merge #190: W37:W40 (r36:c22 to r39:c22)
+Merge #191: X37:X40 (r36:c23 to r39:c23)
+Merge #192: Y37:Y40 (r36:c24 to r39:c24)
+Merge #193: Z37:Z40 (r36:c25 to r39:c25)
+Merge #194: AA37:AA40 (r36:c26 to r39:c26)
+Merge #195: AB37:AB40 (r36:c27 to r39:c27)
+Merge #196: AC37:AC38 (r36:c28 to r37:c28)
+Merge #197: AD37:AD38 (r36:c29 to r37:c29)
+Merge #198: AE37:AE38 (r36:c30 to r37:c30)
+Merge #199: AF37:AF38 (r36:c31 to r37:c31)
+Merge #200: AG37:AG38 (r36:c32 to r37:c32)
+Merge #201: AH37:AH38 (r36:c33 to r37:c33)
+Merge #202: AI37:AI38 (r36:c34 to r37:c34)
+Merge #203: AJ37:AJ38 (r36:c35 to r37:c35)
+Merge #204: AK37:AK38 (r36:c36 to r37:c36)
+Merge #205: AL37:AL38 (r36:c37 to r37:c37)
+Merge #206: AM37:AM38 (r36:c38 to r37:c38)
+Merge #207: AN37:AN38 (r36:c39 to r37:c39)
+Merge #208: AO37:AO38 (r36:c40 to r37:c40)
+Merge #209: AP37:AP40 (r36:c41 to r39:c41)
+Merge #210: AC39:AC40 (r38:c28 to r39:c28)
+Merge #211: AD39:AD40 (r38:c29 to r39:c29)
+Merge #212: AE39:AE40 (r38:c30 to r39:c30)
+Merge #213: AF39:AF40 (r38:c31 to r39:c31)
+Merge #214: AG39:AG40 (r38:c32 to r39:c32)
+Merge #215: AN39:AN40 (r38:c39 to r39:c39)
+Merge #216: AO39:AO40 (r38:c40 to r39:c40)
+Merge #217: AH39:AH40 (r38:c33 to r39:c33)
+Merge #218: AI39:AI40 (r38:c34 to r39:c34)
+Merge #219: AJ39:AJ40 (r38:c35 to r39:c35)
+Merge #220: AK39:AK40 (r38:c36 to r39:c36)
+Merge #221: AL39:AL40 (r38:c37 to r39:c37)
+Merge #222: AM39:AM40 (r38:c38 to r39:c38)
+Merge #223: A41:V41 (r40:c0 to r40:c21)
+Merge #224: F43:Q43 (r42:c5 to r42:c16)
+Merge #225: Z43:AF43 (r42:c25 to r42:c31)
+Merge #226: AK43:AP43 (r42:c36 to r42:c41)
+Merge #227: F44:Q44 (r43:c5 to r43:c16)
+Merge #228: Z44:AF44 (r43:c25 to r43:c31)
+Merge #229: AK44:AP44 (r43:c36 to r43:c41)
+Merge #230: AN48:AP48 (r47:c39 to r47:c41)
+Merge #231: B47:E47 (r46:c1 to r46:c4)
+Merge #232: F47:H47 (r46:c5 to r46:c7)
+Merge #233: J47:Q47 (r46:c9 to r46:c16)
+Merge #234: U47:Y47 (r46:c20 to r46:c24)
+Merge #235: Z47:AB47 (r46:c25 to r46:c27)
+Merge #236: AD47:AF47 (r46:c29 to r46:c31)
+Merge #237: B51:AP51 (r50:c1 to r50:c41)
+Merge #238: B52:AP52 (r51:c1 to r51:c41)
+Merge #239: AH47:AJ47 (r46:c33 to r46:c35)
+Merge #240: AK47:AL47 (r46:c36 to r46:c37)
+Merge #241: AN47:AP47 (r46:c39 to r46:c41)
+Merge #242: F48:H48 (r47:c5 to r47:c7)
+Merge #243: J48:Q48 (r47:c9 to r47:c16)
+Merge #244: Z48:AB48 (r47:c25 to r47:c27)
+Merge #245: AD48:AF48 (r47:c29 to r47:c31)
+Merge #246: AK48:AL48 (r47:c36 to r47:c37)
+
+=== COLUMN WIDTHS ===
+Col 0 (A): wch=3.67, wpx=27, width=4.5
+Col 1 (B): wch=8.5, wpx=56, width=9.33203125
+Col 2 (C): wch=2.83, wpx=22, width=3.6640625
+Col 3 (D): wch=5.17, wpx=36, width=6
+Col 4 (E): wch=4.83, wpx=34, width=5.6640625
+Col 5 (F): wch=10.5, wpx=68, width=11.33203125
+Col 6 (G): wch=2.67, wpx=21, width=3.5
+Col 7 (H): wch=2.67, wpx=21, width=3.5
+Col 8 (I): wch=2.67, wpx=21, width=3.5
+Col 9 (J): wch=2.67, wpx=21, width=3.5
+Col 10 (K): wch=2.67, wpx=21, width=3.5
+Col 11 (L): wch=2.67, wpx=21, width=3.5
+Col 12 (M): wch=2.67, wpx=21, width=3.5
+Col 13 (N): wch=2.67, wpx=21, width=3.5
+Col 14 (O): wch=2.67, wpx=21, width=3.5
+Col 15 (P): wch=2.67, wpx=21, width=3.5
+Col 16 (Q): wch=2.67, wpx=21, width=3.5
+Col 17 (R): wch=2.67, wpx=21, width=3.5
+Col 18 (S): wch=2.67, wpx=21, width=3.5
+Col 19 (T): wch=2.67, wpx=21, width=3.5
+Col 20 (U): wch=2.67, wpx=21, width=3.5
+Col 21 (V): wch=2.67, wpx=21, width=3.5
+Col 22 (W): wch=3.5, wpx=26, width=4.33203125
+Col 23 (X): wch=3.83, wpx=28, width=4.6640625
+Col 24 (Y): wch=5, wpx=35, width=5.83203125
+Col 25 (Z): wch=5, wpx=35, width=5.83203125
+Col 26 (AA): wch=5, wpx=35, width=5.83203125
+Col 27 (AB): wch=8, wpx=53, width=8.83203125
+Col 28 (AC): wch=6, wpx=41, width=6.83203125
+Col 29 (AD): wch=7.33, wpx=49, width=8.1640625
+Col 30 (AE): wch=7.33, wpx=49, width=8.1640625
+Col 31 (AF): wch=7.33, wpx=49, width=8.1640625
+Col 32 (AG): wch=8, wpx=53, width=8.83203125
+Col 33 (AH): wch=7.33, wpx=49, width=8.1640625
+Col 34 (AI): wch=7.33, wpx=49, width=8.1640625
+Col 35 (AJ): wch=7.33, wpx=49, width=8.1640625
+Col 36 (AK): wch=7.33, wpx=49, width=8.1640625
+Col 37 (AL): wch=7.33, wpx=49, width=8.1640625
+Col 38 (AM): wch=7.33, wpx=49, width=8.1640625
+Col 39 (AN): wch=7.33, wpx=49, width=8.1640625
+Col 40 (AO): wch=7.33, wpx=49, width=8.1640625
+Col 41 (AP): wch=9.67, wpx=63, width=10.5
+Col 42 (AQ): wch=9.5, wpx=62, width=10.33203125
+Col 43 (AR): wch=9.5, wpx=62, width=10.33203125
+Col 44 (AS): wch=9.5, wpx=62, width=10.33203125
+Col 45 (AT): wch=9.5, wpx=62, width=10.33203125
+Col 46 (AU): wch=9.5, wpx=62, width=10.33203125
+Col 47 (AV): wch=9.5, wpx=62, width=10.33203125
+Col 48 (AW): wch=9.5, wpx=62, width=10.33203125
+Col 49 (AX): wch=9.5, wpx=62, width=10.33203125
+Col 50 (AY): wch=9.5, wpx=62, width=10.33203125
+Col 51 (AZ): wch=9.5, wpx=62, width=10.33203125
+Col 52 (BA): wch=9.5, wpx=62, width=10.33203125
+Col 53 (BB): wch=9.5, wpx=62, width=10.33203125
+Col 54 (BC): wch=9.5, wpx=62, width=10.33203125
+Col 55 (BD): wch=9.5, wpx=62, width=10.33203125
+Col 56 (BE): wch=9.5, wpx=62, width=10.33203125
+Col 57 (BF): wch=9.5, wpx=62, width=10.33203125
+Col 58 (BG): wch=9.5, wpx=62, width=10.33203125
+Col 59 (BH): wch=9.5, wpx=62, width=10.33203125
+Col 60 (BI): wch=9.5, wpx=62, width=10.33203125
+Col 61 (BJ): wch=9.5, wpx=62, width=10.33203125
+Col 62 (BK): wch=9.5, wpx=62, width=10.33203125
+Col 63 (BL): wch=9.5, wpx=62, width=10.33203125
+Col 64 (BM): wch=9.5, wpx=62, width=10.33203125
+Col 65 (BN): wch=9.5, wpx=62, width=10.33203125
+Col 66 (BO): wch=9.5, wpx=62, width=10.33203125
+Col 67 (BP): wch=9.5, wpx=62, width=10.33203125
+Col 68 (BQ): wch=9.5, wpx=62, width=10.33203125
+Col 69 (BR): wch=9.5, wpx=62, width=10.33203125
+Col 70 (BS): wch=9.5, wpx=62, width=10.33203125
+Col 71 (BT): wch=9.5, wpx=62, width=10.33203125
+Col 72 (BU): wch=9.5, wpx=62, width=10.33203125
+Col 73 (BV): wch=9.5, wpx=62, width=10.33203125
+Col 74 (BW): wch=9.5, wpx=62, width=10.33203125
+Col 75 (BX): wch=9.5, wpx=62, width=10.33203125
+Col 76 (BY): wch=9.5, wpx=62, width=10.33203125
+Col 77 (BZ): wch=9.5, wpx=62, width=10.33203125
+Col 78 (CA): wch=9.5, wpx=62, width=10.33203125
+Col 79 (CB): wch=9.5, wpx=62, width=10.33203125
+Col 80 (CC): wch=9.5, wpx=62, width=10.33203125
+Col 81 (CD): wch=9.5, wpx=62, width=10.33203125
+Col 82 (CE): wch=9.5, wpx=62, width=10.33203125
+Col 83 (CF): wch=9.5, wpx=62, width=10.33203125
+Col 84 (CG): wch=9.5, wpx=62, width=10.33203125
+Col 85 (CH): wch=9.5, wpx=62, width=10.33203125
+Col 86 (CI): wch=9.5, wpx=62, width=10.33203125
+Col 87 (CJ): wch=9.5, wpx=62, width=10.33203125
+Col 88 (CK): wch=9.5, wpx=62, width=10.33203125
+Col 89 (CL): wch=9.5, wpx=62, width=10.33203125
+Col 90 (CM): wch=9.5, wpx=62, width=10.33203125
+Col 91 (CN): wch=9.5, wpx=62, width=10.33203125
+Col 92 (CO): wch=9.5, wpx=62, width=10.33203125
+Col 93 (CP): wch=9.5, wpx=62, width=10.33203125
+Col 94 (CQ): wch=9.5, wpx=62, width=10.33203125
+Col 95 (CR): wch=9.5, wpx=62, width=10.33203125
+Col 96 (CS): wch=9.5, wpx=62, width=10.33203125
+Col 97 (CT): wch=9.5, wpx=62, width=10.33203125
+Col 98 (CU): wch=9.5, wpx=62, width=10.33203125
+Col 99 (CV): wch=9.5, wpx=62, width=10.33203125
+Col 100 (CW): wch=9.5, wpx=62, width=10.33203125
+Col 101 (CX): wch=9.5, wpx=62, width=10.33203125
+Col 102 (CY): wch=9.5, wpx=62, width=10.33203125
+Col 103 (CZ): wch=9.5, wpx=62, width=10.33203125
+Col 104 (DA): wch=9.5, wpx=62, width=10.33203125
+Col 105 (DB): wch=9.5, wpx=62, width=10.33203125
+Col 106 (DC): wch=9.5, wpx=62, width=10.33203125
+Col 107 (DD): wch=9.5, wpx=62, width=10.33203125
+Col 108 (DE): wch=9.5, wpx=62, width=10.33203125
+Col 109 (DF): wch=9.5, wpx=62, width=10.33203125
+Col 110 (DG): wch=9.5, wpx=62, width=10.33203125
+Col 111 (DH): wch=9.5, wpx=62, width=10.33203125
+Col 112 (DI): wch=9.5, wpx=62, width=10.33203125
+Col 113 (DJ): wch=9.5, wpx=62, width=10.33203125
+Col 114 (DK): wch=9.5, wpx=62, width=10.33203125
+Col 115 (DL): wch=9.5, wpx=62, width=10.33203125
+Col 116 (DM): wch=9.5, wpx=62, width=10.33203125
+Col 117 (DN): wch=9.5, wpx=62, width=10.33203125
+Col 118 (DO): wch=9.5, wpx=62, width=10.33203125
+Col 119 (DP): wch=9.5, wpx=62, width=10.33203125
+Col 120 (DQ): wch=9.5, wpx=62, width=10.33203125
+Col 121 (DR): wch=9.5, wpx=62, width=10.33203125
+Col 122 (DS): wch=9.5, wpx=62, width=10.33203125
+Col 123 (DT): wch=9.5, wpx=62, width=10.33203125
+Col 124 (DU): wch=9.5, wpx=62, width=10.33203125
+Col 125 (DV): wch=9.5, wpx=62, width=10.33203125
+Col 126 (DW): wch=9.5, wpx=62, width=10.33203125
+Col 127 (DX): wch=9.5, wpx=62, width=10.33203125
+Col 128 (DY): wch=9.5, wpx=62, width=10.33203125
+Col 129 (DZ): wch=9.5, wpx=62, width=10.33203125
+Col 130 (EA): wch=9.5, wpx=62, width=10.33203125
+Col 131 (EB): wch=9.5, wpx=62, width=10.33203125
+Col 132 (EC): wch=9.5, wpx=62, width=10.33203125
+Col 133 (ED): wch=9.5, wpx=62, width=10.33203125
+Col 134 (EE): wch=9.5, wpx=62, width=10.33203125
+Col 135 (EF): wch=9.5, wpx=62, width=10.33203125
+Col 136 (EG): wch=9.5, wpx=62, width=10.33203125
+Col 137 (EH): wch=9.5, wpx=62, width=10.33203125
+Col 138 (EI): wch=9.5, wpx=62, width=10.33203125
+Col 139 (EJ): wch=9.5, wpx=62, width=10.33203125
+Col 140 (EK): wch=9.5, wpx=62, width=10.33203125
+Col 141 (EL): wch=9.5, wpx=62, width=10.33203125
+Col 142 (EM): wch=9.5, wpx=62, width=10.33203125
+Col 143 (EN): wch=9.5, wpx=62, width=10.33203125
+Col 144 (EO): wch=9.5, wpx=62, width=10.33203125
+Col 145 (EP): wch=9.5, wpx=62, width=10.33203125
+Col 146 (EQ): wch=9.5, wpx=62, width=10.33203125
+Col 147 (ER): wch=9.5, wpx=62, width=10.33203125
+Col 148 (ES): wch=9.5, wpx=62, width=10.33203125
+Col 149 (ET): wch=9.5, wpx=62, width=10.33203125
+Col 150 (EU): wch=9.5, wpx=62, width=10.33203125
+Col 151 (EV): wch=9.5, wpx=62, width=10.33203125
+Col 152 (EW): wch=9.5, wpx=62, width=10.33203125
+Col 153 (EX): wch=9.5, wpx=62, width=10.33203125
+Col 154 (EY): wch=9.5, wpx=62, width=10.33203125
+Col 155 (EZ): wch=9.5, wpx=62, width=10.33203125
+Col 156 (FA): wch=9.5, wpx=62, width=10.33203125
+Col 157 (FB): wch=9.5, wpx=62, width=10.33203125
+Col 158 (FC): wch=9.5, wpx=62, width=10.33203125
+Col 159 (FD): wch=9.5, wpx=62, width=10.33203125
+Col 160 (FE): wch=9.5, wpx=62, width=10.33203125
+Col 161 (FF): wch=9.5, wpx=62, width=10.33203125
+Col 162 (FG): wch=9.5, wpx=62, width=10.33203125
+Col 163 (FH): wch=9.5, wpx=62, width=10.33203125
+Col 164 (FI): wch=9.5, wpx=62, width=10.33203125
+Col 165 (FJ): wch=9.5, wpx=62, width=10.33203125
+Col 166 (FK): wch=9.5, wpx=62, width=10.33203125
+Col 167 (FL): wch=9.5, wpx=62, width=10.33203125
+Col 168 (FM): wch=9.5, wpx=62, width=10.33203125
+Col 169 (FN): wch=9.5, wpx=62, width=10.33203125
+Col 170 (FO): wch=9.5, wpx=62, width=10.33203125
+Col 171 (FP): wch=9.5, wpx=62, width=10.33203125
+Col 172 (FQ): wch=9.5, wpx=62, width=10.33203125
+Col 173 (FR): wch=9.5, wpx=62, width=10.33203125
+Col 174 (FS): wch=9.5, wpx=62, width=10.33203125
+Col 175 (FT): wch=9.5, wpx=62, width=10.33203125
+Col 176 (FU): wch=9.5, wpx=62, width=10.33203125
+Col 177 (FV): wch=9.5, wpx=62, width=10.33203125
+Col 178 (FW): wch=9.5, wpx=62, width=10.33203125
+Col 179 (FX): wch=9.5, wpx=62, width=10.33203125
+Col 180 (FY): wch=9.5, wpx=62, width=10.33203125
+Col 181 (FZ): wch=9.5, wpx=62, width=10.33203125
+Col 182 (GA): wch=9.5, wpx=62, width=10.33203125
+Col 183 (GB): wch=9.5, wpx=62, width=10.33203125
+Col 184 (GC): wch=9.5, wpx=62, width=10.33203125
+Col 185 (GD): wch=9.5, wpx=62, width=10.33203125
+Col 186 (GE): wch=9.5, wpx=62, width=10.33203125
+Col 187 (GF): wch=9.5, wpx=62, width=10.33203125
+Col 188 (GG): wch=9.5, wpx=62, width=10.33203125
+Col 189 (GH): wch=9.5, wpx=62, width=10.33203125
+Col 190 (GI): wch=9.5, wpx=62, width=10.33203125
+Col 191 (GJ): wch=9.5, wpx=62, width=10.33203125
+Col 192 (GK): wch=9.5, wpx=62, width=10.33203125
+Col 193 (GL): wch=9.5, wpx=62, width=10.33203125
+Col 194 (GM): wch=9.5, wpx=62, width=10.33203125
+Col 195 (GN): wch=9.5, wpx=62, width=10.33203125
+Col 196 (GO): wch=9.5, wpx=62, width=10.33203125
+Col 197 (GP): wch=9.5, wpx=62, width=10.33203125
+Col 198 (GQ): wch=9.5, wpx=62, width=10.33203125
+Col 199 (GR): wch=9.5, wpx=62, width=10.33203125
+Col 200 (GS): wch=9.5, wpx=62, width=10.33203125
+Col 201 (GT): wch=9.5, wpx=62, width=10.33203125
+Col 202 (GU): wch=9.5, wpx=62, width=10.33203125
+Col 203 (GV): wch=9.5, wpx=62, width=10.33203125
+Col 204 (GW): wch=9.5, wpx=62, width=10.33203125
+Col 205 (GX): wch=9.5, wpx=62, width=10.33203125
+Col 206 (GY): wch=9.5, wpx=62, width=10.33203125
+Col 207 (GZ): wch=9.5, wpx=62, width=10.33203125
+Col 208 (HA): wch=9.5, wpx=62, width=10.33203125
+Col 209 (HB): wch=9.5, wpx=62, width=10.33203125
+Col 210 (HC): wch=9.5, wpx=62, width=10.33203125
+Col 211 (HD): wch=9.5, wpx=62, width=10.33203125
+Col 212 (HE): wch=9.5, wpx=62, width=10.33203125
+Col 213 (HF): wch=9.5, wpx=62, width=10.33203125
+Col 214 (HG): wch=9.5, wpx=62, width=10.33203125
+Col 215 (HH): wch=9.5, wpx=62, width=10.33203125
+Col 216 (HI): wch=9.5, wpx=62, width=10.33203125
+Col 217 (HJ): wch=9.5, wpx=62, width=10.33203125
+Col 218 (HK): wch=9.5, wpx=62, width=10.33203125
+Col 219 (HL): wch=9.5, wpx=62, width=10.33203125
+Col 220 (HM): wch=9.5, wpx=62, width=10.33203125
+Col 221 (HN): wch=9.5, wpx=62, width=10.33203125
+Col 222 (HO): wch=9.5, wpx=62, width=10.33203125
+Col 223 (HP): wch=9.5, wpx=62, width=10.33203125
+Col 224 (HQ): wch=9.5, wpx=62, width=10.33203125
+Col 225 (HR): wch=9.5, wpx=62, width=10.33203125
+Col 226 (HS): wch=9.5, wpx=62, width=10.33203125
+Col 227 (HT): wch=9.5, wpx=62, width=10.33203125
+Col 228 (HU): wch=9.5, wpx=62, width=10.33203125
+Col 229 (HV): wch=9.5, wpx=62, width=10.33203125
+Col 230 (HW): wch=9.5, wpx=62, width=10.33203125
+Col 231 (HX): wch=9.5, wpx=62, width=10.33203125
+Col 232 (HY): wch=9.5, wpx=62, width=10.33203125
+Col 233 (HZ): wch=9.5, wpx=62, width=10.33203125
+Col 234 (IA): wch=9.5, wpx=62, width=10.33203125
+Col 235 (IB): wch=9.5, wpx=62, width=10.33203125
+Col 236 (IC): wch=9.5, wpx=62, width=10.33203125
+Col 237 (ID): wch=9.5, wpx=62, width=10.33203125
+Col 238 (IE): wch=9.5, wpx=62, width=10.33203125
+Col 239 (IF): wch=9.5, wpx=62, width=10.33203125
+Col 240 (IG): wch=9.5, wpx=62, width=10.33203125
+Col 241 (IH): wch=9.5, wpx=62, width=10.33203125
+Col 242 (II): wch=9.5, wpx=62, width=10.33203125
+Col 243 (IJ): wch=9.5, wpx=62, width=10.33203125
+Col 244 (IK): wch=9.5, wpx=62, width=10.33203125
+Col 245 (IL): wch=9.5, wpx=62, width=10.33203125
+Col 246 (IM): wch=9.5, wpx=62, width=10.33203125
+Col 247 (IN): wch=9.5, wpx=62, width=10.33203125
+Col 248 (IO): wch=9.5, wpx=62, width=10.33203125
+Col 249 (IP): wch=9.5, wpx=62, width=10.33203125
+Col 250 (IQ): wch=9.5, wpx=62, width=10.33203125
+Col 251 (IR): wch=9.5, wpx=62, width=10.33203125
+Col 252 (IS): wch=9.5, wpx=62, width=10.33203125
+Col 253 (IT): wch=9.5, wpx=62, width=10.33203125
+Col 254 (IU): wch=9.5, wpx=62, width=10.33203125
+Col 255 (IV): wch=9.5, wpx=62, width=10.33203125
+Col 256 (IW): wch=9.5, wpx=62, width=10.33203125
+
+=== ROW HEIGHTS ===
+Row 1: hpt=16.15, hpx=16.15
+Row 2: hpt=15.75, hpx=15.75
+Row 3: hpt=13.9, hpx=13.9
+Row 4: hpt=6, hpx=6
+Row 5: hpt=12.75, hpx=12.75
+Row 6: hpt=11.25, hpx=11.25
+Row 7: hpt=11.25, hpx=11.25
+Row 8: hpt=12.75, hpx=12.75
+Row 9: hpt=12, hpx=12
+Row 10: hpt=18.75, hpx=18.75
+Row 12: hpt=11.25, hpx=11.25
+Row 13: hpt=12, hpx=12
+Row 14: hpt=12, hpx=12
+Row 15: hpt=30, hpx=30
+Row 16: hpt=30, hpx=30
+Row 17: hpt=30, hpx=30
+Row 18: hpt=30, hpx=30
+Row 19: hpt=30, hpx=30
+Row 20: hpt=30, hpx=30
+Row 21: hpt=30, hpx=30
+Row 22: hpt=30, hpx=30
+Row 23: hpt=30, hpx=30
+Row 24: hpt=30, hpx=30
+Row 25: hpt=30, hpx=30
+Row 26: hpt=30, hpx=30
+Row 27: hpt=30, hpx=30
+Row 28: hpt=30, hpx=30
+Row 29: hpt=30, hpx=30
+Row 30: hpt=11.25, hpx=11.25
+Row 31: hpt=11.65, hpx=11.65
+Row 32: hpt=52.9, hpx=52.9
+Row 33: hpt=52.9, hpx=52.9
+Row 34: hpt=16.15, hpx=16.15
+Row 35: hpt=16.15, hpx=16.15
+Row 36: hpt=14.25, hpx=14.25
+Row 37: hpt=11.25, hpx=11.25
+Row 38: hpt=11.25, hpx=11.25
+Row 39: hpt=11.25, hpx=11.25
+Row 40: hpt=11.25, hpx=11.25
+Row 41: hpt=11.25, hpx=11.25
+Row 43: hpt=12, hpx=12
+Row 44: hpt=12, hpx=12
+Row 47: hpt=11.25, hpx=11.25
+Row 48: hpt=11.25, hpx=11.25
+Row 50: hpt=12, hpx=12
+Row 51: hpt=34.5, hpx=34.5
+Row 52: hpt=23.25, hpx=23.25
+
+=== CELLS CONTENT & TYPES ===
+Cell AM1 (r1,cAM[38]): v="Типова форма № П-5\nЗАТВЕРДЖЕНО\nНаказ Держкомстату України\n05.12.2008  № 489" w="Типова форма № П-5
+ЗАТВЕРДЖЕНО
+Наказ Держкомстату України
+05.12.2008  № 489" f="" t="s"
+Cell B2 (r2,cB[1]): v="ФОП ГАЛ ФЕРЕНЦ ФЕРЕНЦОВИЧ" w="ФОП ГАЛ ФЕРЕНЦ ФЕРЕНЦОВИЧ" f="" t="s"
+Cell B3 (r3,cB[1]): v="Найменування  підприємства (установи, організації)" w="Найменування  підприємства (установи, організації)" f="" t="s"
+Cell B6 (r6,cB[1]): v="назва структурного підрозділу" w="назва структурного підрозділу" f="" t="s"
+Cell AJ7 (r7,cAJ[35]): v="Дата заповнення" w="Дата заповнення" f="" t="s"
+Cell AL7 (r7,cAL[37]): v="Звітний період" w="Звітний період" f="" t="s"
+Cell B8 (r8,cB[1]): v="Ідентифікаційний код  ЄДРПОУ" w="Ідентифікаційний код  ЄДРПОУ" f="" t="s"
+Cell G8 (r8,cG[6]): v="3608303518" w="3608303518" f="" t="n"
+Cell AJ8 (r8,cAJ[35]): v="46112" w="3/31/26" f="" t="n"
+Cell AL8 (r8,cAL[37]): v="з" w="з" f="" t="s"
+Cell AN8 (r8,cAN[39]): v="по" w="по" f="" t="s"
+Cell AL9 (r9,cAL[37]): v="46082" w="3/1/26" f="" t="n"
+Cell AN9 (r9,cAN[39]): v="46112" w="3/31/26" f="" t="n"
+Cell B10 (r10,cB[1]): v="ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ" w="ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ" f="" t="s"
+Cell B13 (r13,cB[1]): v="Умовні позначення" w="Умовні позначення" f="" t="s"
+Cell V13 (r13,cV[21]): v="Код" w="Код" f="" t="s"
+Cell AB13 (r13,cAB[27]): v="Умовні позначення" w="Умовні позначення" f="" t="s"
+Cell AM13 (r13,cAM[38]): v="Код" w="Код" f="" t="s"
+Cell V14 (r14,cV[21]): v="буквений" w="буквений" f="" t="s"
+Cell Y14 (r14,cY[24]): v="цифровий" w="цифровий" f="" t="s"
+Cell AM14 (r14,cAM[38]): v="буквений" w="буквений" f="" t="s"
+Cell AO14 (r14,cAO[40]): v="цифровий" w="цифровий" f="" t="s"
+Cell B15 (r15,cB[1]): v="Години  роботи, передбачені колдоговором" w="Години  роботи, передбачені колдоговором" f="" t="s"
+Cell V15 (r15,cV[21]): v="Р" w="Р" f="" t="s"
+Cell Y15 (r15,cY[24]): v="1" w="01" f="" t="n"
+Cell AB15 (r15,cAB[27]): v="Відпустка у зв’язку з вагітністю і пологами (стаття 17 Закону України "Про відпустки") та відпустка для догляду за дитиною до досягнення нею трирічного віку (ст. 18 Закону України «Про відпустки»)" w="Відпустка у зв’язку з вагітністю і пологами (стаття 17 Закону України "Про відпустки") та відпустка для догляду за дитиною до досягнення нею трирічного віку (ст. 18 Закону України «Про відпустки»)" f="" t="s"
+Cell AM15 (r15,cAM[38]): v="ВП" w="ВП" f="" t="s"
+Cell AO15 (r15,cAO[40]): v="16" w="16" f="" t="n"
+Cell B16 (r16,cB[1]): v="Години роботи працівників, яким встановлено неповний робочий день (тиждень)  згідно з  законодавством" w="Години роботи працівників, яким встановлено неповний робочий день (тиждень)  згідно з  законодавством" f="" t="s"
+Cell V16 (r16,cV[21]): v="РС" w="РС" f="" t="s"
+Cell Y16 (r16,cY[24]): v="2" w="02" f="" t="n"
+Cell AB16 (r16,cAB[27]): v="Відпустка для догляду за дитиною до досягнення нею 6-ти річного віку (ст. 25 п.3 Закону України "Про відпустки")" w="Відпустка для догляду за дитиною до досягнення нею 6-ти річного віку (ст. 25 п.3 Закону України "Про відпустки")" f="" t="s"
+Cell AM16 (r16,cAM[38]): v="ДД" w="ДД" f="" t="s"
+Cell AO16 (r16,cAO[40]): v="17" w="17" f="" t="n"
+Cell B17 (r17,cB[1]): v="Вечірні години  роботи" w="Вечірні години  роботи" f="" t="s"
+Cell V17 (r17,cV[21]): v="ВЧ" w="ВЧ" f="" t="s"
+Cell Y17 (r17,cY[24]): v="3" w="03" f="" t="n"
+Cell AB17 (r17,cAB[27]): v="Відпустка без збереження заробітної плати за згодою сторін (стаття 26 Закону України "Про відпустки")" w="Відпустка без збереження заробітної плати за згодою сторін (стаття 26 Закону України "Про відпустки")" f="" t="s"
+Cell AM17 (r17,cAM[38]): v="НА" w="НА" f="" t="s"
+Cell AO17 (r17,cAO[40]): v="18" w="18" f="" t="n"
+Cell B18 (r18,cB[1]): v="Нічні години  роботи" w="Нічні години  роботи" f="" t="s"
+Cell V18 (r18,cV[21]): v="РН" w="РН" f="" t="s"
+Cell Y18 (r18,cY[24]): v="4" w="04" f="" t="n"
+Cell AB18 (r18,cAB[27]): v="Інші відпустки без збереження заробітної плати (на період припинення виконання робіт)" w="Інші відпустки без збереження заробітної плати (на період припинення виконання робіт)" f="" t="s"
+Cell AM18 (r18,cAM[38]): v="БЗ" w="БЗ" f="" t="s"
+Cell AO18 (r18,cAO[40]): v="19" w="19" f="" t="n"
+Cell B19 (r19,cB[1]): v="Надурочні години  роботи" w="Надурочні години  роботи" f="" t="s"
+Cell V19 (r19,cV[21]): v="НУ" w="НУ" f="" t="s"
+Cell Y19 (r19,cY[24]): v="5" w="05" f="" t="n"
+Cell AB19 (r19,cAB[27]): v="Неявки у зв’язку з переведенням за ініціативою роботодавця на неповний робочий день (тиждень)" w="Неявки у зв’язку з переведенням за ініціативою роботодавця на неповний робочий день (тиждень)" f="" t="s"
+Cell AM19 (r19,cAM[38]): v="НД" w="НД" f="" t="s"
+Cell AO19 (r19,cAO[40]): v="20" w="20" f="" t="n"
+Cell B20 (r20,cB[1]): v="Години роботи у вихідні та святкові дні" w="Години роботи у вихідні та святкові дні" f="" t="s"
+Cell V20 (r20,cV[21]): v="РВ" w="РВ" f="" t="s"
+Cell Y20 (r20,cY[24]): v="6" w="06" f="" t="n"
+Cell AB20 (r20,cAB[27]): v="Неявки у зв’язку з тимчасовим переведенням на роботу на інше підприємство на підставі договорів між суб’єктами господарювання" w="Неявки у зв’язку з тимчасовим переведенням на роботу на інше підприємство на підставі договорів між суб’єктами господарювання" f="" t="s"
+Cell AM20 (r20,cAM[38]): v="НП" w="НП" f="" t="s"
+Cell AO20 (r20,cAO[40]): v="21" w="21" f="" t="n"
+Cell B21 (r21,cB[1]): v="Відрядження" w="Відрядження" f="" t="s"
+Cell V21 (r21,cV[21]): v="ВД" w="ВД" f="" t="s"
+Cell Y21 (r21,cY[24]): v="7" w="07" f="" t="n"
+Cell AB21 (r21,cAB[27]): v="Інший невідпрацьований час, передбачений законодавством (виконання державних і громадських обов’язків, допризовна підготовка, військові збори, донорські, відгул і т.ін.) " w="Інший невідпрацьований час, передбачений законодавством (виконання державних і громадських обов’язків, допризовна підготовка, військові збори, донорські, відгул і т.ін.) " f="" t="s"
+Cell AM21 (r21,cAM[38]): v="ІН" w="ІН" f="" t="s"
+Cell AO21 (r21,cAO[40]): v="22" w="22" f="" t="n"
+Cell B22 (r22,cB[1]): v="Основна  щорічна відпустка (ст.6 Закону України "Про відпустки")" w="Основна  щорічна відпустка (ст.6 Закону України "Про відпустки")" f="" t="s"
+Cell V22 (r22,cV[21]): v="В" w="В" f="" t="s"
+Cell Y22 (r22,cY[24]): v="8" w="08" f="" t="n"
+Cell AB22 (r22,cAB[27]): v="Простої" w="Простої" f="" t="s"
+Cell AM22 (r22,cAM[38]): v="П" w="П" f="" t="s"
+Cell AO22 (r22,cAO[40]): v="23" w="23" f="" t="n"
+Cell B23 (r23,cB[1]): v="Щорічна додаткова відпустка (ст. 7, 8 Закону України "Про відпустки")" w="Щорічна додаткова відпустка (ст. 7, 8 Закону України "Про відпустки")" f="" t="s"
+Cell V23 (r23,cV[21]): v="Д" w="Д" f="" t="s"
+Cell Y23 (r23,cY[24]): v="9" w="09" f="" t="n"
+Cell AB23 (r23,cAB[27]): v="Прогули" w="Прогули" f="" t="s"
+Cell AM23 (r23,cAM[38]): v="ПР" w="ПР" f="" t="s"
+Cell AO23 (r23,cAO[40]): v="24" w="24" f="" t="n"
+Cell B24 (r24,cB[1]): v="Додаткова відпустка, передбачена  ст. 20, 21, 30 Закону України "Про статус і соціальний захист громадян, які постраждали внаслідок Чорнобильської катастрофи"" w="Додаткова відпустка, передбачена  ст. 20, 21, 30 Закону України "Про статус і соціальний захист громадян, які постраждали внаслідок Чорнобильської катастрофи"" f="" t="s"
+Cell V24 (r24,cV[21]): v="Ч" w="Ч" f="" t="s"
+Cell Y24 (r24,cY[24]): v="10" w="10" f="" t="n"
+Cell AB24 (r24,cAB[27]): v="Масові невиходи на роботу (страйки) " w="Масові невиходи на роботу (страйки) " f="" t="s"
+Cell AM24 (r24,cAM[38]): v="С" w="С" f="" t="s"
+Cell AO24 (r24,cAO[40]): v="25" w="25" f="" t="n"
+Cell B25 (r25,cB[1]): v="Творча відпустка (ст.16 Закону України "Про відпустки")" w="Творча відпустка (ст.16 Закону України "Про відпустки")" f="" t="s"
+Cell V25 (r25,cV[21]): v="ТВ" w="ТВ" f="" t="s"
+Cell Y25 (r25,cY[24]): v="11" w="11" f="" t="n"
+Cell AB25 (r25,cAB[27]): v="Оплачувана тимчасова непрацездатність " w="Оплачувана тимчасова непрацездатність " f="" t="s"
+Cell AM25 (r25,cAM[38]): v="ТН" w="ТН" f="" t="s"
+Cell AO25 (r25,cAO[40]): v="26" w="26" f="" t="n"
+Cell B26 (r26,cB[1]): v="Додаткова відпустка у зв’язку з навчанням  (ст.13, 14, 15, 151 Закону України "Про відпустки")" w="Додаткова відпустка у зв’язку з навчанням  (ст.13, 14, 15, 151 Закону України "Про відпустки")" f="" t="s"
+Cell V26 (r26,cV[21]): v="Н" w="Н" f="" t="s"
+Cell Y26 (r26,cY[24]): v="12" w="12" f="" t="n"
+Cell AB26 (r26,cAB[27]): v="Неоплачувана тимчасова непрацездатність у випадках, передбачених законодавством (у зв’язку з побутовою травмою та ін. підтверджена довідками лікувальних закладів)" w="Неоплачувана тимчасова непрацездатність у випадках, передбачених законодавством (у зв’язку з побутовою травмою та ін. підтверджена довідками лікувальних закладів)" f="" t="s"
+Cell AM26 (r26,cAM[38]): v="НН" w="НН" f="" t="s"
+Cell AO26 (r26,cAO[40]): v="27" w="27" f="" t="n"
+Cell B27 (r27,cB[1]): v="Відпустка без збереження заробітної плати у зв’язку з навчанням (п.12, 13, 17 ст. 25 Закону України "Про відпустки")" w="Відпустка без збереження заробітної плати у зв’язку з навчанням (п.12, 13, 17 ст. 25 Закону України "Про відпустки")" f="" t="s"
+Cell V27 (r27,cV[21]): v="НБ" w="НБ" f="" t="s"
+Cell Y27 (r27,cY[24]): v="13" w="13" f="" t="n"
+Cell AB27 (r27,cAB[27]): v="Неявки з нез’ясованих причин" w="Неявки з нез’ясованих причин" f="" t="s"
+Cell AM27 (r27,cAM[38]): v="НЗ" w="НЗ" f="" t="s"
+Cell AO27 (r27,cAO[40]): v="28" w="28" f="" t="n"
+Cell B28 (r28,cB[1]): v="Додаткова відпустка без збереження заробітної плати в обов’язковому порядку (ст. 25 крім п. 3, 12, 13, 17 Закону України "Про відпустки" )" w="Додаткова відпустка без збереження заробітної плати в обов’язковому порядку (ст. 25 крім п. 3, 12, 13, 17 Закону України "Про відпустки" )" f="" t="s"
+Cell V28 (r28,cV[21]): v="ДБ" w="ДБ" f="" t="s"
+Cell Y28 (r28,cY[24]): v="14" w="14" f="" t="n"
+Cell AB28 (r28,cAB[27]): v="Інші види неявок, передбачених колективними договорами, угодами " w="Інші види неявок, передбачених колективними договорами, угодами " f="" t="s"
+Cell AM28 (r28,cAM[38]): v="ІВ" w="ІВ" f="" t="s"
+Cell AO28 (r28,cAO[40]): v="29" w="29" f="" t="n"
+Cell B29 (r29,cB[1]): v="Додаткова оплачувана відпустка працівникам, які мають дітей (ст. 19 Закону України "Про відпустки")  " w="Додаткова оплачувана відпустка працівникам, які мають дітей (ст. 19 Закону України "Про відпустки")  " f="" t="s"
+Cell V29 (r29,cV[21]): v="ДО" w="ДО" f="" t="s"
+Cell Y29 (r29,cY[24]): v="15" w="15" f="" t="n"
+Cell AB29 (r29,cAB[27]): v="Інші причини неявок" w="Інші причини неявок" f="" t="s"
+Cell AM29 (r29,cAM[38]): v="І" w="І" f="" t="s"
+Cell AO29 (r29,cAO[40]): v="30" w="30" f="" t="n"
+Cell A31 (r31,cA[0]): v="№  п/п" w="№  п/п" f="" t="s"
+Cell B31 (r31,cB[1]): v="Табельний  номер" w="Табельний  номер" f="" t="s"
+Cell C31 (r31,cC[2]): v="Стать  (ч/ж)" w="Стать  (ч/ж)" f="" t="s"
+Cell D31 (r31,cD[3]): v="ПІБ, посада" w="ПІБ, посада" f="" t="s"
+Cell G31 (r31,cG[6]): v="Відмітки  про явки та неявки за числами місяця (годин)" w="Відмітки  про явки та неявки за числами місяця (годин)" f="" t="s"
+Cell W31 (r31,cW[22]): v="Відпрацьовано за місяць" w="Відпрацьовано за місяць" f="" t="s"
+Cell AC31 (r31,cAC[28]): v="Всього неявок" w="Всього неявок" f="" t="s"
+Cell AD31 (r31,cAD[29]): v="з причин за місяць" w="з причин за місяць" f="" t="s"
+Cell AP31 (r31,cAP[41]): v="Оклад, тарифна ставка, грн" w="Оклад, тарифна ставка, грн" f="" t="s"
+Cell G32 (r32,cG[6]): v="1" w="01" f="" t="n"
+Cell H32 (r32,cH[7]): v="2" w="02" f="" t="n"
+Cell I32 (r32,cI[8]): v="3" w="03" f="" t="n"
+Cell J32 (r32,cJ[9]): v="4" w="04" f="" t="n"
+Cell K32 (r32,cK[10]): v="5" w="05" f="" t="n"
+Cell L32 (r32,cL[11]): v="6" w="06" f="" t="n"
+Cell M32 (r32,cM[12]): v="7" w="07" f="" t="n"
+Cell N32 (r32,cN[13]): v="8" w="08" f="" t="n"
+Cell O32 (r32,cO[14]): v="9" w="09" f="" t="n"
+Cell P32 (r32,cP[15]): v="10" w="10" f="" t="n"
+Cell Q32 (r32,cQ[16]): v="11" w="11" f="" t="n"
+Cell R32 (r32,cR[17]): v="12" w="12" f="" t="n"
+Cell S32 (r32,cS[18]): v="13" w="13" f="" t="n"
+Cell T32 (r32,cT[19]): v="14" w="14" f="" t="n"
+Cell U32 (r32,cU[20]): v="15" w="15" f="" t="n"
+Cell V32 (r32,cV[21]): v="х" w="х" f="" t="s"
+Cell W32 (r32,cW[22]): v="днів" w="днів" f="" t="s"
+Cell X32 (r32,cX[23]): v="годин" w="годин" f="" t="s"
+Cell AD32 (r32,cAD[29]): v="основна та додат- кова від- пустки" w="основна та додат- кова від- пустки" f="" t="s"
+Cell AE32 (r32,cAE[30]): v="відпуст- ки у зв’яз- ку з нав- чанням, творчі, в обов. порядку та інші " w="відпуст- ки у зв’яз- ку з нав- чанням, творчі, в обов. порядку та інші " f="" t="s"
+Cell AF32 (r32,cAF[31]): v="відпуст- ки без збере- ження заробіт- ної плати за згодою сторін" w="відпуст- ки без збере- ження заробіт- ної плати за згодою сторін" f="" t="s"
+Cell AG32 (r32,cAG[32]): v="відпуст- ки без збере- ження з/п на період припи- нення виконан-ня робіт" w="відпуст- ки без збере- ження з/п на період припи- нення виконан-ня робіт" f="" t="s"
+Cell AH32 (r32,cAH[33]): v="перевод на непов- ний робочий день (тиж- день)" w="перевод на непов- ний робочий день (тиж- день)" f="" t="s"
+Cell AI32 (r32,cAI[34]): v="тимча- совий перевод на інше підпри- ємство" w="тимча- совий перевод на інше підпри- ємство" f="" t="s"
+Cell AJ32 (r32,cAJ[35]): v="простої" w="простої" f="" t="s"
+Cell AK32 (r32,cAK[36]): v="прогули" w="прогули" f="" t="s"
+Cell AL32 (r32,cAL[37]): v="страйки" w="страйки" f="" t="s"
+Cell AM32 (r32,cAM[38]): v="тимча- сова непра- цездат- ність" w="тимча- сова непра- цездат- ність" f="" t="s"
+Cell AN32 (r32,cAN[39]): v="інші" w="інші" f="" t="s"
+Cell X33 (r33,cX[23]): v="всього" w="всього" f="" t="s"
+Cell Y33 (r33,cY[24]): v="з них:" w="з них:" f="" t="s"
+Cell G34 (r34,cG[6]): v="16" w="16" f="" t="n"
+Cell H34 (r34,cH[7]): v="17" w="17" f="" t="n"
+Cell I34 (r34,cI[8]): v="18" w="18" f="" t="n"
+Cell J34 (r34,cJ[9]): v="19" w="19" f="" t="n"
+Cell K34 (r34,cK[10]): v="20" w="20" f="" t="n"
+Cell L34 (r34,cL[11]): v="21" w="21" f="" t="n"
+Cell M34 (r34,cM[12]): v="22" w="22" f="" t="n"
+Cell N34 (r34,cN[13]): v="23" w="23" f="" t="n"
+Cell O34 (r34,cO[14]): v="24" w="24" f="" t="n"
+Cell P34 (r34,cP[15]): v="25" w="25" f="" t="n"
+Cell Q34 (r34,cQ[16]): v="26" w="26" f="" t="n"
+Cell R34 (r34,cR[17]): v="27" w="27" f="" t="n"
+Cell S34 (r34,cS[18]): v="28" w="28" f="" t="n"
+Cell T34 (r34,cT[19]): v="29" w="29" f="" t="n"
+Cell U34 (r34,cU[20]): v="30" w="30" f="" t="n"
+Cell V34 (r34,cV[21]): v="31" w="31" f="" t="n"
+Cell Y34 (r34,cY[24]): v="над- уроч- но" w="над- уроч- но" f="" t="s"
+Cell Z34 (r34,cZ[25]): v="ніч- них" w="ніч- них" f="" t="s"
+Cell AA34 (r34,cAA[26]): v="вечір-ніх" w="вечір-ніх" f="" t="s"
+Cell AB34 (r34,cAB[27]): v="вихідних, святко- вих" w="вихідних, святко- вих" f="" t="s"
+Cell AC34 (r34,cAC[28]): v="години" w="години" f="" t="s"
+Cell AD34 (r34,cAD[29]): v="коди\n8-10" w="коди
+8-10" f="" t="s"
+Cell AE34 (r34,cAE[30]): v="коди\n11-15, 17,22" w="коди
+11-15, 17,22" f="" t="s"
+Cell AF34 (r34,cAF[31]): v="коди \n18" w="коди 
+18" f="" t="s"
+Cell AG34 (r34,cAG[32]): v="коди\n19" w="коди
+19" f="" t="s"
+Cell AH34 (r34,cAH[33]): v="коди\n20" w="коди
+20" f="" t="s"
+Cell AI34 (r34,cAI[34]): v="коди\n21" w="коди
+21" f="" t="s"
+Cell AJ34 (r34,cAJ[35]): v="коди\n23" w="коди
+23" f="" t="s"
+Cell AK34 (r34,cAK[36]): v="коди\n24" w="коди
+24" f="" t="s"
+Cell AL34 (r34,cAL[37]): v="коди\n25" w="коди
+25" f="" t="s"
+Cell AM34 (r34,cAM[38]): v="коди\n26-27" w="коди
+26-27" f="" t="s"
+Cell AN34 (r34,cAN[39]): v="коди\n28-30" w="коди
+28-30" f="" t="s"
+Cell AC36 (r36,cAC[28]): v="дні" w="дні" f="" t="s"
+Cell AD36 (r36,cAD[29]): v="дні/год." w="дні/год." f="" t="s"
+Cell AE36 (r36,cAE[30]): v="дні/год." w="дні/год." f="" t="s"
+Cell AF36 (r36,cAF[31]): v="дні/год." w="дні/год." f="" t="s"
+Cell AG36 (r36,cAG[32]): v="дні/год." w="дні/год." f="" t="s"
+Cell AH36 (r36,cAH[33]): v="дні/год." w="дні/год." f="" t="s"
+Cell AI36 (r36,cAI[34]): v="дні/год." w="дні/год." f="" t="s"
+Cell AJ36 (r36,cAJ[35]): v="дні/год." w="дні/год." f="" t="s"
+Cell AK36 (r36,cAK[36]): v="дні/год." w="дні/год." f="" t="s"
+Cell AL36 (r36,cAL[37]): v="дні/год." w="дні/год." f="" t="s"
+Cell AM36 (r36,cAM[38]): v="дні/год." w="дні/год." f="" t="s"
+Cell AN36 (r36,cAN[39]): v="дні/год." w="дні/год." f="" t="s"
+Cell AO36 (r36,cAO[40]): v="дні/год." w="дні/год." f="" t="s"
+Cell A37 (r37,cA[0]): v="1" w="1" f="" t="n"
+Cell B37 (r37,cB[1]): v="0001" w="0001" f="" t="s"
+Cell C37 (r37,cC[2]): v="ж" w="ж" f="" t="s"
+Cell D37 (r37,cD[3]): v="Комарі Ганна Юріївна, продавець-консультант" w="Комарі Ганна Юріївна, продавець-консультант" f="" t="s"
+Cell H37 (r37,cH[7]): v="8" w="8" f="" t="n"
+Cell I37 (r37,cI[8]): v="8" w="8" f="" t="n"
+Cell J37 (r37,cJ[9]): v="8" w="8" f="" t="n"
+Cell K37 (r37,cK[10]): v="8" w="8" f="" t="n"
+Cell L37 (r37,cL[11]): v="8" w="8" f="" t="n"
+Cell O37 (r37,cO[14]): v="8" w="8" f="" t="n"
+Cell P37 (r37,cP[15]): v="8" w="8" f="" t="n"
+Cell Q37 (r37,cQ[16]): v="8" w="8" f="" t="n"
+Cell R37 (r37,cR[17]): v="8" w="8" f="" t="n"
+Cell S37 (r37,cS[18]): v="8" w="8" f="" t="n"
+Cell V37 (r37,cV[21]): v="х" w="х" f="" t="s"
+Cell W37 (r37,cW[22]): v="22" w="22" f="COUNTIF(G37:V40,8)" t="n"
+Cell X37 (r37,cX[23]): v="176" w="176" f="W37*8" t="n"
+Cell AP37 (r37,cAP[41]): v="8647" w="8647" f="" t="n"
+Cell H38 (r38,cH[7]): v="Р" w="Р" f="IF(H37,"Р"," ")" t="s"
+Cell I38 (r38,cI[8]): v="Р" w="Р" f="IF(I37,"Р"," ")" t="s"
+Cell J38 (r38,cJ[9]): v="Р" w="Р" f="IF(J37,"Р"," ")" t="s"
+Cell K38 (r38,cK[10]): v="Р" w="Р" f="IF(K37,"Р"," ")" t="s"
+Cell L38 (r38,cL[11]): v="Р" w="Р" f="IF(L37,"Р"," ")" t="s"
+Cell O38 (r38,cO[14]): v="Р" w="Р" f="IF(O37,"Р"," ")" t="s"
+Cell P38 (r38,cP[15]): v="Р" w="Р" f="IF(P37,"Р"," ")" t="s"
+Cell Q38 (r38,cQ[16]): v="Р" w="Р" f="IF(Q37,"Р"," ")" t="s"
+Cell R38 (r38,cR[17]): v="Р" w="Р" f="IF(R37,"Р"," ")" t="s"
+Cell S38 (r38,cS[18]): v="Р" w="Р" f="IF(S37,"Р"," ")" t="s"
+Cell V38 (r38,cV[21]): v="х" w="х" f="" t="s"
+Cell G39 (r39,cG[6]): v="8" w="8" f="" t="n"
+Cell H39 (r39,cH[7]): v="8" w="8" f="" t="n"
+Cell I39 (r39,cI[8]): v="8" w="8" f="" t="n"
+Cell J39 (r39,cJ[9]): v="8" w="8" f="" t="n"
+Cell K39 (r39,cK[10]): v="8" w="8" f="" t="n"
+Cell N39 (r39,cN[13]): v="8" w="8" f="" t="n"
+Cell O39 (r39,cO[14]): v="8" w="8" f="" t="n"
+Cell P39 (r39,cP[15]): v="8" w="8" f="" t="n"
+Cell Q39 (r39,cQ[16]): v="8" w="8" f="" t="n"
+Cell R39 (r39,cR[17]): v="8" w="8" f="" t="n"
+Cell U39 (r39,cU[20]): v="8" w="8" f="" t="n"
+Cell V39 (r39,cV[21]): v="8" w="8" f="" t="n"
+Cell G40 (r40,cG[6]): v="Р" w="Р" f="IF(G39,"Р"," ")" t="s"
+Cell H40 (r40,cH[7]): v="Р" w="Р" f="IF(H39,"Р"," ")" t="s"
+Cell I40 (r40,cI[8]): v="Р" w="Р" f="IF(I39,"Р"," ")" t="s"
+Cell J40 (r40,cJ[9]): v="Р" w="Р" f="IF(J39,"Р"," ")" t="s"
+Cell K40 (r40,cK[10]): v="Р" w="Р" f="IF(K39,"Р"," ")" t="s"
+Cell N40 (r40,cN[13]): v="Р" w="Р" f="IF(N39,"Р"," ")" t="s"
+Cell O40 (r40,cO[14]): v="Р" w="Р" f="IF(O39,"Р"," ")" t="s"
+Cell P40 (r40,cP[15]): v="Р" w="Р" f="IF(P39,"Р"," ")" t="s"
+Cell Q40 (r40,cQ[16]): v="Р" w="Р" f="IF(Q39,"Р"," ")" t="s"
+Cell R40 (r40,cR[17]): v="Р" w="Р" f="IF(R39,"Р"," ")" t="s"
+Cell U40 (r40,cU[20]): v="Р" w="Р" f="IF(U39,"Р"," ")" t="s"
+Cell V40 (r40,cV[21]): v="Р" w="Р" f="IF(V39,"Р"," ")" t="s"
+Cell A41 (r41,cA[0]): v="РАЗОМ:" w="РАЗОМ:" f="" t="s"
+Cell W41 (r41,cW[22]): v="22" w="22" f="W37" t="n"
+Cell X41 (r41,cX[23]): v="176" w="176" f="SUM(X37:X40)" t="n"
+Cell B43 (r43,cB[1]): v="Відповідальна особа" w="Відповідальна особа" f="" t="s"
+Cell U43 (r43,cU[20]): v="Керівник структурного " w="Керівник структурного " f="" t="s"
+Cell AH43 (r43,cAH[33]): v="Працівник кадрової" w="Працівник кадрової" f="" t="s"
+Cell F44 (r44,cF[5]): v="(посада)" w="(посада)" f="" t="s"
+Cell U44 (r44,cU[20]): v="підрозділу" w="підрозділу" f="" t="s"
+Cell Z44 (r44,cZ[25]): v="(посада)" w="(посада)" f="" t="s"
+Cell AH44 (r44,cAH[33]): v="служби" w="служби" f="" t="s"
+Cell AK44 (r44,cAK[36]): v="(посада)" w="(посада)" f="" t="s"
+Cell B47 (r47,cB[1]): v=""____"___________20___р." w=""____"___________20___р." f="" t="s"
+Cell U47 (r47,cU[20]): v=""____"___________20___р." w=""____"___________20___р." f="" t="s"
+Cell AD47 (r47,cAD[29]): v="Гал Ф.Ф." w="Гал Ф.Ф." f="" t="s"
+Cell AH47 (r47,cAH[33]): v=""____"___________20___р." w=""____"___________20___р." f="" t="s"
+Cell F48 (r48,cF[5]): v="(підпис)" w="(підпис)" f="" t="s"
+Cell J48 (r48,cJ[9]): v="(ПІБ)" w="(ПІБ)" f="" t="s"
+Cell Z48 (r48,cZ[25]): v="(підпис)" w="(підпис)" f="" t="s"
+Cell AD48 (r48,cAD[29]): v="(ПІБ)" w="(ПІБ)" f="" t="s"
+Cell AK48 (r48,cAK[36]): v="(підпис)" w="(підпис)" f="" t="s"
+Cell AN48 (r48,cAN[39]): v="(ПІБ)" w="(ПІБ)" f="" t="s"
+Cell B50 (r50,cB[1]): v="Примітка. " w="Примітка. " f="" t="s"
+Cell B51 (r51,cB[1]): v="1. На безперервно діючих підприємствах, в установах, організаціях, а також в окремих виробництвах, цехах, дільницях, відділеннях і на деяких видах робіт, де за умовами виробництва (роботи) не може бути додержана встановлена для даної категорії працівників щоденна або щотижнева тривалість робочого часу, допускається за погодженням з виборним органом первинної профспілкової організації (профспілковим представником) розрахунок підсумованого фонду робочого часу за місяць, по кожному працівнику. При цьому фонд робочого часу не повинен перевищувати нормальної його тривалості. " w="1. На безперервно діючих підприємствах, в установах, організаціях, а також в окремих виробництвах, цехах, дільницях, відділеннях і на деяких видах робіт, де за умовами виробництва (роботи) не може бути додержана встановлена для даної категорії працівників щоденна або щотижнева тривалість робочого часу, допускається за погодженням з виборним органом первинної профспілкової організації (профспілковим представником) розрахунок підсумованого фонду робочого часу за місяць, по кожному працівнику. При цьому фонд робочого часу не повинен перевищувати нормальної його тривалості. " f="" t="s"
+Cell B52 (r52,cB[1]): v="2. Форма носить рекомендаційний характер і складається із мінімальної кількості показників, необхідних для заповнення форм державних статистичних спостережень. При необхідності форма може бути доповнена іншими показниками, необхідними для обліку на підприємстві." w="2. Форма носить рекомендаційний характер і складається із мінімальної кількості показників, необхідних для заповнення форм державних статистичних спостережень. При необхідності форма може бути доповнена іншими показниками, необхідними для обліку на підприємстві." f="" t="s"

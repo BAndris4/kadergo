@@ -71,7 +71,7 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             "SELECT j.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
                     j.foallas, j.teljes_munkaido, j.foglalkozas_megnevezes, j.fizetes, j.munkakezdes_datum, j.kerelem_datum, j.munkaviszony_vege,
                     c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
-                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
+                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum, j.tabel_nomer
              FROM jogviszony j
              JOIN szemely s ON j.munkavallalo_id = s.id
              LEFT JOIN cim c ON c.szemely_id = s.id
@@ -126,6 +126,7 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                 } else {
                     None
                 };
+                let tabel_nomer: Option<String> = r.get(30).ok().flatten();
 
                 Ok(MunkasDto {
                     id,
@@ -142,6 +143,7 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                     munkakezdes_datum,
                     kerelem_datum,
                     munkaviszony_vege,
+                    tabel_nomer,
                     cim,
                     okmany,
                 })
@@ -455,7 +457,7 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
             "SELECT j.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
                     j.foallas, j.teljes_munkaido, j.foglalkozas_megnevezes, j.fizetes, j.munkakezdes_datum, j.kerelem_datum, j.munkaviszony_vege,
                     c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
-                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
+                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum, j.tabel_nomer
              FROM jogviszony j
              JOIN szemely s ON j.munkavallalo_id = s.id
              LEFT JOIN cim c ON c.szemely_id = s.id
@@ -513,6 +515,7 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
             } else {
                 None
             };
+            let tabel_nomer: Option<String> = r.get(30).ok().flatten();
 
             Ok(MunkasDto {
                 id,
@@ -529,6 +532,7 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
                 munkakezdes_datum,
                 kerelem_datum,
                 munkaviszony_vege,
+                tabel_nomer,
                 cim,
                 okmany,
             })
@@ -575,6 +579,22 @@ pub fn delete_fop(fop_id: i64) -> Result<(), String> {
     if let Some(s_id) = szemely_id {
         let _ = conn.execute("DELETE FROM szemely WHERE id = ?1", params![s_id]);
     }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_all_fops() -> Result<(), String> {
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+
+    conn.execute_batch(
+        "DELETE FROM jogviszony;
+         DELETE FROM fop;
+         DELETE FROM okmany;
+         DELETE FROM cim;
+         DELETE FROM szemely;",
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }

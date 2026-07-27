@@ -7,8 +7,10 @@ import {
   ExclamationCircleIcon,
   BanknotesIcon,
   MagnifyingGlassIcon,
+  TrashIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-import { pickRootFolder, saveRootFolder, saveMinWage } from "../services/fopService";
+import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops } from "../services/fopService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ interface SettingsModalProps {
   onMinWageChange: (val: number) => void;
   onShowToast: (msg: string) => void;
   onScanFolders: () => void;
+  onFopsCleared?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -30,11 +33,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onMinWageChange,
   onShowToast,
   onScanFolders,
+  onFopsCleared,
 }) => {
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   useEffect(() => {
     setLocalMinWage(minWage);
+    setIsConfirmingDelete(false);
   }, [minWage, isOpen]);
 
   if (!isOpen) return null;
@@ -53,6 +60,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     saveMinWage(localMinWage);
     onShowToast(`Налаштування успішно збережено! Мінімальну зарплату встановлено: ${localMinWage} грн`);
     onClose();
+  };
+
+  const handleExecuteDeleteAll = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAllFops();
+      onShowToast("Усі ФОП та працівники успішно видалені з бази даних!");
+      if (onFopsCleared) {
+        onFopsCleared();
+      }
+      setIsConfirmingDelete(false);
+      onClose();
+    } catch (err) {
+      onShowToast("Помилка під час видалення даних: " + String(err));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -162,6 +186,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <p className="text-xs font-extrabold text-[#7e6241]">
               💡 Ця сума буде автоматично встановлюватись за замовчуванням під час оформлення нових працівників.
             </p>
+          </div>
+
+          {/* Section 3: Danger Zone (Clear All Data) */}
+          <div className="p-6 rounded-3xl bg-rose-50/80 border-2 border-rose-200 flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-rose-800">
+              <ExclamationTriangleIcon className="w-4.5 h-4.5 text-rose-600 stroke-[2.2]" />
+              3. Небезпечна зона (Danger Zone)
+            </div>
+
+            <p className="text-xs font-extrabold text-rose-700 leading-relaxed">
+              ⚠️ Ця дія повністю видалить УСІ ФОП та всіх пов'язаних працівників з бази даних. Очищені дані відновити неможливо!
+            </p>
+
+            {!isConfirmingDelete ? (
+              <button
+                onClick={() => setIsConfirmingDelete(true)}
+                className="w-full px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+              >
+                <TrashIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                Видалити всі ФОП та працівників
+              </button>
+            ) : (
+              <div className="p-4 rounded-2xl bg-white border-2 border-rose-300 flex flex-col gap-3 animate-fadeIn">
+                <span className="text-xs font-black text-rose-900 text-center">
+                  Ви дійсно впевнені? Ця дія повністю очистить базу даних!
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleExecuteDeleteAll}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {isDeleting ? "Видалення..." : "Так, видалити все!"}
+                  </button>
+                  <button
+                    onClick={() => setIsConfirmingDelete(false)}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs transition-all cursor-pointer"
+                  >
+                    Скасувати
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

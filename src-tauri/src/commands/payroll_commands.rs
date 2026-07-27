@@ -64,7 +64,7 @@ pub struct PayrollCalculationPreviewDto {
     pub rows: Vec<PayrollCalculationRowDto>,
 }
 
-fn get_month_name_ukr(month: u32) -> (&'static str, &'static str) {
+pub fn get_month_name_ukr(month: u32) -> (&'static str, &'static str) {
     match month {
         1 => ("січень", "СІЧЕНЬ"),
         2 => ("лютий", "ЛЮТИЙ"),
@@ -82,7 +82,7 @@ fn get_month_name_ukr(month: u32) -> (&'static str, &'static str) {
     }
 }
 
-fn get_days_in_month(year: i32, month: u32) -> u32 {
+pub fn get_days_in_month(year: i32, month: u32) -> u32 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
@@ -97,7 +97,7 @@ fn get_days_in_month(year: i32, month: u32) -> u32 {
     }
 }
 
-fn is_weekday(year: i32, month: u32, day: u32) -> bool {
+pub fn is_weekday(year: i32, month: u32, day: u32) -> bool {
     let t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
     let mut y = year;
     if month < 3 {
@@ -107,7 +107,7 @@ fn is_weekday(year: i32, month: u32, day: u32) -> bool {
     dow >= 1 && dow <= 5
 }
 
-fn parse_day_of_month(date_str: &Option<String>, year: i32, month: u32) -> Option<u32> {
+pub fn parse_day_of_month(date_str: &Option<String>, year: i32, month: u32) -> Option<u32> {
     if let Some(ref d) = date_str {
         let parts: Vec<&str> = d.split('-').collect();
         if parts.len() == 3 {

@@ -38,6 +38,7 @@ export const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
     keresztnev: "",
     apai_nev: "",
     kod: "",
+    tabel_nomer: "",
     szuletesi_datum: "",
     nem: "",
 
@@ -77,13 +78,44 @@ export const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
 
   useEffect(() => {
     if (fopId && isOpen) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
         fop_id: fopId,
+        vezeteknev: "",
+        keresztnev: "",
+        apai_nev: "",
+        kod: "",
+        tabel_nomer: "",
+        szuletesi_datum: "",
+        nem: "",
+
+        foglalkozas_megnevezes: "",
         fizetes: getSavedMinWage(),
-        munkakezdes_datum: prev.munkakezdes_datum || getTodayString(),
-        kerelem_datum: prev.kerelem_datum || getTodayString(),
-      }));
+        foallas: true,
+        teljes_munkaido: true,
+        munkakezdes_datum: getTodayString(),
+        kerelem_datum: getTodayString(),
+        munkaviszony_vege: "",
+
+        iranyitoszam: "",
+        megye: "",
+        jaras: "",
+        kozseg: "",
+        utca: "",
+        hazszam: "",
+        epulet: "",
+        lakas_szoba: "",
+        orszag: "Україна",
+
+        okmany_tipus: 0,
+        szeria: "",
+        okmanyszam: "",
+        kiallitott_hatosag: "",
+        hatosagi_kod: "",
+        kiallitasi_datum: "",
+        lejarati_datum: "",
+      });
+      setActiveStep(1);
+      setErrors({});
     }
   }, [fopId, isOpen]);
 

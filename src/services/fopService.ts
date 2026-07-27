@@ -88,6 +88,16 @@ export async function importSelectedFops(items: DiscoveredFopDto[]): Promise<Fop
   return fetchFops();
 }
 
+export async function deleteAllFops(): Promise<void> {
+  try {
+    await invoke("delete_all_fops");
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  } catch (err) {
+    console.warn("Tauri delete_all_fops fallback:", err);
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  }
+}
+
 export function sortFopsAlphabetically(fops: FopData[]): FopData[] {
   return [...fops].sort((a, b) => {
     const nameA = [a.vezeteknev, a.keresztnev, a.apai_nev].filter(Boolean).join(" ");
@@ -305,6 +315,7 @@ export async function createWorker(formData: CreateWorkerFormState, existingFops
   const inputData = {
     fop_id: formData.fop_id,
     kod: formData.kod.trim() || undefined,
+    tabel_nomer: formData.tabel_nomer.trim() || undefined,
     vezeteknev: formData.vezeteknev.trim(),
     keresztnev: formData.keresztnev.trim(),
     apai_nev: formData.apai_nev.trim(),
@@ -385,6 +396,7 @@ export async function updateWorker(formData: EditWorkerFormState, existingFops: 
   const inputData = {
     id: formData.id,
     kod: formData.kod.trim() || undefined,
+    tabel_nomer: formData.tabel_nomer.trim() || undefined,
     vezeteknev: formData.vezeteknev.trim(),
     keresztnev: formData.keresztnev.trim(),
     apai_nev: formData.apai_nev.trim(),
@@ -567,5 +579,55 @@ export async function saveWorkerKopek(
   });
 }
 
+// ─── Табель (Timesheet) Service Functions ───────────────────────────
 
+export async function previewTabel(
+  fopId: number,
+  year: number,
+  month: number,
+  workerDayOverrides: Array<{ worker_id: number; day: number; code: string; hours: number }>
+) {
+  return await invoke("preview_tabel", {
+    fopId,
+    year,
+    month,
+    workerDayOverrides,
+  });
+}
 
+export async function previewTabelPeriod(
+  fopId: number,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number
+) {
+  return await invoke("preview_tabel_period", {
+    fopId,
+    startYear,
+    startMonth,
+    endYear,
+    endMonth,
+  });
+}
+
+export async function generateTabelExcel(req: {
+  fop_id: number;
+  year: number;
+  month: number;
+  worker_day_overrides: Array<{ worker_id: number; day: number; code: string; hours: number }>;
+  save_dir?: string;
+}): Promise<string> {
+  return await invoke<string>("generate_tabel_excel", { req });
+}
+
+export async function generateTabelPeriodExcel(req: {
+  fop_id: number;
+  start_year: number;
+  start_month: number;
+  end_year: number;
+  end_month: number;
+  save_dir?: string;
+}): Promise<string> {
+  return await invoke<string>("generate_tabel_period_excel", { req });
+}

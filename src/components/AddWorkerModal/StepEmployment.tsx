@@ -47,6 +47,20 @@ export const StepEmployment: React.FC<StepEmploymentProps> = ({
 
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
+            Табельний номер
+          </label>
+          <input
+            type="text"
+            name="tabel_nomer"
+            placeholder="001"
+            value={formData.tabel_nomer}
+            onChange={onChange}
+            className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
             Оклад / Заробітна плата (грн)
           </label>
           <input

@@ -75,9 +75,11 @@ pub fn create_worker(input: CreateWorkerInput) -> Result<MunkasDto, String> {
         }
     }
 
+    let tabel_nomer = input.tabel_nomer.filter(|s| !s.trim().is_empty());
+
     tx.execute(
-        "INSERT INTO jogviszony (munkavallalo_id, fop_id, foallas, teljes_munkaido, foglalkozas_megnevezes, fizetes, munkakezdes_datum, kerelem_datum, munkaviszony_vege)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO jogviszony (munkavallalo_id, fop_id, foallas, teljes_munkaido, foglalkozas_megnevezes, fizetes, munkakezdes_datum, kerelem_datum, munkaviszony_vege, tabel_nomer)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             szemely_id,
             input.fop_id,
@@ -87,7 +89,8 @@ pub fn create_worker(input: CreateWorkerInput) -> Result<MunkasDto, String> {
             input.fizetes,
             input.munkakezdes_datum,
             input.kerelem_datum,
-            end_date
+            end_date,
+            tabel_nomer
         ],
     )
     .map_err(|e| format!("Не вдалося зберегти трудові відносини: {}", e))?;
@@ -111,6 +114,7 @@ pub fn create_worker(input: CreateWorkerInput) -> Result<MunkasDto, String> {
         munkakezdes_datum: input.munkakezdes_datum,
         kerelem_datum: input.kerelem_datum,
         munkaviszony_vege: end_date,
+        tabel_nomer,
         cim: input.cim,
         okmany: input.okmany,
     })
@@ -132,6 +136,7 @@ pub fn update_worker(input: UpdateWorkerInput) -> Result<MunkasDto, String> {
     let person_code = input.kod.filter(|s| !s.trim().is_empty());
     let gender = input.nem.filter(|s| !s.trim().is_empty());
     let end_date = input.munkaviszony_vege.filter(|s| !s.trim().is_empty());
+    let tabel_nomer = input.tabel_nomer.filter(|s| !s.trim().is_empty());
 
     tx.execute(
         "UPDATE szemely SET kod = ?1, vezeteknev = ?2, keresztnev = ?3, apai_nev = ?4, szuletesi_datum = ?5, nem = ?6
@@ -149,8 +154,8 @@ pub fn update_worker(input: UpdateWorkerInput) -> Result<MunkasDto, String> {
     .map_err(|e| format!("Не вдалося оновити особу: {}", e))?;
 
     tx.execute(
-        "UPDATE jogviszony SET foallas=?1, teljes_munkaido=?2, foglalkozas_megnevezes=?3, fizetes=?4, munkakezdes_datum=?5, kerelem_datum=?6, munkaviszony_vege=?7
-         WHERE id=?8",
+        "UPDATE jogviszony SET foallas=?1, teljes_munkaido=?2, foglalkozas_megnevezes=?3, fizetes=?4, munkakezdes_datum=?5, kerelem_datum=?6, munkaviszony_vege=?7, tabel_nomer=?8
+         WHERE id=?9",
         params![
             if input.foallas { 1 } else { 0 },
             if input.teljes_munkaido { 1 } else { 0 },
@@ -159,6 +164,7 @@ pub fn update_worker(input: UpdateWorkerInput) -> Result<MunkasDto, String> {
             input.munkakezdes_datum,
             input.kerelem_datum,
             end_date,
+            tabel_nomer,
             input.id
         ],
     )
@@ -273,6 +279,7 @@ pub fn update_worker(input: UpdateWorkerInput) -> Result<MunkasDto, String> {
         munkakezdes_datum: input.munkakezdes_datum,
         kerelem_datum: input.kerelem_datum,
         munkaviszony_vege: end_date,
+        tabel_nomer,
         cim: input.cim,
         okmany: input.okmany,
     })
