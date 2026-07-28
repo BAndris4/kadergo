@@ -5,17 +5,30 @@ interface HeaderProps {
   activeTab: "generator" | "management";
   onTabChange: (tab: "generator" | "management") => void;
   onOpenSettings: () => void;
+  onGoHome?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings, onGoHome }) => {
+  const handleLogoClick = () => {
+    if (onGoHome) {
+      onGoHome();
+    } else {
+      onTabChange("generator");
+    }
+  };
+
   return (
     <header className="flex flex-wrap items-center justify-between gap-6 pb-7 mb-9 border-b border-[#c8d9d7]">
-      <div className="flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-[#133b47] flex items-center justify-center text-[#f8a44c] font-black text-2xl shadow-lg shadow-[#133b47]/20">
+      <div
+        onClick={handleLogoClick}
+        className="flex items-center gap-5 cursor-pointer group select-none"
+        title="Перейти на головну сторінку"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-[#133b47] flex items-center justify-center text-[#f8a44c] font-black text-2xl shadow-lg shadow-[#133b47]/20 group-hover:scale-105 transition-transform duration-200">
           K
         </div>
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-[#133b47] font-heading">
+          <h1 className="text-3xl font-black tracking-tight text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
             KaderGo
           </h1>
           <p className="text-sm text-[#4e6770] font-bold">

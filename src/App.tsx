@@ -227,6 +227,13 @@ export default function App() {
       return nameA.localeCompare(nameB, "uk", { sensitivity: "base" });
     });
 
+  const [docKey, setDocKey] = useState<number>(0);
+
+  const handleGoHome = () => {
+    setActiveTab("generator");
+    setDocKey((prev) => prev + 1);
+  };
+
   const osszesMunkasCount = fops.reduce((acc, fop) => acc + fop.munkasok.length, 0);
 
   return (
@@ -235,11 +242,13 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onGoHome={handleGoHome}
       />
 
       {/* VIEW 1: Document Generator Main View */}
       {activeTab === "generator" && (
         <DocumentGeneratorView
+          key={docKey}
           fops={fops}
           selectedFopId={selectedFopId}
           onSelectFop={setSelectedFopId}

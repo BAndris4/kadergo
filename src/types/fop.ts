@@ -329,3 +329,21 @@ export interface GenerateTabelPeriodRequest {
   worker_day_overrides?: WorkerDayOverride[];
   save_dir?: string;
 }
+
+
+
+export interface GenerateZayavaPriyomDocxRequest {
+  zayava_type?: string;
+  fop_id: number;
+  worker_id: number;
+  fop_name: string;
+  worker_genitive_name: string;
+  position: string;
+  start_date: string;
+  request_date: string;
+  worker_short_name: string;
+  foallas: boolean;
+  teljes_munkaido: boolean;
+  custom_body_text?: string;
+  save_dir?: string;
+}

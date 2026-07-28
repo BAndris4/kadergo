@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride } from "../types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -633,4 +633,10 @@ export async function generateTabelPeriodExcel(req: {
   save_dir?: string;
 }): Promise<string> {
   return await invoke<string>("generate_tabel_period_excel", { req });
+}
+
+
+
+export async function generateZayavaPriyomDocx(req: GenerateZayavaPriyomDocxRequest): Promise<string> {
+  return await invoke<string>("generate_zayava_priyom_docx", { req });
 }
