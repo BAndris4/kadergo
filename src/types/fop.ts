@@ -288,6 +288,7 @@ export interface TabelPreviewRowDto {
   month_name_ukr?: string;
   year?: number;
   month?: number;
+  teljes_munkaido?: boolean;
 }
 
 export interface TabelPreviewDto {
@@ -304,6 +305,8 @@ export interface TabelPreviewDto {
 
 export interface WorkerDayOverride {
   worker_id: number;
+  year?: number;
+  month?: number;
   day: number;
   code: string;
   hours: number;
@@ -314,5 +317,15 @@ export interface GenerateTabelRequest {
   year: number;
   month: number;
   worker_day_overrides: WorkerDayOverride[];
+  save_dir?: string;
+}
+
+export interface GenerateTabelPeriodRequest {
+  fop_id: number;
+  start_year: number;
+  start_month: number;
+  end_year: number;
+  end_month: number;
+  worker_day_overrides?: WorkerDayOverride[];
   save_dir?: string;
 }

@@ -101,13 +101,39 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
 
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
 
-  // Multi-select & Code picker state
+  // Multi-select & Code picker state (Excel-like drag & Ctrl selection)
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
-  const [selectedCells, setSelectedCells] = useState<{ workerId: number; day: number }[]>([]);
+  const [selectedCellKeys, setSelectedCellKeys] = useState<Set<string>>(new Set());
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [dragStart, setDragStart] = useState<{
+    sectionIdx: number;
+    rowIdx: number;
+    day: number;
+    year: number;
+    month: number;
+    workerId: number;
+  } | null>(null);
+  const [dragCtrlHeld, setDragCtrlHeld] = useState(false);
+  const [initialSelectionBeforeDrag, setInitialSelectionBeforeDrag] = useState<Set<string>>(new Set());
+
   const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
-  const [singleTargetCell, setSingleTargetCell] = useState<{ workerId: number; day: number } | null>(null);
+  const [singleTargetCell, setSingleTargetCell] = useState<{
+    workerId: number;
+    year: number;
+    month: number;
+    day: number;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [customHoursOverride, setCustomHoursOverride] = useState<string>("");
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsMouseDown(false);
+      setDragStart(null);
+    };
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
+  }, []);
 
   const activeFopName = activeFop
     ? [activeFop.vezeteknev, activeFop.keresztnev, activeFop.apai_nev].filter(Boolean).join(" ")
@@ -137,7 +163,8 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           startYear,
           startMonth,
           endYear,
-          endMonth
+          endMonth,
+          dayOverrides
         )) as TabelPreviewDto;
         setPreviewData(data);
       }
@@ -175,31 +202,104 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
     });
   }, [previewData]);
 
-  // ─── Cell Selection Handlers ────────────────────────────────────
+  // ─── Cell Selection Handlers (Excel-like) ─────────────────────────
 
-  const isCellSelected = (workerId: number, day: number) => {
-    return selectedCells.some((c) => c.workerId === workerId && c.day === day);
+  const makeCellKey = (year: number, month: number, workerId: number, day: number) =>
+    `${year}-${month}-${workerId}-${day}`;
+
+  const isCellSelected = (year: number, month: number, workerId: number, day: number) => {
+    return selectedCellKeys.has(makeCellKey(year, month, workerId, day));
   };
 
-  const handleCellClick = (workerId: number, day: number) => {
-    if (isMultiSelectMode) {
-      setSelectedCells((prev) => {
-        if (prev.some((c) => c.workerId === workerId && c.day === day)) {
-          return prev.filter((c) => !(c.workerId === workerId && c.day === day));
-        } else {
-          return [...prev, { workerId, day }];
-        }
-      });
+  const handleCellMouseDown = (
+    e: React.MouseEvent,
+    sectionIdx: number,
+    rowIdx: number,
+    day: number,
+    year: number,
+    month: number,
+    workerId: number
+  ) => {
+    e.preventDefault();
+    setIsMouseDown(true);
+    const isCtrl = e.ctrlKey || e.metaKey;
+    setDragCtrlHeld(isCtrl);
+    setDragStart({ sectionIdx, rowIdx, day, year, month, workerId });
+    const cellKey = makeCellKey(year, month, workerId, day);
+
+    if (!isCtrl) {
+      setInitialSelectionBeforeDrag(new Set());
+      setSelectedCellKeys(new Set([cellKey]));
     } else {
-      setSingleTargetCell({ workerId, day });
-      setSearchQuery("");
-      setCustomHoursOverride("");
-      setIsPickerModalOpen(true);
+      setInitialSelectionBeforeDrag(new Set(selectedCellKeys));
+      setSelectedCellKeys((prev) => {
+        const next = new Set(prev);
+        if (next.has(cellKey)) {
+          next.delete(cellKey);
+        } else {
+          next.add(cellKey);
+        }
+        return next;
+      });
     }
   };
 
+  const handleCellMouseEnter = (
+    sectionIdx: number,
+    rowIdx: number,
+    day: number,
+    year: number,
+    month: number
+  ) => {
+    if (!isMouseDown || !dragStart) return;
+    if (dragStart.sectionIdx !== sectionIdx) return;
+
+    const rows = groupedMonthSections[sectionIdx]?.rows;
+    if (!rows) return;
+
+    const minRow = Math.min(dragStart.rowIdx, rowIdx);
+    const maxRow = Math.max(dragStart.rowIdx, rowIdx);
+    const minDay = Math.min(dragStart.day, day);
+    const maxDay = Math.max(dragStart.day, day);
+
+    const dragKeys = new Set<string>();
+    for (let r = minRow; r <= maxRow; r++) {
+      const rRow = rows[r];
+      if (!rRow) continue;
+      const rYear = rRow.year || year;
+      const rMonth = rRow.month || month;
+      for (let d = minDay; d <= maxDay; d++) {
+        dragKeys.add(makeCellKey(rYear, rMonth, rRow.worker_id, d));
+      }
+    }
+
+    if (dragCtrlHeld) {
+      const combined = new Set(initialSelectionBeforeDrag);
+      dragKeys.forEach((k) => combined.add(k));
+      setSelectedCellKeys(combined);
+    } else {
+      setSelectedCellKeys(dragKeys);
+    }
+  };
+
+  const handleCellDoubleClick = (
+    workerId: number,
+    day: number,
+    year: number,
+    month: number
+  ) => {
+    const key = makeCellKey(year, month, workerId, day);
+    if (!selectedCellKeys.has(key)) {
+      setSelectedCellKeys((prev) => new Set(prev).add(key));
+    }
+    setSingleTargetCell({ workerId, year, month, day });
+    setSearchQuery("");
+    setCustomHoursOverride("");
+    setIsPickerModalOpen(true);
+  };
+
   const openPickerForSelected = () => {
-    if (selectedCells.length === 0) return;
+    if (selectedCellKeys.size === 0) return;
     setSingleTargetCell(null);
     setSearchQuery("");
     setCustomHoursOverride("");
@@ -208,36 +308,52 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
 
   const selectAllWeekdays = () => {
     if (!previewData || previewData.rows.length === 0) return;
-    const newCells: { workerId: number; day: number }[] = [];
+    const newKeys = new Set<string>();
     previewData.rows.forEach((row) => {
+      const rYear = row.year || selectedYear;
+      const rMonth = row.month || selectedMonth;
       row.days.forEach((day) => {
         if (day.is_weekday) {
-          newCells.push({ workerId: row.worker_id, day: day.day });
+          newKeys.add(makeCellKey(rYear, rMonth, row.worker_id, day.day));
         }
       });
     });
-    setSelectedCells(newCells);
+    setSelectedCellKeys(newKeys);
   };
 
   const selectAllWeekends = () => {
     if (!previewData || previewData.rows.length === 0) return;
-    const newCells: { workerId: number; day: number }[] = [];
+    const newKeys = new Set<string>();
     previewData.rows.forEach((row) => {
+      const rYear = row.year || selectedYear;
+      const rMonth = row.month || selectedMonth;
       row.days.forEach((day) => {
         if (!day.is_weekday) {
-          newCells.push({ workerId: row.worker_id, day: day.day });
+          newKeys.add(makeCellKey(rYear, rMonth, row.worker_id, day.day));
         }
       });
     });
-    setSelectedCells(newCells);
+    setSelectedCellKeys(newKeys);
   };
 
   const clearSelection = () => {
-    setSelectedCells([]);
+    setSelectedCellKeys(new Set());
   };
 
   const applyCodeSelection = (codeObj: typeof TABEL_CODES[0]) => {
-    const targets = singleTargetCell ? [singleTargetCell] : selectedCells;
+    let targets: { workerId: number; year: number; month: number; day: number }[] = [];
+
+    if (singleTargetCell) {
+      targets = [singleTargetCell];
+    } else {
+      selectedCellKeys.forEach((key) => {
+        const parts = key.split("-").map(Number);
+        if (parts.length === 4) {
+          targets.push({ year: parts[0], month: parts[1], workerId: parts[2], day: parts[3] });
+        }
+      });
+    }
+
     if (targets.length === 0) return;
 
     let finalHours = codeObj.defaultHours;
@@ -251,10 +367,20 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
     setDayOverrides((prev) => {
       let updated = [...prev];
       targets.forEach((t) => {
-        updated = updated.filter((o) => !(o.worker_id === t.workerId && o.day === t.day));
+        updated = updated.filter(
+          (o) =>
+            !(
+              o.worker_id === t.workerId &&
+              (o.year == null || o.year === t.year) &&
+              (o.month == null || o.month === t.month) &&
+              o.day === t.day
+            )
+        );
         if (codeObj.code !== "" || finalHours > 0) {
           updated.push({
             worker_id: t.workerId,
+            year: t.year,
+            month: t.month,
             day: t.day,
             code: codeObj.code,
             hours: finalHours,
@@ -267,7 +393,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
     setIsPickerModalOpen(false);
     setSingleTargetCell(null);
     if (!singleTargetCell) {
-      setSelectedCells([]);
+      setSelectedCellKeys(new Set());
     }
   };
 
@@ -299,6 +425,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           start_month: startMonth,
           end_year: endYear,
           end_month: endMonth,
+          worker_day_overrides: dayOverrides,
           save_dir: targetDir || undefined,
         });
         setLastGeneratedPath(filePath);
@@ -401,7 +528,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           <button
             onClick={() => {
               setIsMultiSelectMode(!isMultiSelectMode);
-              if (isMultiSelectMode) setSelectedCells([]);
+              if (isMultiSelectMode) setSelectedCellKeys(new Set());
             }}
             className={`px-4 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer border-2 ${
               isMultiSelectMode
@@ -538,12 +665,12 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
         </div>
       )}
 
-      {/* Bulk Select Control Bar (Visible when multi-select mode is ON) */}
-      {isMultiSelectMode && (
+      {/* Bulk Select Control Bar (Visible when multi-select mode is ON or cells are selected) */}
+      {(isMultiSelectMode || selectedCellKeys.size > 0) && (
         <div className="bg-[#fff8ef] border-2 border-[#f8a44c]/40 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3 shadow-md animate-fadeIn">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-xs font-black text-[#133b47]">
-              Вибрано днів: <span className="text-[#f8a44c] text-sm">{selectedCells.length}</span>
+              Вибрано днів: <span className="text-[#f8a44c] text-sm">{selectedCellKeys.size}</span>
             </span>
             <div className="h-4 w-[2px] bg-[#f8a44c]/30"></div>
             <button
@@ -558,7 +685,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
             >
               Всі вихідні
             </button>
-            {selectedCells.length > 0 && (
+            {selectedCellKeys.size > 0 && (
               <button
                 onClick={clearSelection}
                 className="px-3 py-1.5 rounded-xl bg-white border border-red-200 hover:bg-red-50 text-[11px] font-extrabold text-red-600 transition-all cursor-pointer"
@@ -570,11 +697,11 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
 
           <button
             onClick={openPickerForSelected}
-            disabled={selectedCells.length === 0}
+            disabled={selectedCellKeys.size === 0}
             className="px-5 py-2.5 rounded-xl bg-[#133b47] hover:bg-[#194b5a] text-[#f8a44c] font-black text-xs transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CheckIcon className="w-4 h-4 stroke-[2.5]" />
-            Змінити код для {selectedCells.length} вибраних днів
+            Змінити код для {selectedCellKeys.size} вибраних днів
           </button>
         </div>
       )}
@@ -611,7 +738,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           onWheel={handleWheelZoom}
           style={{ zoom: zoomLevel }}
         >
-          {groupedMonthSections.map((section) => {
+          {groupedMonthSections.map((section, sectionIdx) => {
             const daysInThisMonth = section.rows[0]?.days.length || 31;
             return (
               <div
@@ -631,7 +758,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
                   </div>
                 </div>
 
-                <div className="overflow-x-auto custom-scrollbar">
+                <div className="overflow-x-auto custom-scrollbar select-none">
                   <table className="w-full border-collapse min-w-[900px]">
                     <thead>
                       <tr className="bg-gradient-to-r from-[#133b47] to-[#184856]">
@@ -659,79 +786,90 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {section.rows.map((row, idx) => (
-                        <React.Fragment key={`${section.monthName}-${row.worker_id}`}>
-                          {/* Hours row */}
-                          <tr className={`${idx % 2 === 0 ? "bg-[#f8faf9]" : "bg-white"} border-b border-[#e2eceb]`}>
-                            <td rowSpan={2} className="p-1.5 text-center text-[#556e75] font-mono text-[10px] border-r border-[#e2eceb] font-bold">
-                              {idx + 1}
-                            </td>
-                            <td rowSpan={2} className="p-1.5 text-center text-[#133b47] font-mono text-[10px] border-r border-[#e2eceb] font-black">
-                              {row.worker_kod}
-                            </td>
-                            <td rowSpan={2} className="p-1.5 text-center text-[#556e75] font-mono text-[10px] border-r border-[#e2eceb]">
-                              {row.nem}
-                            </td>
-                            <td rowSpan={2} className="p-1.5 text-left text-[#133b47] text-[10px] border-r border-[#e2eceb] font-bold leading-tight">
-                              {row.pib_posada}
-                            </td>
-                            {row.days.map((day) => {
-                              const isWeekend = !day.is_weekday;
-                              const isSelected = isCellSelected(row.worker_id, day.day);
-                              return (
-                                <td
-                                  key={`h-${day.day}`}
-                                  className={`p-0 text-center font-mono text-[10px] border-r border-[#e2eceb] cursor-pointer transition-all ${
-                                    isSelected
-                                      ? "bg-[#fff3e0] text-[#133b47] font-black ring-2 ring-inset ring-[#f8a44c]"
-                                      : isWeekend
-                                      ? "bg-[#f0f4f3] text-[#a0b5b0]"
-                                      : day.hours > 0
-                                      ? "text-[#133b47] font-bold hover:bg-[#e6f4f1]"
-                                      : "text-[#cbd8d6] hover:bg-[#f4f9f8]"
-                                  }`}
-                                  onClick={() => handleCellClick(row.worker_id, day.day)}
-                                >
-                                  <div>{day.hours > 0 ? day.hours : ""}</div>
-                                </td>
-                              );
-                            })}
-                            <td rowSpan={2} className="p-1.5 text-center font-mono text-[11px] font-black text-[#133b47] border-r border-[#e2eceb] bg-[#e6f4f1]">
-                              {row.total_days}
-                            </td>
-                            <td rowSpan={2} className="p-1.5 text-center font-mono text-[11px] font-black text-[#133b47] border-r border-[#e2eceb] bg-[#e6f4f1]">
-                              {row.total_hours}
-                            </td>
-                            <td rowSpan={2} className="p-1.5 text-right font-mono text-[11px] font-black text-[#133b47] pr-3">
-                              {row.rate.toLocaleString("uk-UA")}
-                            </td>
-                          </tr>
-                          {/* Code row */}
-                          <tr className={`${idx % 2 === 0 ? "bg-[#f8faf9]" : "bg-white"} border-b-2 border-[#cbd8d6]`}>
-                            {row.days.map((day) => {
-                              const isWeekend = !day.is_weekday;
-                              const isSelected = isCellSelected(row.worker_id, day.day);
-                              return (
-                                <td
-                                  key={`c-${day.day}`}
-                                  className={`p-0 text-center text-[9px] border-r border-[#e2eceb] cursor-pointer transition-all ${
-                                    isSelected
-                                      ? "bg-[#fff3e0] text-[#f8a44c] font-black ring-2 ring-inset ring-[#f8a44c]"
-                                      : isWeekend
-                                      ? "bg-[#f0f4f3] text-[#a0b5b0]"
-                                      : day.code
-                                      ? "text-[#f8a44c] font-black hover:bg-[#e6f4f1]"
-                                      : "text-[#cbd8d6] hover:bg-[#f4f9f8]"
-                                  }`}
-                                  onClick={() => handleCellClick(row.worker_id, day.day)}
-                                >
-                                  {day.code}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        </React.Fragment>
-                      ))}
+                      {section.rows.map((row, idx) => {
+                        const rYear = row.year || selectedYear;
+                        const rMonth = row.month || selectedMonth;
+
+                        return (
+                          <React.Fragment key={`${section.monthName}-${rYear}-${rMonth}-${row.worker_id}`}>
+                            {/* Hours row */}
+                            <tr className={`${idx % 2 === 0 ? "bg-[#f8faf9]" : "bg-white"} border-b border-[#e2eceb]`}>
+                              <td rowSpan={2} className="p-1.5 text-center text-[#556e75] font-mono text-[10px] border-r border-[#e2eceb] font-bold">
+                                {idx + 1}
+                              </td>
+                              <td rowSpan={2} className="p-1.5 text-center text-[#133b47] font-mono text-[10px] border-r border-[#e2eceb] font-black">
+                                {row.worker_kod}
+                              </td>
+                              <td rowSpan={2} className="p-1.5 text-center text-[#556e75] font-mono text-[10px] border-r border-[#e2eceb]">
+                                {row.nem}
+                              </td>
+                              <td rowSpan={2} className="p-1.5 text-left text-[#133b47] text-[10px] border-r border-[#e2eceb] font-bold leading-tight">
+                                {row.pib_posada}
+                              </td>
+                              {row.days.map((day) => {
+                                const isWeekend = !day.is_weekday;
+                                const isSelected = isCellSelected(rYear, rMonth, row.worker_id, day.day);
+
+                                return (
+                                  <td
+                                    key={`h-${day.day}`}
+                                    className={`p-0 text-center font-mono text-[10px] border-r border-[#e2eceb] cursor-pointer transition-all ${
+                                      isSelected
+                                        ? "bg-[#e3f2fd] text-[#0d47a1] font-black ring-2 ring-inset ring-[#1976d2] z-10"
+                                        : isWeekend
+                                        ? "bg-[#f0f4f3] text-[#a0b5b0]"
+                                        : day.hours > 0
+                                        ? "text-[#133b47] font-bold hover:bg-[#e6f4f1]"
+                                        : "text-[#cbd8d6] hover:bg-[#f4f9f8]"
+                                    }`}
+                                    onMouseDown={(e) => handleCellMouseDown(e, sectionIdx, idx, day.day, rYear, rMonth, row.worker_id)}
+                                    onMouseEnter={() => handleCellMouseEnter(sectionIdx, idx, day.day, rYear, rMonth)}
+                                    onDoubleClick={() => handleCellDoubleClick(row.worker_id, day.day, rYear, rMonth)}
+                                  >
+                                    <div>{day.hours > 0 ? day.hours : ""}</div>
+                                  </td>
+                                );
+                              })}
+                              <td rowSpan={2} className="p-1.5 text-center font-mono text-[11px] font-black text-[#133b47] border-r border-[#e2eceb] bg-[#e6f4f1]">
+                                {row.total_days}
+                              </td>
+                              <td rowSpan={2} className="p-1.5 text-center font-mono text-[11px] font-black text-[#133b47] border-r border-[#e2eceb] bg-[#e6f4f1]">
+                                {row.total_hours}
+                              </td>
+                              <td rowSpan={2} className="p-1.5 text-right font-mono text-[11px] font-black text-[#133b47] pr-3">
+                                {row.rate.toLocaleString("uk-UA")}
+                              </td>
+                            </tr>
+                            {/* Code row */}
+                            <tr className={`${idx % 2 === 0 ? "bg-[#f8faf9]" : "bg-white"} border-b-2 border-[#cbd8d6]`}>
+                              {row.days.map((day) => {
+                                const isWeekend = !day.is_weekday;
+                                const isSelected = isCellSelected(rYear, rMonth, row.worker_id, day.day);
+
+                                return (
+                                  <td
+                                    key={`c-${day.day}`}
+                                    className={`p-0 text-center text-[9px] border-r border-[#e2eceb] cursor-pointer transition-all ${
+                                      isSelected
+                                        ? "bg-[#e3f2fd] text-[#1976d2] font-black ring-2 ring-inset ring-[#1976d2] z-10"
+                                        : isWeekend
+                                        ? "bg-[#f0f4f3] text-[#a0b5b0]"
+                                        : day.code
+                                        ? "text-[#f8a44c] font-black hover:bg-[#e6f4f1]"
+                                        : "text-[#cbd8d6] hover:bg-[#f4f9f8]"
+                                    }`}
+                                    onMouseDown={(e) => handleCellMouseDown(e, sectionIdx, idx, day.day, rYear, rMonth, row.worker_id)}
+                                    onMouseEnter={() => handleCellMouseEnter(sectionIdx, idx, day.day, rYear, rMonth)}
+                                    onDoubleClick={() => handleCellDoubleClick(row.worker_id, day.day, rYear, rMonth)}
+                                  >
+                                    {day.code}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
                       {/* Month Totals Row */}
                       <tr className="bg-gradient-to-r from-[#133b47] to-[#184856]">
                         <td colSpan={4} className="p-2 text-left text-white font-black text-[11px] pl-4">
@@ -771,7 +909,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
                   <h3 className="font-black text-base font-heading">
                     {singleTargetCell
                       ? `Обирайте код для дня ${singleTargetCell.day}`
-                      : `Обирайте код для ${selectedCells.length} вибраних днів`}
+                      : `Обирайте код для ${selectedCellKeys.size} вибраних днів`}
                   </h3>
                   <p className="text-[11px] text-[#c3d9d6] font-bold">
                     Оберіть відповідний умовний позначник та години

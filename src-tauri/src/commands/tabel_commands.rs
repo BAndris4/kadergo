@@ -33,6 +33,7 @@ pub struct TabelPreviewRowDto {
     pub month_name_ukr: Option<String>,
     pub year: Option<i32>,
     pub month: Option<u32>,
+    pub teljes_munkaido: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -48,9 +49,13 @@ pub struct TabelPreviewDto {
     pub rows: Vec<TabelPreviewRowDto>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WorkerDayOverride {
     pub worker_id: i64,
+    #[serde(default)]
+    pub year: Option<i32>,
+    #[serde(default)]
+    pub month: Option<u32>,
     pub day: u32,
     pub code: String,
     pub hours: f64,
@@ -72,6 +77,8 @@ pub struct GenerateTabelPeriodRequest {
     pub start_month: u32,
     pub end_year: i32,
     pub end_month: u32,
+    #[serde(default)]
+    pub worker_day_overrides: Vec<WorkerDayOverride>,
     pub save_dir: Option<String>,
 }
 
@@ -196,7 +203,11 @@ pub fn preview_tabel(
     // Build override lookup: (worker_id, day) -> (code, hours)
     let mut override_map: std::collections::HashMap<(i64, u32), (String, f64)> = std::collections::HashMap::new();
     for ov in &worker_day_overrides {
-        override_map.insert((ov.worker_id, ov.day), (ov.code.clone(), ov.hours));
+        let year_matches = ov.year.is_none() || ov.year == Some(year);
+        let month_matches = ov.month.is_none() || ov.month == Some(month);
+        if year_matches && month_matches {
+            override_map.insert((ov.worker_id, ov.day), (ov.code.clone(), ov.hours));
+        }
     }
 
     let mut rows = Vec::new();
@@ -291,6 +302,7 @@ pub fn preview_tabel(
             month_name_ukr: Some(month_ukr.to_string()),
             year: Some(year),
             month: Some(month),
+            teljes_munkaido: w.teljes_munkaido,
         });
     }
 
@@ -482,8 +494,9 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
 
     let fmt_edrpou = Format::new()
         .set_font_name(font)
-        .set_font_size(8)
-        .set_align(FormatAlign::Left)
+        .set_font_size(10)
+        .set_bold()
+        .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter)
         .set_border_bottom(FormatBorder::Thin);
 
@@ -545,12 +558,28 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
         .set_align(FormatAlign::VerticalCenter)
         .set_text_wrap();
 
-    let fmt_title_noborder = Format::new()
+    let fmt_b6_subtitle = Format::new()
         .set_font_name(font)
         .set_font_size(8)
+        .set_bold()
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter)
+        .set_text_wrap()
+        .set_border_top(FormatBorder::Thin);
+
+    let fmt_edrpou_label = Format::new()
+        .set_font_name(font)
+        .set_font_size(10)
+        .set_bold()
         .set_align(FormatAlign::Left)
         .set_align(FormatAlign::VerticalCenter)
         .set_text_wrap();
+
+    let fmt_noborder = Format::new()
+        .set_font_name(font)
+        .set_font_size(8)
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
 
     // Row 2 (idx 1): B2:AI2 = FOP name
     merge_cell(worksheet, 1, 1, 1, 34, &preview.fop_name, &fmt_fop_name);
@@ -562,8 +591,8 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     // Row 5 (idx 4): B5:AI5
     merge_cell(worksheet, 4, 1, 4, 34, "", &fmt_subtitle_noborder);
 
-    // Row 6 (idx 5): B6:AI6
-    merge_cell(worksheet, 5, 1, 5, 34, "назва структурного підрозділу", &fmt_subtitle_noborder);
+    // Row 6 (idx 5): B6:AI6 (top border + bold)
+    merge_cell(worksheet, 5, 1, 5, 34, "назва структурного підрозділу", &fmt_b6_subtitle);
 
     // ─── AJ7:AO9 (r6..=8, c35..=40) Full Borders Setup ───────────────
     for r in 6..=8u32 {
@@ -576,9 +605,9 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, 6, 35, 6, 36, "Дата заповнення", &fmt_date_small);
     merge_cell(worksheet, 6, 37, 6, 40, "Звітний період", &fmt_date_small);
 
-    // Row 8 (idx 7): ЄДРПОУ + dates
-    merge_cell(worksheet, 7, 1, 7, 5, "Ідентифікаційний код  ЄДРПОУ", &fmt_title_noborder);
-    merge_cell(worksheet, 7, 6, 7, 20, &preview.fop_code, &fmt_edrpou);
+    // Row 8 (idx 7): B8:G8 (cols 1..=6) = ЄДРПОУ label (size 10 & bold)
+    merge_cell(worksheet, 7, 1, 7, 6, "Ідентифікаційний код  ЄДРПОУ", &fmt_edrpou_label);
+    merge_cell(worksheet, 7, 7, 7, 20, &preview.fop_code, &fmt_edrpou);
     let fill_date = format!("{:02}.{:02}.{}", days_in_month, req.month, req.year);
     let fmt_date_bold = Format::new()
         .set_font_name(font)
@@ -603,10 +632,14 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     // Row 30 (idx 29): height 157.2pt
     let _ = worksheet.set_row_height(29, 157.2);
 
-    // ─── B13:AP29 (r12..=28, c1..=41) Full Borders Pre-fill ───────────
+    // ─── B13:AP29 (r12..=28, c1..=41) Borders Pre-fill (Col 26 / AA borderless gap) ───
     for r in 12..=28u32 {
         for c in 1..=41u16 {
-            let _ = worksheet.write_blank(r, c, &fmt_code_def);
+            if c == 26 {
+                let _ = worksheet.write_blank(r, c, &fmt_noborder);
+            } else {
+                let _ = worksheet.write_blank(r, c, &fmt_code_def);
+            }
         }
     }
 
@@ -621,7 +654,7 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, 13, 38, 13, 39, "буквений", &fmt_subtitle);
     merge_cell(worksheet, 13, 40, 13, 41, "цифровий", &fmt_subtitle);
 
-    // ─── ROWS 15-29 (idx 14-28): Code definitions (EXACT text from ТАБЕЛЬ березень.xlsx) ───
+    // ─── ROWS 15-29 (idx 14-28): Code definitions ───
 
     let codes_left: Vec<(&str, &str, &str)> = vec![
         ("Години  роботи, передбачені колдоговором", "Р", "1"),
@@ -665,6 +698,7 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
         merge_cell(worksheet, r, 1, r, 20, desc, &fmt_code_def);
         merge_cell(worksheet, r, 21, r, 23, code, &fmt_code_letter);
         merge_cell(worksheet, r, 24, r, 25, num, &fmt_code_num);
+        let _ = worksheet.write_blank(r, 26, &fmt_noborder);
     }
 
     for (i, (desc, code, num)) in codes_right.iter().enumerate() {
@@ -787,7 +821,8 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
 
         // X: годин (merged 4 rows)
         merge_cell(worksheet, base_r, 23, base_r + 3, 23, "", &fmt_data_num);
-        let _ = worksheet.write_formula_with_format(base_r, 23, Formula::new(format!("W{}*8", base_r + 1)), &fmt_data_num);
+        let hours_mult = if row.teljes_munkaido { 8 } else { 4 };
+        let _ = worksheet.write_formula_with_format(base_r, 23, Formula::new(format!("W{}*{}", base_r + 1, hours_mult)), &fmt_data_num);
 
         // Y-AB: empty merged
         for c in 24..=27u16 {
@@ -938,6 +973,9 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, note_r + 1, 1, note_r + 1, 41, note_1, &fmt_subtitle);
     merge_cell(worksheet, note_r + 2, 1, note_r + 2, 41, note_2, &fmt_subtitle);
 
+    // Row 55 height = 37.5pt (0-indexed row 54)
+    let _ = worksheet.set_row_height(54, 37.5);
+
     // ─── Save ───────────────────────────────────────────────────────
 
     let filename = format!("ТАБЕЛЬ_{}_{}.xlsx", preview.month_name_ukr, preview.year);
@@ -964,6 +1002,7 @@ pub fn preview_tabel_period(
     start_month: u32,
     end_year: i32,
     end_month: u32,
+    worker_day_overrides: Vec<WorkerDayOverride>,
 ) -> Result<TabelPreviewDto, String> {
     let mut cur_year = start_year;
     let mut cur_month = start_month;
@@ -972,7 +1011,7 @@ pub fn preview_tabel_period(
     let mut last_dto: Option<TabelPreviewDto> = None;
 
     while (cur_year < end_year) || (cur_year == end_year && cur_month <= end_month) {
-        if let Ok(dto) = preview_tabel(fop_id, cur_year, cur_month, Vec::new()) {
+        if let Ok(dto) = preview_tabel(fop_id, cur_year, cur_month, worker_day_overrides.clone()) {
             for row in &dto.rows {
                 combined_rows.push(row.clone());
             }
@@ -1010,7 +1049,7 @@ pub fn generate_tabel_period_excel(req: GenerateTabelPeriodRequest) -> Result<St
             fop_id: req.fop_id,
             year: cur_year,
             month: cur_month,
-            worker_day_overrides: Vec::new(),
+            worker_day_overrides: req.worker_day_overrides.clone(),
             save_dir: req.save_dir.clone(),
         };
 
