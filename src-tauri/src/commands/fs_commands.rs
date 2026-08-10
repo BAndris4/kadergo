@@ -87,8 +87,15 @@ pub fn open_folder_in_explorer(folder_path: String) -> Result<(), String> {
         return Err("Папку не вказано".to_string());
     }
 
+    let path = std::path::Path::new(&folder_path);
+    let target = if path.is_file() {
+        path.parent().unwrap_or(path)
+    } else {
+        path
+    };
+
     Command::new("explorer")
-        .arg(&folder_path)
+        .arg(target)
         .spawn()
         .map_err(|e| format!("Не вдалося відкрити Провідник: {}", e))?;
 

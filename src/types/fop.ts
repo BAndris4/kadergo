@@ -363,3 +363,20 @@ export interface GenerateShtatDocxRequest {
   items: ShtatPositionItem[];
   save_dir?: string;
 }
+
+export interface GrafikWorkerItem {
+  position_name: string;
+  worker_name: string;
+  vacation_type: string;
+  vacation_month: string;
+  working_period: String | string;
+}
+
+export interface GenerateGrafikDocxRequest {
+  fop_id: number;
+  fop_name: string;
+  date_str: string;
+  year_span_str: string;
+  items: GrafikWorkerItem[];
+  save_dir?: string;
+}

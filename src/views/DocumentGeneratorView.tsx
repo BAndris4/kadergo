@@ -23,6 +23,7 @@ import { PayrollGeneratorView } from "../components/PayrollGeneratorView";
 import { TabelGeneratorView } from "../components/TabelGeneratorView";
 import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/ZayavaPriyomGeneratorView";
 import { ShtatGeneratorView } from "../components/ShtatGeneratorView";
+import { GrafikGeneratorView } from "../components/GrafikGeneratorView";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -47,7 +48,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   onDeleteWorker,
   onAddWorker,
 }) => {
-  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat">("menu");
+  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
 
   // Search & Filter State
@@ -133,14 +134,15 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
   // Category 2 Docs (Human Resources / Personnel Documents)
   const showShtatDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Штатний розпис", "Формування та затвердження кількості штатних одиниць та місячного фонду зарплати", ["штат", "розпис", "посади", "оклади", "штатний"]);
+  const showGrafikDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Графік відпусток", "Розрахунок та затвердження графіку чергових відпусток працівників", ["графік", "відпусток", "графік відпусток", "відпустки", "розклад"]);
   const showPriyomDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про прийняття на роботу", "Оформлення заяви про прийняття працівника на роботу", ["прийом", "заява", "прийняття", "робота"]);
   const showZvilnennyaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про звільнення", "Оформлення заяви про звільнення працівника за згодою сторін", ["звільнення", "заява", "згода сторін"]);
   const showVidpustkaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про відпустку", "Оформлення заяви про надання щорічної відпустки", ["відпустка", "заява", "щорічна"]);
   const showBezKopijokDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про виплату без копійок", "Оформлення заяви про виплату заробітної плати без копійок", ["копійки", "виплата", "заява", "округлення"]);
-  const hasCategory2Matches = showShtatDoc || showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc;
+  const hasCategory2Matches = showShtatDoc || showGrafikDoc || showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc;
 
   const totalMatches = (hasCategory1Matches ? (showPayrollDoc ? 1 : 0) + (showTabelDoc ? 1 : 0) : 0) +
-                       (hasCategory2Matches ? (showShtatDoc ? 1 : 0) + (showPriyomDoc ? 1 : 0) + (showZvilnennyaDoc ? 1 : 0) + (showVidpustkaDoc ? 1 : 0) + (showBezKopijokDoc ? 1 : 0) : 0);
+                       (hasCategory2Matches ? (showShtatDoc ? 1 : 0) + (showGrafikDoc ? 1 : 0) + (showPriyomDoc ? 1 : 0) + (showZvilnennyaDoc ? 1 : 0) + (showVidpustkaDoc ? 1 : 0) + (showBezKopijokDoc ? 1 : 0) : 0);
 
   return (
     <div className="flex flex-col gap-8 animate-fadeIn pb-12 w-full font-sans">
@@ -506,7 +508,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                   Кадрові документи
                 </div>
                 <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47]">
-                  5 документів
+                  6 документів
                 </span>
               </div>
 
@@ -551,6 +553,49 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                       }`}
                     >
                       <span>Створити Штатний розпис →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. GRAFIK VIDPUSTOK (ГРАФІК ВІДПУСТОК) */}
+                {showGrafikDoc && (
+                  <div
+                    onClick={() => isFopValidForPayroll && setActiveDocView("grafik")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <CalendarDaysIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-[#f8a44c]/20 text-[#133b47] border border-[#f8a44c]/40">
+                          Графік
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Графік відпусток
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Формування та затвердження графіку чергових відпусток працівників.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Створити Графік →</span>
                     </button>
                   </div>
                 )}
@@ -796,6 +841,20 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           minWage={minWage}
           onShowToast={onShowToast}
           onBack={() => setActiveDocView("menu")}
+        />
+      )}
+
+      {/* VIEW 6: GRAFIK GENERATOR VIEW */}
+      {activeDocView === "grafik" && (
+        <GrafikGeneratorView
+          fops={fops}
+          selectedFopId={selectedFopId}
+          rootFolder={rootFolder}
+          onShowToast={onShowToast}
+          onBack={() => setActiveDocView("menu")}
+          onEditWorker={onEditWorker}
+          onDeleteWorker={onDeleteWorker}
+          onAddWorker={onAddWorker}
         />
       )}
     </div>

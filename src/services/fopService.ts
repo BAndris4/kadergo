@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest } from "../types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -643,4 +643,8 @@ export async function generateZayavaPriyomDocx(req: GenerateZayavaPriyomDocxRequ
 
 export async function generateShtatDocx(req: GenerateShtatDocxRequest): Promise<string> {
   return await invoke<string>("generate_shtat_docx", { req });
+}
+
+export async function generateGrafikDocx(req: GenerateGrafikDocxRequest): Promise<string> {
+  return await invoke<string>("generate_grafik_docx", { req });
 }
