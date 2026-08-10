@@ -10,6 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { checkForUpdates, UpdateStatus } from "../services/updaterService";
 
+import { getVersion } from "@tauri-apps/api/app";
+
 interface UpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,7 +20,19 @@ interface UpdateModalProps {
 export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(false);
-  const currentVersion = "0.1.0";
+  const [currentVersion, setCurrentVersion] = useState<string>("0.1.0");
+
+  useEffect(() => {
+    async function loadVersion() {
+      try {
+        const appVer = await getVersion();
+        setCurrentVersion(appVer);
+      } catch (err) {
+        console.error("Failed to get app version:", err);
+      }
+    }
+    loadVersion();
+  }, []);
 
   useEffect(() => {
     if (isOpen && !updateStatus) {
