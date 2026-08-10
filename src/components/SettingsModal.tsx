@@ -9,8 +9,11 @@ import {
   MagnifyingGlassIcon,
   TrashIcon,
   ExclamationTriangleIcon,
+  ArrowPathIcon,
+  CloudArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops } from "../services/fopService";
+import { checkForUpdates, UpdateStatus } from "../services/updaterService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -38,11 +41,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
 
   useEffect(() => {
     setLocalMinWage(minWage);
     setIsConfirmingDelete(false);
   }, [minWage, isOpen]);
+
+  const handleCheckUpdates = async () => {
+    setIsCheckingUpdate(true);
+    await checkForUpdates((status) => {
+      setUpdateStatus(status);
+    });
+    setIsCheckingUpdate(false);
+  };
 
   if (!isOpen) return null;
 
@@ -188,11 +201,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
           </div>
 
-          {/* Section 3: Danger Zone (Clear All Data) */}
+          {/* Section 3: System Auto-Updater */}
+          <div className="p-6 rounded-3xl bg-[#f4f8f7] border-2 border-[#cbd9d7] flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#133b47]">
+              <CloudArrowDownIcon className="w-4.5 h-4.5 text-[#133b47] stroke-[2.2]" />
+              3. Rendszerfrissítés / Auto-updater
+            </div>
+
+            <p className="text-xs font-extrabold text-[#4e6770] leading-relaxed">
+              💡 Ellenőrizheted, hogy elérhető-e újabb verzió az alkalmazásból a GitHub Releases szerverről.
+            </p>
+
+            <button
+              onClick={handleCheckUpdates}
+              disabled={isCheckingUpdate}
+              className="px-5 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <ArrowPathIcon className={`w-4.5 h-4.5 stroke-[2.2] ${isCheckingUpdate ? "animate-spin" : ""}`} />
+              {isCheckingUpdate ? "Ellenőrzés..." : "Frissítések keresése"}
+            </button>
+
+            {updateStatus && (
+              <div className={`p-4 rounded-2xl border-2 text-xs font-black transition-all ${
+                updateStatus.status === "error"
+                  ? "bg-rose-50 border-rose-200 text-rose-800"
+                  : updateStatus.status === "available" || updateStatus.status === "downloading"
+                  ? "bg-amber-50 border-amber-200 text-amber-900"
+                  : updateStatus.status === "up-to-date"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                  : "bg-blue-50 border-blue-200 text-blue-900"
+              }`}>
+                {updateStatus.message}
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Danger Zone (Clear All Data) */}
           <div className="p-6 rounded-3xl bg-rose-50/80 border-2 border-rose-200 flex flex-col gap-4">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-rose-800">
               <ExclamationTriangleIcon className="w-4.5 h-4.5 text-rose-600 stroke-[2.2]" />
-              3. Небезпечна зона (Danger Zone)
+              4. Небезпечна зона (Danger Zone)
             </div>
 
             <p className="text-xs font-extrabold text-rose-700 leading-relaxed">
