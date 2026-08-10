@@ -28,6 +28,7 @@ import { EditWorkerModal } from "./components/EditWorkerModal";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 import { DeleteWorkerConfirmModal } from "./components/DeleteWorkerConfirmModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { UpdateModal } from "./components/UpdateModal";
 import { FolderScanModal } from "./components/FolderScanModal";
 import { ToastNotice } from "./components/ToastNotice";
 import { DocumentGeneratorView } from "./views/DocumentGeneratorView";
@@ -47,6 +48,7 @@ export default function App() {
 
   const [isAddFopModalOpen, setIsAddFopModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [discoveredFops, setDiscoveredFops] = useState<DiscoveredFopDto[]>([]);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
 
@@ -242,6 +244,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenUpdate={() => setIsUpdateModalOpen(true)}
         onGoHome={handleGoHome}
       />
 
@@ -348,6 +351,11 @@ export default function App() {
           setFops([]);
           setSelectedFopId(null);
         }}
+      />
+
+      <UpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
       />
 
       <FolderScanModal

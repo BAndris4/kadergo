@@ -17,7 +17,7 @@ export async function checkForUpdates(
   try {
     onStatusChange?.({
       status: "checking",
-      message: "Frissítések keresése...",
+      message: "Перевірка наявності оновлень...",
     });
 
     const update = await check();
@@ -25,7 +25,7 @@ export async function checkForUpdates(
     if (update) {
       onStatusChange?.({
         status: "available",
-        message: `Új verzió érhető el (${update.version})! Letöltés és telepítés folyamatban...`,
+        message: `Знайдено нову версію (${update.version})! Завантаження та встановлення...`,
         updateInfo: update,
       });
 
@@ -38,7 +38,7 @@ export async function checkForUpdates(
             totalBytes = event.data.contentLength || 0;
             onStatusChange?.({
               status: "downloading",
-              message: `Letöltés megkezdődött...`,
+              message: `Розпочато завантаження...`,
               updateInfo: update,
             });
             break;
@@ -48,15 +48,15 @@ export async function checkForUpdates(
             onStatusChange?.({
               status: "downloading",
               message: totalBytes > 0
-                ? `Letöltés: ${percent}% (${Math.round(downloadedBytes / 1024)} KB / ${Math.round(totalBytes / 1024)} KB)`
-                : `Letöltés folyamatban (${Math.round(downloadedBytes / 1024)} KB)...`,
+                ? `Завантаження: ${percent}% (${Math.round(downloadedBytes / 1024)} KB / ${Math.round(totalBytes / 1024)} KB)`
+                : `Завантаження... (${Math.round(downloadedBytes / 1024)} KB)`,
               updateInfo: update,
             });
             break;
           case "Finished":
             onStatusChange?.({
               status: "downloading",
-              message: "Letöltés befejeződött. Telepítés és újraindítás...",
+              message: "Завантаження завершено. Встановлення та перезапуск...",
               updateInfo: update,
             });
             break;
@@ -65,7 +65,7 @@ export async function checkForUpdates(
 
       onStatusChange?.({
         status: "downloading",
-        message: "Frissítés sikeresen telepítve! Az alkalmazás újraindul...",
+        message: "Оновлення успішно встановлено! Перезапуск програми...",
         updateInfo: update,
       });
 
@@ -75,7 +75,7 @@ export async function checkForUpdates(
     } else {
       onStatusChange?.({
         status: "up-to-date",
-        message: "Az alkalmazás a legfrissebb verziót használja.",
+        message: "Ви використовуєте найновішу версію програми.",
       });
       return false;
     }
@@ -84,7 +84,7 @@ export async function checkForUpdates(
     const errorMessage = error instanceof Error ? error.message : String(error);
     onStatusChange?.({
       status: "error",
-      message: `Hiba a frissítés ellenőrzésekor: ${errorMessage}`,
+      message: `Помилка під час перевірки оновлень: ${errorMessage}`,
     });
     return false;
   }

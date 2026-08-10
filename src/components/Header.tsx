@@ -1,14 +1,15 @@
 import React from "react";
-import { DocumentTextIcon, UserGroupIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, UserGroupIcon, Cog6ToothIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   activeTab: "generator" | "management";
   onTabChange: (tab: "generator" | "management") => void;
   onOpenSettings: () => void;
+  onOpenUpdate?: () => void;
   onGoHome?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings, onGoHome }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings, onOpenUpdate, onGoHome }) => {
   const handleLogoClick = () => {
     if (onGoHome) {
       onGoHome();
@@ -66,11 +67,22 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSe
 
       {/* Primary Actions & Preferences */}
       <div className="flex items-center gap-3">
+        {/* System Auto-Update Button (Left of Settings) */}
+        {onOpenUpdate && (
+          <button
+            onClick={onOpenUpdate}
+            title="Перевірити оновлення системи"
+            className="p-3.5 rounded-2xl bg-white hover:bg-[#f6faf9] text-[#133b47] border-2 border-[#cbd8d6] font-black transition-all cursor-pointer shadow-xs transform hover:-translate-y-0.5"
+          >
+            <CloudArrowDownIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
+          </button>
+        )}
+
         {/* Settings / Preferences Button */}
         <button
           onClick={onOpenSettings}
           title="Налаштування"
-          className="p-3.5 rounded-2xl bg-white hover:bg-[#f6faf9] text-[#133b47] border-2 border-[#cbd8d6] font-black transition-all cursor-pointer shadow-xs"
+          className="p-3.5 rounded-2xl bg-white hover:bg-[#f6faf9] text-[#133b47] border-2 border-[#cbd8d6] font-black transition-all cursor-pointer shadow-xs transform hover:-translate-y-0.5"
         >
           <Cog6ToothIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
         </button>

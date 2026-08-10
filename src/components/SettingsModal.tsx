@@ -9,11 +9,10 @@ import {
   MagnifyingGlassIcon,
   TrashIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon,
-  CloudArrowDownIcon,
+  InformationCircleIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops } from "../services/fopService";
-import { checkForUpdates, UpdateStatus } from "../services/updaterService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -41,21 +40,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
 
   useEffect(() => {
     setLocalMinWage(minWage);
     setIsConfirmingDelete(false);
   }, [minWage, isOpen]);
-
-  const handleCheckUpdates = async () => {
-    setIsCheckingUpdate(true);
-    await checkForUpdates((status) => {
-      setUpdateStatus(status);
-    });
-    setIsCheckingUpdate(false);
-  };
 
   if (!isOpen) return null;
 
@@ -119,133 +108,108 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-8 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
-          {/* Section 1: Overall Folder Picker */}
+          {/* Section 1: Storage Folder */}
           <div className="p-6 rounded-3xl bg-[#f8faf9] border-2 border-[#e2eceb] flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-[#354f57] flex items-center gap-2">
-                <FolderOpenIcon className="w-4.5 h-4.5 text-[#133b47] stroke-[2.2]" />
-                1. Головна папка збереження
-              </span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#133b47]/10 flex items-center justify-center text-[#133b47]">
+                  <FolderOpenIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                </div>
+                <span className="text-sm font-black text-[#133b47]">
+                  Головна папка збереження
+                </span>
+              </div>
               {rootFolder ? (
                 <span className="inline-flex items-center gap-1 text-xs font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  <CheckCircleIcon className="w-3.5 h-3.5" /> Встановлено
+                  <CheckCircleIcon className="w-3.5 h-3.5 stroke-[2.5]" /> Встановлено
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs font-black bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
-                  <ExclamationCircleIcon className="w-3.5 h-3.5" /> Не вказано
+                  <ExclamationCircleIcon className="w-3.5 h-3.5 stroke-[2.5]" /> Не вказано
                 </span>
               )}
             </div>
 
-            <div className="p-4 rounded-2xl bg-white border-2 border-[#bdcdcb] flex items-center gap-3">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#bdcdcb] flex items-center gap-3">
               <span className="text-xs font-mono font-black text-[#133b47] break-all">
-                {rootFolder || "Папку збереження ще не обрано"}
+                {rootFolder || "Папку ще не обрано"}
               </span>
             </div>
 
-            <p className="text-xs font-extrabold text-[#556e75] leading-relaxed">
-              💡 Усі згенеровані кадорові документи ФОП будуть автоматично зберігатися у відповідних підпапках цієї директорії.
-            </p>
+            <div className="flex items-start gap-2 text-xs font-bold text-[#556e75]">
+              <InformationCircleIcon className="w-4 h-4 text-[#133b47] shrink-0 mt-0.5 stroke-[2.2]" />
+              <span>Документи ФОП будуть зберігатися у цій директорії.</span>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleBrowseFolder}
-                className="flex-1 px-5 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                className="flex-1 px-5 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
               >
                 <FolderOpenIcon className="w-4.5 h-4.5 stroke-[2.2]" />
-                Вибрати папку...
+                Обрати папку
               </button>
 
               <button
                 onClick={onScanFolders}
                 disabled={!rootFolder}
-                className={`flex-1 px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                className={`flex-1 px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5 ${
                   rootFolder
                     ? "bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47]"
                     : "bg-[#e2eceb] text-[#8fa8aa] cursor-not-allowed opacity-60"
                 }`}
               >
                 <MagnifyingGlassIcon className="w-4.5 h-4.5 stroke-[2.2]" />
-                Розпізнати папки ФОП
+                Розпізнати папки
               </button>
             </div>
           </div>
 
-          {/* Section 2: Minimum Wage Setting */}
+          {/* Section 2: Minimum Wage */}
           <div className="p-6 rounded-3xl bg-[#fdf8f3] border-2 border-[#f6e4d0] flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#7e6241]">
-              <BanknotesIcon className="w-4.5 h-4.5 text-[#133b47] stroke-[2.2]" />
-              2. Розмір мінімальної заробітної плати (грн)
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-extrabold text-[#556e75]">
-                Вкажіть актуальний розмір мінімальної зарплати для автоматичного підставлення:
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={localMinWage}
-                  onChange={(e) => setLocalMinWage(Number(e.target.value) || 0)}
-                  placeholder="8647"
-                  className="w-full h-13 px-4 pr-16 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-lg font-black focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-sm text-[#556e75]">
-                  грн
-                </span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#f8a44c]/20 flex items-center justify-center text-[#7e6241]">
+                <BanknotesIcon className="w-4.5 h-4.5 stroke-[2.2]" />
               </div>
+              <span className="text-sm font-black text-[#133b47]">
+                Мінімальна заробітна плата
+              </span>
             </div>
 
-            <p className="text-xs font-extrabold text-[#7e6241]">
-              💡 Ця сума буде автоматично встановлюватись за замовчуванням під час оформлення нових працівників.
-            </p>
+            <div className="relative">
+              <input
+                type="number"
+                value={localMinWage}
+                onChange={(e) => setLocalMinWage(Number(e.target.value) || 0)}
+                placeholder="8647"
+                className="w-full h-12 px-4 pr-16 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-black focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-sm text-[#556e75]">
+                грн
+              </span>
+            </div>
+
+            <div className="flex items-start gap-2 text-xs font-bold text-[#7e6241]">
+              <InformationCircleIcon className="w-4 h-4 text-[#7e6241] shrink-0 mt-0.5 stroke-[2.2]" />
+              <span>Сума за замовчуванням для нових працівників.</span>
+            </div>
           </div>
 
-          {/* Section 3: System Auto-Updater */}
-          <div className="p-6 rounded-3xl bg-[#f4f8f7] border-2 border-[#cbd9d7] flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#133b47]">
-              <CloudArrowDownIcon className="w-4.5 h-4.5 text-[#133b47] stroke-[2.2]" />
-              3. Rendszerfrissítés / Auto-updater
-            </div>
-
-            <p className="text-xs font-extrabold text-[#4e6770] leading-relaxed">
-              💡 Ellenőrizheted, hogy elérhető-e újabb verzió az alkalmazásból a GitHub Releases szerverről.
-            </p>
-
-            <button
-              onClick={handleCheckUpdates}
-              disabled={isCheckingUpdate}
-              className="px-5 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <ArrowPathIcon className={`w-4.5 h-4.5 stroke-[2.2] ${isCheckingUpdate ? "animate-spin" : ""}`} />
-              {isCheckingUpdate ? "Ellenőrzés..." : "Frissítések keresése"}
-            </button>
-
-            {updateStatus && (
-              <div className={`p-4 rounded-2xl border-2 text-xs font-black transition-all ${
-                updateStatus.status === "error"
-                  ? "bg-rose-50 border-rose-200 text-rose-800"
-                  : updateStatus.status === "available" || updateStatus.status === "downloading"
-                  ? "bg-amber-50 border-amber-200 text-amber-900"
-                  : updateStatus.status === "up-to-date"
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                  : "bg-blue-50 border-blue-200 text-blue-900"
-              }`}>
-                {updateStatus.message}
-              </div>
-            )}
-          </div>
-
-          {/* Section 4: Danger Zone (Clear All Data) */}
+          {/* Section 3: Danger Zone */}
           <div className="p-6 rounded-3xl bg-rose-50/80 border-2 border-rose-200 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-rose-800">
-              <ExclamationTriangleIcon className="w-4.5 h-4.5 text-rose-600 stroke-[2.2]" />
-              4. Небезпечна зона (Danger Zone)
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
+                <ExclamationTriangleIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+              </div>
+              <span className="text-sm font-black text-rose-900">
+                Очищення даних
+              </span>
             </div>
 
-            <p className="text-xs font-extrabold text-rose-700 leading-relaxed">
-              ⚠️ Ця дія повністю видалить УСІ ФОП та всіх пов'язаних працівників з бази даних. Очищені дані відновити неможливо!
-            </p>
+            <div className="flex items-start gap-2 text-xs font-bold text-rose-700">
+              <ExclamationTriangleIcon className="w-4 h-4 text-rose-600 shrink-0 mt-0.5 stroke-[2.2]" />
+              <span>Видалення всіх ФОП та працівників з бази. Дія незворотна!</span>
+            </div>
 
             {!isConfirmingDelete ? (
               <button
@@ -258,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             ) : (
               <div className="p-4 rounded-2xl bg-white border-2 border-rose-300 flex flex-col gap-3 animate-fadeIn">
                 <span className="text-xs font-black text-rose-900 text-center">
-                  Ви дійсно впевнені? Ця дія повністю очистить базу даних!
+                  Ви дійсно впевнені? База даних буде очищена!
                 </span>
                 <div className="flex items-center gap-3">
                   <button
@@ -266,7 +230,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     disabled={isDeleting}
                     className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    {isDeleting ? "Видалення..." : "Так, видалити все!"}
+                    {isDeleting ? "Видалення..." : "Так, видалити все"}
                   </button>
                   <button
                     onClick={() => setIsConfirmingDelete(false)}
@@ -285,9 +249,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="flex items-center justify-end px-8 py-5 border-t-2 border-[#e2eceb] bg-[#f8faf9]">
           <button
             onClick={handleSaveSettings}
-            className="px-7 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-sm transition-all cursor-pointer shadow-md"
+            className="px-7 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-sm transition-all cursor-pointer shadow-md flex items-center gap-2 transform hover:-translate-y-0.5"
           >
-            Зберегти налаштування ✓
+            <CheckIcon className="w-4.5 h-4.5 stroke-[2.8]" />
+            <span>Зберегти налаштування</span>
           </button>
         </div>
       </div>
