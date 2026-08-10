@@ -347,3 +347,19 @@ export interface GenerateZayavaPriyomDocxRequest {
   custom_body_text?: string;
   save_dir?: string;
 }
+
+export interface ShtatPositionItem {
+  position_name: string;
+  units: number;
+  base_salary: number;
+  allowances: number;
+  total_fund: number;
+}
+
+export interface GenerateShtatDocxRequest {
+  fop_id: number;
+  fop_name: string;
+  date_str: string;
+  items: ShtatPositionItem[];
+  save_dir?: string;
+}

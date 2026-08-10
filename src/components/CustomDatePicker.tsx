@@ -172,10 +172,12 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ label, value
 
   return (
     <div className="relative flex flex-col gap-1 w-full" ref={containerRef}>
-      <label className="text-xs font-semibold text-[#556e75] flex items-center gap-1.5">
-        <CalendarIcon className="w-4 h-4 text-[#133b47] stroke-[2]" />
-        <span>{label}</span>
-      </label>
+      {label && (
+        <label className="text-xs font-semibold text-[#556e75] flex items-center gap-1.5">
+          <CalendarIcon className="w-4 h-4 text-[#133b47] stroke-[2]" />
+          <span>{label}</span>
+        </label>
+      )}
 
       {/* Main Toggle Button */}
       <button

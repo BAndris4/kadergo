@@ -9,17 +9,20 @@ import {
   BuildingOffice2Icon,
   MagnifyingGlassIcon,
   CheckIcon,
-  DocumentTextIcon,
   UserPlusIcon,
   UserMinusIcon,
   SunIcon,
   BanknotesIcon,
+  XMarkIcon,
+  UserGroupIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
 import { PayrollGeneratorView } from "../components/PayrollGeneratorView";
 import { TabelGeneratorView } from "../components/TabelGeneratorView";
 import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/ZayavaPriyomGeneratorView";
+import { ShtatGeneratorView } from "../components/ShtatGeneratorView";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -44,8 +47,12 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   onDeleteWorker,
   onAddWorker,
 }) => {
-  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom">("menu");
+  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
+
+  // Search & Filter State
+  const [docSearchQuery, setDocSearchQuery] = useState("");
+  const [activeFilterCategory, setActiveFilterCategory] = useState<"all" | "zvit" | "hr">("all");
 
   // Custom FOP Dropdown State
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -109,10 +116,36 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
     setActiveDocView("zayava_priyom");
   };
 
+  // Filter helper for document cards search
+  const q = docSearchQuery.trim().toLowerCase();
+
+  const matchesDoc = (title: string, desc: string, keywords: string[] = []) => {
+    if (!q) return true;
+    if (title.toLowerCase().includes(q)) return true;
+    if (desc.toLowerCase().includes(q)) return true;
+    return keywords.some((kw) => kw.toLowerCase().includes(q));
+  };
+
+  // Category 1 Docs (Payroll & Accounting)
+  const showPayrollDoc = (activeFilterCategory === "all" || activeFilterCategory === "zvit") && matchesDoc("Розрахунково-платіжна відомість", "Розрахунок заробітної плати працівників за обраний місяць або період", ["відомість", "зарплата", "нарахування", "пайрол"]);
+  const showTabelDoc = (activeFilterCategory === "all" || activeFilterCategory === "zvit") && matchesDoc("Табель обліку робочого часу", "Облік відпрацьованих годин, днів та неявок працівників", ["табель", "години", "облік", "дні", "неявки"]);
+  const hasCategory1Matches = showPayrollDoc || showTabelDoc;
+
+  // Category 2 Docs (Human Resources / Personnel Documents)
+  const showShtatDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Штатний розпис", "Формування та затвердження кількості штатних одиниць та місячного фонду зарплати", ["штат", "розпис", "посади", "оклади", "штатний"]);
+  const showPriyomDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про прийняття на роботу", "Оформлення заяви про прийняття працівника на роботу", ["прийом", "заява", "прийняття", "робота"]);
+  const showZvilnennyaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про звільнення", "Оформлення заяви про звільнення працівника за згодою сторін", ["звільнення", "заява", "згода сторін"]);
+  const showVidpustkaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про відпустку", "Оформлення заяви про надання щорічної відпустки", ["відпустка", "заява", "щорічна"]);
+  const showBezKopijokDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про виплату без копійок", "Оформлення заяви про виплату заробітної плати без копійок", ["копійки", "виплата", "заява", "округлення"]);
+  const hasCategory2Matches = showShtatDoc || showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc;
+
+  const totalMatches = (hasCategory1Matches ? (showPayrollDoc ? 1 : 0) + (showTabelDoc ? 1 : 0) : 0) +
+                       (hasCategory2Matches ? (showShtatDoc ? 1 : 0) + (showPriyomDoc ? 1 : 0) + (showZvilnennyaDoc ? 1 : 0) + (showVidpustkaDoc ? 1 : 0) + (showBezKopijokDoc ? 1 : 0) : 0);
+
   return (
     <div className="flex flex-col gap-8 animate-fadeIn pb-12 w-full font-sans">
-      {/* 1. TOP ACTIVE FOP CONTROL BAR */}
-      <div className="bg-gradient-to-r from-white via-[#f8faf9] to-[#f4f9f8] rounded-[28px] p-5 px-8 border-2 border-[#cbd8d6] shadow-md flex flex-col md:flex-row items-center justify-between gap-6 relative z-20 transition-all duration-300">
+      {/* 1. TOP ACTIVE FOP CONTROL BAR WITH GLASSMORPHISM AND GRADIENT */}
+      <div className="bg-gradient-to-r from-white via-[#f8faf9] to-[#f0f7f6] rounded-[28px] p-5 px-8 border-2 border-[#cbd8d6] shadow-md flex flex-col md:flex-row items-center justify-between gap-6 relative z-20 transition-all duration-300">
         <div className="flex items-center gap-4 shrink-0">
           <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm">
             <BuildingOffice2Icon className="w-6 h-6 stroke-[2.2]" />
@@ -265,255 +298,453 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
         </div>
       )}
 
-      {/* MAIN DOCUMENT DASHBOARD: 2 SEPARATE CATEGORIES */}
+      {/* MAIN DOCUMENT DASHBOARD MENU */}
       {activeDocView === "menu" && (
-        <div className="flex flex-col gap-10">
-          {/* CATEGORY 1: ЗВІТНІСТЬ ТА ОБЛІК ЧАСУ (PAYROLL & TIMESHEET) */}
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
-              <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
-                <TableCellsIcon className="w-5 h-5 text-[#133b47] stroke-[2]" />
-                Звітність та облік часу
+        <div className="flex flex-col gap-8">
+          {/* SEARCH & QUICK CATEGORY FILTER BAR */}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            {/* Search Input Box */}
+            <div className="bg-white rounded-[24px] p-3 px-5 border-2 border-[#cbd8d6] shadow-sm flex items-center justify-between gap-3 flex-1 w-full transition-all focus-within:border-[#133b47] focus-within:shadow-md">
+              <div className="flex items-center gap-3 flex-1">
+                <MagnifyingGlassIcon className="w-5 h-5 text-[#133b47] shrink-0 stroke-[2.2]" />
+                <input
+                  type="text"
+                  placeholder="Швидкий пошук документа (Табель, Штат, Заява, Відомість)..."
+                  value={docSearchQuery}
+                  onChange={(e) => setDocSearchQuery(e.target.value)}
+                  className="w-full text-sm font-semibold text-[#133b47] placeholder:text-[#556e75]/70 bg-transparent focus:outline-none"
+                />
               </div>
-              <span className="text-xs font-medium text-[#556e75]">
-                Розрахункові відомості та Табелі обліку часу
-              </span>
+              {docSearchQuery && (
+                <button
+                  onClick={() => setDocSearchQuery("")}
+                  className="p-1 rounded-lg text-[#556e75] hover:text-[#133b47] hover:bg-[#f4f9f8] transition-all cursor-pointer"
+                  title="Очистити пошук"
+                >
+                  <XMarkIcon className="w-5 h-5 stroke-[2]" />
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-              {/* CARD 1: PAYROLL VEDOMOST */}
-              <div
-                onClick={() => isFopValidForPayroll && setActiveDocView("payroll")}
-                className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-lg flex flex-col justify-between gap-6 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+            {/* Quick Category Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto shrink-0 pb-1 sm:pb-0">
+              <button
+                onClick={() => setActiveFilterCategory("all")}
+                className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-xs ${
+                  activeFilterCategory === "all"
+                    ? "bg-[#133b47] text-[#f8a44c] border border-[#133b47] shadow-sm"
+                    : "bg-white text-[#556e75] hover:text-[#133b47] border border-[#cbd8d6] hover:bg-[#f8faf9]"
                 }`}
               >
-                <div className="flex flex-col gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-105 transition-transform duration-300">
-                    <TableCellsIcon className="w-8 h-8 stroke-[2.2]" />
-                  </div>
+                <SparklesIcon className="w-4 h-4 stroke-[2]" />
+                <span>Всі документи</span>
+              </button>
 
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
-                      Відомість нарахування
-                    </h3>
-                    <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
-                      Розрахунково-платіжна відомість заробітної плати працівників за обраний місяць або період.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  {isFopValidForPayroll ? "Відкрити розрахунок →" : "Оберіть ФОП з працівниками"}
-                </button>
-              </div>
-
-              {/* CARD 2: TABEL (TIMESHEET) */}
-              <div
-                onClick={() => isFopValidForPayroll && setActiveDocView("tabel")}
-                className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-lg flex flex-col justify-between gap-6 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+              <button
+                onClick={() => setActiveFilterCategory("zvit")}
+                className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-xs ${
+                  activeFilterCategory === "zvit"
+                    ? "bg-[#133b47] text-[#f8a44c] border border-[#133b47] shadow-sm"
+                    : "bg-white text-[#556e75] hover:text-[#133b47] border border-[#cbd8d6] hover:bg-[#f8faf9]"
                 }`}
               >
-                <div className="flex flex-col gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-105 transition-transform duration-300">
-                    <CalendarDaysIcon className="w-8 h-8 stroke-[2.2]" />
-                  </div>
+                <TableCellsIcon className="w-4 h-4 stroke-[2]" />
+                <span>Звітність</span>
+              </button>
 
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
-                      Табель обліку часу
-                    </h3>
-                    <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
-                      Облік відпрацьованих годин, днів та неявок працівників за обраний місяць або період.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  {isFopValidForPayroll ? "Відкрити табель обліку →" : "Оберіть ФОП з працівниками"}
-                </button>
-              </div>
+              <button
+                onClick={() => setActiveFilterCategory("hr")}
+                className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-xs ${
+                  activeFilterCategory === "hr"
+                    ? "bg-[#133b47] text-[#f8a44c] border border-[#133b47] shadow-sm"
+                    : "bg-white text-[#556e75] hover:text-[#133b47] border border-[#cbd8d6] hover:bg-[#f8faf9]"
+                }`}
+              >
+                <UserGroupIcon className="w-4 h-4 stroke-[2]" />
+                <span>Кадрові документи</span>
+              </button>
             </div>
           </div>
 
-          {/* CATEGORY 2: КАДРОВІ ДОКУМЕНТИ ТА ЗАЯВИ (ELEGANT 4-CARD GRID) */}
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
-              <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
-                <DocumentTextIcon className="w-5 h-5 text-[#133b47] stroke-[2]" />
-                Кадрові документи та заяви
+          {/* NO SEARCH RESULTS STATE */}
+          {docSearchQuery && totalMatches === 0 && (
+            <div className="bg-white rounded-[32px] p-12 text-center border-2 border-[#cbd8d6] shadow-sm flex flex-col items-center justify-center gap-4 animate-fadeIn">
+              <div className="w-16 h-16 rounded-2xl bg-[#f4f9f8] text-[#556e75] flex items-center justify-center border border-[#cbd8d6]">
+                <MagnifyingGlassIcon className="w-8 h-8 stroke-[2]" />
               </div>
-              <span className="text-xs font-medium text-[#556e75]">
-                Офіційні заяви працівників ФОП
-              </span>
+              <div className="flex flex-col gap-1 max-w-md">
+                <h4 className="text-lg font-bold text-[#133b47]">Документів не знайдено</h4>
+                <p className="text-xs text-[#556e75]">
+                  За запитом <span className="font-bold text-[#133b47]">"{docSearchQuery}"</span> жодного документа не знайдено. Спробуйте змінити пошукове слово.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setDocSearchQuery("");
+                  setActiveFilterCategory("all");
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#133b47] text-[#f8a44c] text-xs font-bold hover:bg-[#0f2e38] transition-all cursor-pointer mt-2"
+              >
+                Показати всі документи
+              </button>
             </div>
+          )}
 
-            {/* SPACIOUS 2x2 GRID OF INDIVIDUAL ELEGANT ZAYAVA CARDS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* ZAYAVA 1: PRIYOM */}
-              <div
-                onClick={() => handleOpenZayava("priyom")}
-                className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md flex flex-col justify-between gap-5 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <UserPlusIcon className="w-6 h-6 stroke-[2.2]" />
+          {/* CATEGORY 1: ПОДАТКОВІ ТА ОБЛІКОВІ ВІДОМОСТІ */}
+          {hasCategory1Matches && (
+            <div className="flex flex-col gap-5 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
+                <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
+                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold">
+                    <TableCellsIcon className="w-4 h-4 stroke-[2.2]" />
                   </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
-                      Заява на прийом
-                    </h4>
-                    <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                      Прийняття працівника на роботу.
-                    </p>
-                  </div>
+                  Податкові та облікові відомості
                 </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  <span>Оформити →</span>
-                </button>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47]">
+                  2 документи
+                </span>
               </div>
 
-              {/* ZAYAVA 2: ZVILNENNYA */}
-              <div
-                onClick={() => handleOpenZayava("zvilnennya")}
-                className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md flex flex-col justify-between gap-5 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <UserMinusIcon className="w-6 h-6 stroke-[2.2]" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                {/* CARD 1: PAYROLL VEDOMOST */}
+                {showPayrollDoc && (
+                  <div
+                    onClick={() => isFopValidForPayroll && setActiveDocView("payroll")}
+                    className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-110 transition-all duration-300">
+                          <TableCellsIcon className="w-8 h-8 stroke-[2.2]" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-indigo-500/15 text-indigo-900 border border-indigo-300/80">
+                          Відомість
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
+                          Відомість нарахування
+                        </h3>
+                        <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
+                          Розрахунково-платіжна відомість заробітної плати працівників за обраний місяць або період.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      {isFopValidForPayroll ? "Відкрити розрахунок →" : "Оберіть ФОП з працівниками"}
+                    </button>
                   </div>
+                )}
 
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
-                      Заява на звільнення
-                    </h4>
-                    <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                      Звільнення за згодою сторін.
-                    </p>
+                {/* CARD 2: TABEL (TIMESHEET) */}
+                {showTabelDoc && (
+                  <div
+                    onClick={() => isFopValidForPayroll && setActiveDocView("tabel")}
+                    className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-110 transition-all duration-300">
+                          <CalendarDaysIcon className="w-8 h-8 stroke-[2.2]" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-300/80">
+                          Табель
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
+                          Табель обліку часу
+                        </h3>
+                        <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
+                          Облік відпрацьованих годин, днів та неявок працівників за обраний місяць або період.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      {isFopValidForPayroll ? "Відкрити табель обліку →" : "Оберіть ФОП з працівниками"}
+                    </button>
                   </div>
-                </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  <span>Оформити →</span>
-                </button>
-              </div>
-
-              {/* ZAYAVA 3: VIDPUSTKA */}
-              <div
-                onClick={() => handleOpenZayava("vidpustka")}
-                className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md flex flex-col justify-between gap-5 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <SunIcon className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
-                      Заява на відпустку
-                    </h4>
-                    <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                      Надання щорічної відпустки.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  <span>Оформити →</span>
-                </button>
-              </div>
-
-              {/* ZAYAVA 4: BEZ KOPIJOK */}
-              <div
-                onClick={() => handleOpenZayava("bez_kopijok")}
-                className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md flex flex-col justify-between gap-5 relative overflow-hidden group ${
-                  isFopValidForPayroll
-                    ? "bg-gradient-to-br from-white via-[#fbfdfd] to-[#f4f9f8] border-[#cbd8d6] hover:border-[#133b47] hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                    : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-transform duration-300">
-                    <BanknotesIcon className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
-                      Без копійок
-                    </h4>
-                    <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                      Виплата зарплати без копійок.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  disabled={!isFopValidForPayroll}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    isFopValidForPayroll
-                      ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer"
-                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  <span>Оформити →</span>
-                </button>
+                )}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* CATEGORY 2: КАДРОВІ ДОКУМЕНТИ */}
+          {hasCategory2Matches && (
+            <div className="flex flex-col gap-5 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
+                <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
+                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold">
+                    <UserGroupIcon className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  Кадрові документи
+                </div>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47]">
+                  5 документів
+                </span>
+              </div>
+
+              {/* GRID OF HR DOCUMENTS WITH UNIFIED SIGNATURE DARK TEAL ICON BOXES + SUBTLE DOT INDICATORS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* 1. SHTAT (ШТАТНИЙ РОЗПИС) */}
+                {showShtatDoc && (
+                  <div
+                    onClick={() => isFopValidForPayroll && setActiveDocView("shtat")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <BuildingOffice2Icon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-sky-500/15 text-sky-900 border border-sky-300/80">
+                          Штат
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Штатний розпис
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Затвердження кількості штатних одиниць та місячного фонду зарплати.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Створити Штатний розпис →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. ZAYAVA: PRIYOM */}
+                {showPriyomDoc && (
+                  <div
+                    onClick={() => handleOpenZayava("priyom")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <UserPlusIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE EMERALD DOT */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs"></span>
+                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                            Заява
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Заява на прийом
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Оформлення заяви про прийняття працівника на роботу.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Оформити →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. ZAYAVA: ZVILNENNYA */}
+                {showZvilnennyaDoc && (
+                  <div
+                    onClick={() => handleOpenZayava("zvilnennya")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <UserMinusIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE ROSE DOT */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 shadow-xs"></span>
+                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                            Заява
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Заява на звільнення
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Оформлення заяви про звільнення працівника за згодою сторін.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Оформити →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 4. ZAYAVA: VIDPUSTKA */}
+                {showVidpustkaDoc && (
+                  <div
+                    onClick={() => handleOpenZayava("vidpustka")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <SunIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE AMBER DOT */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs"></span>
+                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                            Заява
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Заява на відпустку
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Оформлення заяви про надання щорічної відпустки.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Оформити →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 5. ZAYAVA: BEZ KOPIJOK */}
+                {showBezKopijokDoc && (
+                  <div
+                    onClick={() => handleOpenZayava("bez_kopijok")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                          <BanknotesIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE INDIGO DOT */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-xs"></span>
+                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                            Заява
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Без копійок
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Оформлення заяви про виплату зарплати без копійок.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Оформити →</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -553,6 +784,18 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           onBackToOptions={() => setActiveDocView("menu")}
           onShowToast={onShowToast}
           onEditWorker={onEditWorker}
+        />
+      )}
+
+      {/* VIEW 5: SHTAT GENERATOR VIEW */}
+      {activeDocView === "shtat" && (
+        <ShtatGeneratorView
+          fops={fops}
+          selectedFopId={selectedFopId}
+          rootFolder={rootFolder}
+          minWage={minWage}
+          onShowToast={onShowToast}
+          onBack={() => setActiveDocView("menu")}
         />
       )}
     </div>
