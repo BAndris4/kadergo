@@ -7,6 +7,11 @@ export interface UpdateStatus {
   updateInfo?: Update | null;
 }
 
+export interface ReleaseAsset {
+  name: string;
+  browser_download_url: string;
+}
+
 export interface ReleaseItem {
   tag_name: string;
   name: string;
@@ -14,6 +19,7 @@ export interface ReleaseItem {
   published_at: string;
   prerelease: boolean;
   html_url: string;
+  assets?: ReleaseAsset[];
 }
 
 /**
@@ -172,6 +178,47 @@ export async function installUpdate(
     onStatusChange?.({
       status: "error",
       message: `Помилка під час встановлення оновлення: ${errorMessage}`,
+    });
+    return false;
+  }
+}
+
+/**
+ * Downloads a GitHub release installer asset directly and runs it via Tauri Rust backend.
+ */
+export async function downloadAndRunReleaseAsset(
+  downloadUrl: string,
+  fileName: string,
+  onStatusChange?: (status: UpdateStatus) => void
+): Promise<boolean> {
+  try {
+    onStatusChange?.({
+      status: "downloading",
+      message: "Завантаження інсталятора обраної версії...",
+    });
+
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = Array.from(new Uint8Array(arrayBuffer));
+
+    onStatusChange?.({
+      status: "downloading",
+      message: "Запуск інсталятора...",
+    });
+
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("run_installer_from_bytes", { bytes, fileName });
+    return true;
+  } catch (error) {
+    console.error("Failed to download or run release asset:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    onStatusChange?.({
+      status: "error",
+      message: `Помилка під час завантаження інсталятора: ${errorMessage}`,
     });
     return false;
   }

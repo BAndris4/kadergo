@@ -366,6 +366,20 @@ pub fn scan_and_import_fop_folders(root_dir: String) -> Result<ScanFopsResult, S
     })
 }
 
+#[tauri::command]
+pub fn run_installer_from_bytes(bytes: Vec<u8>, file_name: String) -> Result<(), String> {
+    let temp_dir = std::env::temp_dir();
+    let installer_path = temp_dir.join(&file_name);
+
+    fs::write(&installer_path, bytes).map_err(|e| format!("Failed to write installer: {}", e))?;
+
+    std::process::Command::new(&installer_path)
+        .spawn()
+        .map_err(|e| format!("Failed to launch installer executable: {}", e))?;
+
+    std::process::exit(0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

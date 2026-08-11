@@ -14,6 +14,7 @@ import {
   checkForUpdates,
   installUpdate,
   fetchReleaseHistory,
+  downloadAndRunReleaseAsset,
   UpdateStatus,
   ReleaseItem,
 } from "../services/updaterService";
@@ -35,14 +36,14 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 }) => {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [currentUpdate, setCurrentUpdate] = useState<Update | null>(initialUpdateInfo);
+  const [selectedRollbackRelease, setSelectedRollbackRelease] = useState<ReleaseItem | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
-  const [currentVersion, setCurrentVersion] = useState<string>("0.1.2");
+  const [currentVersion, setCurrentVersion] = useState<string>("0.1.3");
   
   const [releaseHistory, setReleaseHistory] = useState<ReleaseItem[]>([]);
   const [isLoadingReleases, setIsLoadingReleases] = useState<boolean>(false);
   const [showRollbackSection, setShowRollbackSection] = useState<boolean>(false);
-  const [selectedRollbackTag, setSelectedRollbackTag] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadVersion() {
@@ -58,6 +59,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       loadReleases();
       if (initialUpdateInfo) {
         setCurrentUpdate(initialUpdateInfo);
+        setSelectedRollbackRelease(null);
         setUpdateStatus({
           status: "available",
           message: `Знайдено нову версію (${initialUpdateInfo.version})! Перегляньте опис та підтвердіть встановлення.`,
@@ -80,6 +82,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
   const handleCheck = async (targetTag?: string) => {
     setIsChecking(true);
+    setSelectedRollbackRelease(null);
     const updateObj = await checkForUpdates((status) => {
       setUpdateStatus(status);
     }, targetTag);
@@ -88,21 +91,61 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     setIsChecking(false);
   };
 
-  const handleStartInstallation = async () => {
-    if (!currentUpdate) return;
-    setIsInstalling(true);
-    const success = await installUpdate(currentUpdate, (status) => {
-      setUpdateStatus(status);
+  const handleRollbackSelect = (rel: ReleaseItem) => {
+    setSelectedRollbackRelease(rel);
+    setCurrentUpdate(null);
+
+    setUpdateStatus({
+      status: "available",
+      message: `Обрано версію ${rel.name || rel.tag_name} з архіву. Натисніть "Встановити версію" для завантаження інсталятора.`,
+      updateInfo: {
+        version: rel.tag_name,
+        body: rel.body || "Опис версії з архіву GitHub.",
+      } as any,
     });
-    setIsInstalling(false);
-    if (success && onUpdateProcessed) {
-      onUpdateProcessed();
-    }
   };
 
-  const handleRollbackSelect = async (rel: ReleaseItem) => {
-    setSelectedRollbackTag(rel.tag_name);
-    await handleCheck(rel.tag_name);
+  const handleStartInstallation = async () => {
+    setIsInstalling(true);
+
+    if (currentUpdate) {
+      // Use Tauri Updater plugin installation
+      const success = await installUpdate(currentUpdate, (status) => {
+        setUpdateStatus(status);
+      });
+      setIsInstalling(false);
+      if (success && onUpdateProcessed) {
+        onUpdateProcessed();
+      }
+    } else if (selectedRollbackRelease) {
+      // Rollback to selected release from GitHub assets
+      const assets = selectedRollbackRelease.assets || [];
+      const installerAsset =
+        assets.find(
+          (a) =>
+            a.name.endsWith(".exe") ||
+            a.name.endsWith(".msi") ||
+            a.name.endsWith(".nsis.zip") ||
+            a.name.endsWith(".zip")
+        ) || assets[0];
+
+      if (installerAsset) {
+        await downloadAndRunReleaseAsset(
+          installerAsset.browser_download_url,
+          installerAsset.name,
+          (status) => setUpdateStatus(status)
+        );
+      } else {
+        // Fallback: open release page
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(selectedRollbackRelease.html_url);
+        setUpdateStatus({
+          status: "available",
+          message: `Відкрито сторінку завантаження версії ${selectedRollbackRelease.tag_name} у браузері.`,
+        });
+      }
+      setIsInstalling(false);
+    }
   };
 
   return (
@@ -181,7 +224,9 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                     </div>
                     <div>
                       <h3 className="text-base font-black text-amber-950">
-                        Доступна версія для встановлення!
+                        {selectedRollbackRelease
+                          ? `Обрано версію з архіву (${selectedRollbackRelease.tag_name})`
+                          : "Доступна версія для встановлення!"}
                       </h3>
                       {updateStatus.updateInfo && (
                         <span className="text-xs font-black text-amber-800 bg-amber-200/70 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
@@ -210,7 +255,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   </div>
 
                   {/* Action decision buttons */}
-                  {updateStatus.status === "available" && currentUpdate && (
+                  {updateStatus.status === "available" && (currentUpdate || selectedRollbackRelease) && (
                     <div className="flex items-center justify-end gap-3 pt-2">
                       <button
                         onClick={onClose}
@@ -221,10 +266,12 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                       <button
                         onClick={handleStartInstallation}
                         disabled={isInstalling}
-                        className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2"
+                        className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2 disabled:opacity-50"
                       >
                         <CloudArrowDownIcon className="w-4 h-4 stroke-[2.5]" />
-                        <span>Встановити версію (v{currentUpdate.version})</span>
+                        <span>
+                          Встановити версію ({currentUpdate?.version || selectedRollbackRelease?.tag_name})
+                        </span>
                       </button>
                     </div>
                   )}
@@ -293,7 +340,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
                     {releaseHistory.map((rel) => {
                       const isCurrent = rel.tag_name.includes(currentVersion);
-                      const isSelected = selectedRollbackTag === rel.tag_name;
+                      const isSelected = selectedRollbackRelease?.tag_name === rel.tag_name;
                       return (
                         <div
                           key={rel.tag_name}
