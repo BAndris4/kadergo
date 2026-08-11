@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   UserGroupIcon,
   SparklesIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer, pickRootFolder, saveRootFolder } from "../services/fopService";
@@ -24,6 +25,7 @@ import { TabelGeneratorView } from "../components/TabelGeneratorView";
 import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/ZayavaPriyomGeneratorView";
 import { ShtatGeneratorView } from "../components/ShtatGeneratorView";
 import { GrafikGeneratorView } from "../components/GrafikGeneratorView";
+import { NakazGeneratorView } from "../components/NakazGeneratorView";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -36,6 +38,8 @@ interface DocumentGeneratorViewProps {
   onEditWorker?: (worker: Munkas) => void;
   onDeleteWorker?: (worker: Munkas) => void;
   onAddWorker?: (fopId: number) => void;
+  onEditFop?: (fop: FopData) => void;
+  onUpdateFopList?: (fops: FopData[]) => void;
 }
 
 export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
@@ -49,8 +53,10 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   onEditWorker,
   onDeleteWorker,
   onAddWorker,
+  onEditFop,
+  onUpdateFopList,
 }) => {
-  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik">("menu");
+  const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik" | "nakaz">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
 
   const hasRootFolder = Boolean(rootFolder && rootFolder.trim().length > 0);
@@ -148,16 +154,17 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   const hasCategory1Matches = showPayrollDoc || showTabelDoc;
 
   // Category 2 Docs (Human Resources / Personnel Documents)
+  const showNakazDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Накази підприємства", "Створення наказів про прийняття на роботу (основне, сумісництво, неповний час), реєстр та історія наказів", ["наказ", "накази", "прийняття", "прийом", "реєстр", "історія", "сумісництво"]);
   const showShtatDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Штатний розпис", "Формування та затвердження кількості штатних одиниць та місячного фонду зарплати", ["штат", "розпис", "посади", "оклади", "штатний"]);
   const showGrafikDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Графік відпусток", "Розрахунок та затвердження графіку чергових відпусток працівників", ["графік", "відпусток", "графік відпусток", "відпустки", "розклад"]);
   const showPriyomDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про прийняття на роботу", "Оформлення заяви про прийняття працівника на роботу", ["прийом", "заява", "прийняття", "робота"]);
   const showZvilnennyaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про звільнення", "Оформлення заяви про звільнення працівника за згодою сторін", ["звільнення", "заява", "згода сторін"]);
   const showVidpustkaDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про відпустку", "Оформлення заяви про надання щорічної відпустки", ["відпустка", "заява", "щорічна"]);
   const showBezKopijokDoc = (activeFilterCategory === "all" || activeFilterCategory === "hr") && matchesDoc("Заява про виплату без копійок", "Оформлення заяви про виплату заробітної плати без копійок", ["копійки", "виплата", "заява", "округлення"]);
-  const hasCategory2Matches = showShtatDoc || showGrafikDoc || showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc;
+  const hasCategory2Matches = showNakazDoc || showShtatDoc || showGrafikDoc || showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc;
 
   const totalMatches = (hasCategory1Matches ? (showPayrollDoc ? 1 : 0) + (showTabelDoc ? 1 : 0) : 0) +
-                       (hasCategory2Matches ? (showShtatDoc ? 1 : 0) + (showGrafikDoc ? 1 : 0) + (showPriyomDoc ? 1 : 0) + (showZvilnennyaDoc ? 1 : 0) + (showVidpustkaDoc ? 1 : 0) + (showBezKopijokDoc ? 1 : 0) : 0);
+                       (hasCategory2Matches ? (showNakazDoc ? 1 : 0) + (showShtatDoc ? 1 : 0) + (showGrafikDoc ? 1 : 0) + (showPriyomDoc ? 1 : 0) + (showZvilnennyaDoc ? 1 : 0) + (showVidpustkaDoc ? 1 : 0) + (showBezKopijokDoc ? 1 : 0) : 0);
 
   return (
     <div className="flex flex-col gap-8 animate-fadeIn pb-12 w-full font-sans">
@@ -545,21 +552,63 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           )}
 
           {/* CATEGORY 2: ОРГАНІЗАЦІЙНІ ТА ПЛАНОВІ ДОКУМЕНТИ */}
-          {(showShtatDoc || showGrafikDoc) && (
+          {(showNakazDoc || showShtatDoc || showGrafikDoc) && (
             <div className="flex flex-col gap-5 animate-fadeIn">
               <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
                 <div className="flex items-center gap-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-[#133b47]">
                   <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold shadow-xs">
                     <BuildingOffice2Icon className="w-4 h-4 stroke-[2.5]" />
                   </div>
-                  Організаційні та Планові документи
+                  Організаційні та Розпорядчі документи
                 </div>
                 <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47] border border-[#133b47]/15">
-                  2 документи
+                  3 документи
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 0. NAKAZY (НАКАЗИ ПІДПРИЄМСТВА) */}
+                {showNakazDoc && (
+                  <div
+                    onClick={() => isFopValidForPayroll && setActiveDocView("nakaz")}
+                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                      isFopValidForPayroll
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
+                        : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-all duration-300">
+                          <DocumentTextIcon className="w-6 h-6 stroke-[2.2]" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                          Накази
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                          Накази підприємства
+                        </h4>
+                        <p className="text-xs font-medium text-[#556e75] leading-relaxed">
+                          Створення наказів про прийняття на роботу (основне, сумісництво, неповний час) та реєстр.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={!isFopValidForPayroll}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                        isFopValidForPayroll
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      }`}
+                    >
+                      <span>Відкрити Накази →</span>
+                    </button>
+                  </div>
+                )}
                 {/* 1. SHTAT (ШТАТНИЙ РОЗПИС) */}
                 {showShtatDoc && (
                   <div
@@ -917,6 +966,20 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           onEditWorker={onEditWorker}
           onDeleteWorker={onDeleteWorker}
           onAddWorker={onAddWorker}
+        />
+      )}
+
+      {/* VIEW 7: NAKAZ GENERATOR VIEW */}
+      {activeDocView === "nakaz" && (
+        <NakazGeneratorView
+          fops={fops}
+          selectedFopId={selectedFopId}
+          rootFolder={rootFolder}
+          onShowToast={onShowToast}
+          onBack={() => setActiveDocView("menu")}
+          onEditFop={onEditFop}
+          onUpdateFopList={onUpdateFopList}
+          onEditWorker={onEditWorker}
         />
       )}
     </div>

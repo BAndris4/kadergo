@@ -103,6 +103,33 @@ pub fn open_folder_in_explorer(folder_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn open_file_directly(file_path: String) -> Result<(), String> {
+    if file_path.trim().is_empty() {
+        return Err("Файл не вказано".to_string());
+    }
+
+    let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err(format!("Файл не існує: {}", file_path));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", &file_path])
+            .spawn()
+            .map_err(|e| format!("Не вдалося відкрити файл: {}", e))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        opener::open(&file_path).map_err(|e| format!("Не вдалося відкрити файл: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub fn scan_fop_folders(root_dir: String) -> Result<Vec<DiscoveredFopDto>, String> {
     if root_dir.trim().is_empty() {
         return Err("Головну папку не вказано".to_string());

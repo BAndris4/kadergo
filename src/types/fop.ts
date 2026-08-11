@@ -380,3 +380,31 @@ export interface GenerateGrafikDocxRequest {
   items: GrafikWorkerItem[];
   save_dir?: string;
 }
+
+export interface GenerateNakazPriyomRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  employment_type: string; // "main" | "sumisnyctvo" | "nepovny_chas"
+  worker_name_accusative: string;
+  worker_name_dative: string;
+  worker_initials: string;
+  position_name: string;
+  salary_str: string;
+  work_start_date_str: string;
+  save_dir?: string;
+}
+
+export interface NakazFileItem {
+  nakaz_num: string;
+  num_val: number;
+  filename: string;
+  filepath: string;
+  nakaz_type: string;
+  date_modified: string;
+}

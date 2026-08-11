@@ -48,36 +48,47 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const [showArchive, setShowArchive] = useState<boolean>(false);
 
   useEffect(() => {
-    async function loadVersion() {
-      try {
-        const appVer = await getVersion();
-        setCurrentVersion(appVer);
-      } catch (err) {
-        console.error("Failed to get app version:", err);
+    (async () => {
+      async function loadVersion() {
+        try {
+          const appVer = await getVersion();
+          setCurrentVersion(appVer);
+        } catch (err) {
+          console.error("Failed to get app version:", err);
+        }
       }
-    }
-    if (isOpen) {
-      loadVersion();
-      loadReleases();
-      if (initialUpdateInfo) {
-        setCurrentUpdate(initialUpdateInfo);
-        setSelectedRollbackRelease(null);
-        setUpdateStatus({
-          status: "available",
-          message: `Знайдено нову версію (${initialUpdateInfo.version})! Перегляньте опис та підтвердіть встановлення.`,
-          updateInfo: initialUpdateInfo,
-        });
-      } else {
-        handleCheck();
+      if (isOpen) {
+        loadVersion();
+        const fetchedHistory = await loadReleases();
+        if (initialUpdateInfo) {
+          setCurrentUpdate(initialUpdateInfo);
+          setSelectedRollbackRelease(null);
+          // Use GitHub release description body instead of latest.json notes
+          const matchedRelease = fetchedHistory.find(
+            (r) =>
+              r.tag_name === `v${initialUpdateInfo.version}` ||
+              r.tag_name === initialUpdateInfo.version
+          );
+          const displayBody =
+            matchedRelease?.body || initialUpdateInfo.body || undefined;
+          setUpdateStatus({
+            status: "available",
+            message: `Знайдено нову версію (${initialUpdateInfo.version})! Перегляньте опис та підтвердіть встановлення.`,
+            updateInfo: { ...initialUpdateInfo, body: displayBody } as any,
+          });
+        } else {
+          handleCheck();
+        }
       }
-    }
+    })();
   }, [isOpen]);
 
-  const loadReleases = async () => {
+  const loadReleases = async (): Promise<ReleaseItem[]> => {
     setIsLoadingReleases(true);
     const history = await fetchReleaseHistory();
     setReleaseHistory(history);
     setIsLoadingReleases(false);
+    return history;
   };
 
   if (!isOpen) return null;
@@ -90,6 +101,18 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     }, targetTag);
 
     setCurrentUpdate(updateObj);
+    if (updateObj) {
+      // Find matching GitHub release for its description body
+      const matchedRelease = releaseHistory.find(
+        (r) => r.tag_name === `v${updateObj.version}` || r.tag_name === updateObj.version
+      );
+      if (matchedRelease && matchedRelease.body) {
+        setUpdateStatus((prev) => ({
+          ...prev!,
+          updateInfo: { ...updateObj, body: matchedRelease.body } as any,
+        }));
+      }
+    }
     setIsChecking(false);
   };
 

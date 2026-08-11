@@ -1,6 +1,6 @@
 [package]
 name = "kadergo"
-version = "0.1.6"
+version = "0.2.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -24,6 +24,7 @@ rfd = "0.15"
 rust_xlsxwriter = "0.96.0"
 zip = "2.2"
 reqwest = { version = "0.12", features = ["rustls-tls"] }
+chrono = "0.4"
 
 [profile.release]
 codegen-units = 16

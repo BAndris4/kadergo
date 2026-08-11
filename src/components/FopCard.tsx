@@ -62,6 +62,19 @@ export const FopCard: React.FC<FopCardProps> = ({
                 ФОП з: {fop.fop_kezdete_datum}
               </span>
             )}
+
+            {fop.cim && (fop.cim.kozseg || fop.cim.utca || fop.cim.megye) && (
+              <span className="text-xs font-bold text-[#133b47] bg-[#f4f9f8] px-2.5 py-0.5 rounded-lg border border-[#cbd8d6] mt-0.5 self-start">
+                🏠 {[
+                  fop.cim.iranyitoszam,
+                  fop.cim.megye ? `${fop.cim.megye} обл.` : "",
+                  fop.cim.jaras ? `${fop.cim.jaras} р-н` : "",
+                  fop.cim.kozseg ? `м. ${fop.cim.kozseg}` : "",
+                  fop.cim.utca ? `вул. ${fop.cim.utca}` : "",
+                  fop.cim.hazszam ? `буд. ${fop.cim.hazszam}` : "",
+                ].filter(Boolean).join(", ")}
+              </span>
+            )}
           </div>
         </div>
 

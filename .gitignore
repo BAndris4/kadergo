@@ -1,4 +1,5 @@
 *.db
+*.docx
 scratch/
 
 # Logs

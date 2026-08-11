@@ -46,6 +46,8 @@ pub struct FopDto {
     pub fop_kezdete_datum: Option<String>,
     pub nakaz_szam: Option<String>,
     pub munkas_szam: Option<String>,
+    pub cim: Option<CimInput>,
+    pub okmany: Option<OkmanyInput>,
     pub munkasok: Vec<MunkasDto>,
 }
 

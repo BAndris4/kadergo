@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest } from "../types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, NakazFileItem } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -61,6 +61,15 @@ export async function openFolderInExplorer(folderPath: string): Promise<void> {
     await invoke("open_folder_in_explorer", { folderPath });
   } catch (err) {
     console.warn("Tauri open_folder_in_explorer fallback:", err);
+  }
+}
+
+export async function openFileDirectly(filePath: string): Promise<void> {
+  if (!filePath.trim()) return;
+  try {
+    await invoke("open_file_directly", { filePath });
+  } catch (err) {
+    console.warn("Tauri open_file_directly fallback:", err);
   }
 }
 
@@ -637,6 +646,7 @@ export async function generateTabelPeriodExcel(req: {
 
 
 
+
 export async function generateZayavaPriyomDocx(req: GenerateZayavaPriyomDocxRequest): Promise<string> {
   return await invoke<string>("generate_zayava_priyom_docx", { req });
 }
@@ -648,3 +658,59 @@ export async function generateShtatDocx(req: GenerateShtatDocxRequest): Promise<
 export async function generateGrafikDocx(req: GenerateGrafikDocxRequest): Promise<string> {
   return await invoke<string>("generate_grafik_docx", { req });
 }
+
+export async function generateNakazPriyomDocx(req: GenerateNakazPriyomRequest): Promise<string> {
+  return await invoke<string>("generate_nakaz_priyom_docx", { req });
+}
+
+export async function scanFopNakazy(dirPath: String | string): Promise<NakazFileItem[]> {
+  return await invoke<NakazFileItem[]>("scan_fop_nakazy", { dirPath });
+}
+
+export async function scrapeFopAddressFromNakazy(dirPath: string): Promise<string | null> {
+  return await invoke<string | null>("scrape_fop_address_from_nakazy", { dirPath });
+}
+
+export async function updateFopDirect(fop: FopData, existingFops: FopData[]): Promise<FopData> {
+  const inputData = {
+    id: fop.id,
+    kod: fop.kod || fop.fop_kod || "0000000000",
+    vezeteknev: fop.vezeteknev,
+    keresztnev: fop.keresztnev,
+    apai_nev: fop.apai_nev || "",
+    szuletesi_datum: fop.szuletesi_datum || null,
+    nem: fop.nem || null,
+    fop_kod: fop.fop_kod || null,
+    fop_kezdete_datum: fop.fop_kezdete_datum || null,
+    nakaz_szam: fop.nakaz_szam || "1",
+    munkas_szam: fop.munkas_szam || "1",
+    cim: fop.cim
+      ? {
+          iranyitoszam: fop.cim.iranyitoszam || "",
+          megye: fop.cim.megye || "",
+          jaras: fop.cim.jaras || "",
+          kozseg: fop.cim.kozseg || "",
+          utca: fop.cim.utca || "",
+          hazszam: fop.cim.hazszam || "",
+          epulet: fop.cim.epulet || "",
+          lakas_szoba: fop.cim.lakas_szoba || "",
+          orszag: fop.cim.orszag || "Україна",
+        }
+      : undefined,
+    okmany: fop.okmany,
+  };
+
+  try {
+    const updatedFop = await invoke<FopData>("update_fop", { input: inputData });
+    const updatedList = existingFops.map((f) => (f.id === fop.id ? { ...f, ...updatedFop, cim: fop.cim } : f));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return { ...fop, ...updatedFop, cim: fop.cim };
+  } catch (err) {
+    console.warn("Tauri update_fop fallback to localStorage:", err);
+    const updatedList = existingFops.map((f) => (f.id === fop.id ? fop : f));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+    return fop;
+  }
+}
+
+

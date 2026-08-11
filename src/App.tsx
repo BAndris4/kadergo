@@ -289,6 +289,8 @@ export default function App() {
             const targetFop = fops.find((f) => f.id === fId) || null;
             setFopForNewWorker(targetFop);
           }}
+          onEditFop={(f) => setFopToEdit(f)}
+          onUpdateFopList={(updatedList) => setFops(updatedList)}
         />
       )}
 

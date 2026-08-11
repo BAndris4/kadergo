@@ -9,9 +9,13 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT f.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
-                    f.fop_kod, f.fop_kezdete_datum, f.nakaz_szam, f.munkas_szam
+                    f.fop_kod, f.fop_kezdete_datum, f.nakaz_szam, f.munkas_szam,
+                    c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
+                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
              FROM fop f
              JOIN szemely s ON f.szemely_id = s.id
+             LEFT JOIN cim c ON c.szemely_id = s.id
+             LEFT JOIN okmany o ON o.szemely_id = s.id
              ORDER BY s.vezeteknev ASC, s.keresztnev ASC, s.apai_nev ASC",
         )
         .map_err(|e| e.to_string())?;
@@ -30,6 +34,38 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             let nakaz_szam: Option<String> = row.get(9).ok().flatten();
             let munkas_szam: Option<String> = row.get(10).ok().flatten();
 
+            let c_iranyitoszam: Option<String> = row.get(11).ok().flatten();
+            let cim = if c_iranyitoszam.is_some() || row.get::<_, Option<String>>(12).ok().flatten().is_some() {
+                Some(CimInput {
+                    iranyitoszam: c_iranyitoszam,
+                    megye: row.get(12).ok().flatten(),
+                    jaras: row.get(13).ok().flatten(),
+                    kozseg: row.get(14).ok().flatten(),
+                    utca: row.get(15).ok().flatten(),
+                    hazszam: row.get(16).ok().flatten(),
+                    epulet: row.get(17).ok().flatten(),
+                    lakas_szoba: row.get(18).ok().flatten(),
+                    orszag: row.get(19).ok().flatten(),
+                })
+            } else {
+                None
+            };
+
+            let o_szam: Option<String> = row.get(22).ok().flatten();
+            let okmany = if let Some(okmanyszam) = o_szam {
+                Some(OkmanyInput {
+                    tipus: row.get::<_, i32>(20).unwrap_or(0),
+                    szeria: row.get(21).ok().flatten().unwrap_or_default(),
+                    okmanyszam,
+                    kiallitott_hatosag: row.get(23).ok().flatten(),
+                    hatosagi_kod: row.get(24).ok().flatten(),
+                    kiallitasi_datum: row.get(25).ok().flatten(),
+                    lejarati_datum: row.get(26).ok().flatten(),
+                })
+            } else {
+                None
+            };
+
             Ok((
                 fop_id,
                 kod,
@@ -42,6 +78,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                 fop_kezdete_datum,
                 nakaz_szam,
                 munkas_szam,
+                cim,
+                okmany,
             ))
         })
         .map_err(|e| e.to_string())?;
@@ -61,6 +99,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             fop_kezdete_datum,
             nakaz_szam,
             munkas_szam,
+            cim,
+            okmany,
         ) = match fop_res {
             Ok(tuple) => tuple,
             Err(_) => continue,
@@ -168,6 +208,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             fop_kezdete_datum,
             nakaz_szam,
             munkas_szam,
+            cim,
+            okmany,
             munkasok,
         });
     }
@@ -302,6 +344,8 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
         fop_kezdete_datum: fop_start_date,
         nakaz_szam: Some("1".to_string()),
         munkas_szam: Some("1".to_string()),
+        cim: input.cim,
+        okmany: input.okmany,
         munkasok: vec![],
     })
 }
@@ -556,6 +600,8 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
         fop_kezdete_datum: fop_start_date,
         nakaz_szam: input.nakaz_szam,
         munkas_szam: input.munkas_szam,
+        cim: input.cim,
+        okmany: input.okmany,
         munkasok,
     })
 }
