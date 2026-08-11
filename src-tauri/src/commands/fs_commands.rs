@@ -367,6 +367,50 @@ pub fn scan_and_import_fop_folders(root_dir: String) -> Result<ScanFopsResult, S
 }
 
 #[tauri::command]
+pub async fn download_and_run_installer(download_url: String, file_name: String) -> Result<(), String> {
+    if download_url.trim().is_empty() {
+        return Err("Download URL is empty".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("KaderGo-App")
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let response = client
+        .get(&download_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to connect to download URL: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download failed with HTTP status: {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read installer payload: {}", e))?;
+
+    let temp_dir = std::env::temp_dir();
+    let name = if file_name.trim().is_empty() {
+        "kadergo_installer.exe".to_string()
+    } else {
+        file_name
+    };
+    let installer_path = temp_dir.join(&name);
+
+    fs::write(&installer_path, bytes)
+        .map_err(|e| format!("Failed to write installer to temp file: {}", e))?;
+
+    std::process::Command::new(&installer_path)
+        .spawn()
+        .map_err(|e| format!("Failed to start installer executable: {}", e))?;
+
+    std::process::exit(0);
+}
+
+#[tauri::command]
 pub fn run_installer_from_bytes(bytes: Vec<u8>, file_name: String) -> Result<(), String> {
     let temp_dir = std::env::temp_dir();
     let installer_path = temp_dir.join(&file_name);

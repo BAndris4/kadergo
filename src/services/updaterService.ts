@@ -197,21 +197,8 @@ export async function downloadAndRunReleaseAsset(
       message: "Завантаження інсталятора обраної версії...",
     });
 
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const bytes = Array.from(new Uint8Array(arrayBuffer));
-
-    onStatusChange?.({
-      status: "downloading",
-      message: "Запуск інсталятора...",
-    });
-
     const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("run_installer_from_bytes", { bytes, fileName });
+    await invoke("download_and_run_installer", { downloadUrl, fileName });
     return true;
   } catch (error) {
     console.error("Failed to download or run release asset:", error);

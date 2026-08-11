@@ -39,7 +39,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const [selectedRollbackRelease, setSelectedRollbackRelease] = useState<ReleaseItem | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
-  const [currentVersion, setCurrentVersion] = useState<string>("0.1.3");
+  const [currentVersion, setCurrentVersion] = useState<string>("0.1.4");
   
   const [releaseHistory, setReleaseHistory] = useState<ReleaseItem[]>([]);
   const [isLoadingReleases, setIsLoadingReleases] = useState<boolean>(false);
