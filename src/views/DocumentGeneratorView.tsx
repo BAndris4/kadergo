@@ -18,7 +18,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas } from "../types/fop";
-import { ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
+import { ensureFopDirectory, openFolderInExplorer, pickRootFolder, saveRootFolder } from "../services/fopService";
 import { PayrollGeneratorView } from "../components/PayrollGeneratorView";
 import { TabelGeneratorView } from "../components/TabelGeneratorView";
 import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/ZayavaPriyomGeneratorView";
@@ -30,6 +30,7 @@ interface DocumentGeneratorViewProps {
   selectedFopId: number | null;
   onSelectFop: (id: number) => void;
   rootFolder: string;
+  onRootFolderChange?: (folder: string) => void;
   minWage: number;
   onShowToast: (msg: string) => void;
   onEditWorker?: (worker: Munkas) => void;
@@ -42,6 +43,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   selectedFopId,
   onSelectFop,
   rootFolder,
+  onRootFolderChange,
   minWage,
   onShowToast,
   onEditWorker,
@@ -50,6 +52,19 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 }) => {
   const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
+
+  const hasRootFolder = Boolean(rootFolder && rootFolder.trim().length > 0);
+
+  const handlePickFolder = async () => {
+    const chosen = await pickRootFolder();
+    if (chosen) {
+      if (onRootFolderChange) {
+        onRootFolderChange(chosen);
+      }
+      saveRootFolder(chosen);
+      onShowToast(`Головну папку збереження успішно встановлено: "${chosen}"`);
+    }
+  };
 
   // Search & Filter State
   const [docSearchQuery, setDocSearchQuery] = useState("");
@@ -146,6 +161,38 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
   return (
     <div className="flex flex-col gap-8 animate-fadeIn pb-12 w-full font-sans">
+      {/* MISSING WORKING FOLDER WARNING BANNER */}
+      {!hasRootFolder && (
+        <div className="p-6 rounded-[28px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-amber-300/60 animate-fadeIn">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-slate-950 text-[#f8a44c] flex items-center justify-center shadow-md shrink-0 border border-white/20">
+              <FolderOpenIcon className="w-7 h-7 stroke-[2.2] animate-bounce" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-lg font-black tracking-tight text-slate-950">
+                  Увага: Не обрано робочу папку для збереження документів!
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-950 text-[#f8a44c] text-[10px] font-black uppercase tracking-wider shadow-xs">
+                  Дія заблокована
+                </span>
+              </div>
+              <p className="text-xs text-slate-900 font-bold leading-relaxed max-w-2xl">
+                Для формування відомостей, табелів та кадрових документів необхідно спочатку вказати папку на комп'ютері, куди зберігатимуться створені файли.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handlePickFolder}
+            className="px-6 py-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 text-[#f8a44c] font-black text-xs transition-all shadow-lg cursor-pointer flex items-center gap-2.5 shrink-0 transform hover:-translate-y-0.5 border border-white/10"
+          >
+            <FolderOpenIcon className="w-5 h-5 stroke-[2.5]" />
+            <span>Обрати робочу папку зараз</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. TOP ACTIVE FOP CONTROL BAR WITH GLASSMORPHISM AND GRADIENT */}
       <div className="bg-gradient-to-r from-white via-[#f8faf9] to-[#f0f7f6] rounded-[28px] p-5 px-8 border-2 border-[#cbd8d6] shadow-md flex flex-col md:flex-row items-center justify-between gap-6 relative z-20 transition-all duration-300">
         <div className="flex items-center gap-4 shrink-0">

@@ -5,6 +5,9 @@ export interface UpdateStatus {
   status: "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
   message: string;
   updateInfo?: Update | null;
+  progressPercent?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
 }
 
 export interface ReleaseAsset {
@@ -140,6 +143,9 @@ export async function installUpdate(
             status: "downloading",
             message: `Розпочато завантаження...`,
             updateInfo: update,
+            progressPercent: 0,
+            downloadedBytes: 0,
+            totalBytes,
           });
           break;
         case "Progress":
@@ -149,9 +155,12 @@ export async function installUpdate(
             status: "downloading",
             message:
               totalBytes > 0
-                ? `Завантаження: ${percent}% (${Math.round(downloadedBytes / 1024)} KB / ${Math.round(totalBytes / 1024)} KB)`
-                : `Завантаження... (${Math.round(downloadedBytes / 1024)} KB)`,
+                ? `Завантаження: ${percent}% (${(downloadedBytes / (1024 * 1024)).toFixed(1)} MB / ${(totalBytes / (1024 * 1024)).toFixed(1)} MB)`
+                : `Завантаження... (${(downloadedBytes / (1024 * 1024)).toFixed(1)} MB)`,
             updateInfo: update,
+            progressPercent: percent,
+            downloadedBytes,
+            totalBytes,
           });
           break;
         case "Finished":
@@ -159,6 +168,9 @@ export async function installUpdate(
             status: "downloading",
             message: "Завантаження завершено. Встановлення та перезапуск...",
             updateInfo: update,
+            progressPercent: 100,
+            downloadedBytes: totalBytes,
+            totalBytes,
           });
           break;
       }

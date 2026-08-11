@@ -11,6 +11,7 @@ import {
   deleteWorker,
   getSavedRootFolder,
   saveRootFolder,
+  pickRootFolder,
   getSavedMinWage,
   saveMinWage,
   ensureFopDirectory,
@@ -248,6 +249,15 @@ export default function App() {
 
   const osszesMunkasCount = fops.reduce((acc, fop) => acc + fop.munkasok.length, 0);
 
+  const handlePickRootFolder = async () => {
+    const chosen = await pickRootFolder();
+    if (chosen) {
+      setRootFolder(chosen);
+      saveRootFolder(chosen);
+      showToast(`Головну папку збереження встановлено: "${chosen}"`);
+    }
+  };
+
   return (
     <div className="w-full max-w-[1600px] mx-auto px-10 py-10 pb-24">
       <Header
@@ -258,6 +268,8 @@ export default function App() {
         onGoHome={handleGoHome}
         hasUpdateNotification={hasUpdateNotification}
         availableVersion={availableUpdateInfo?.version}
+        hasRootFolder={Boolean(rootFolder && rootFolder.trim().length > 0)}
+        onPickFolder={handlePickRootFolder}
       />
 
       {/* VIEW 1: Document Generator Main View */}
@@ -268,6 +280,7 @@ export default function App() {
           selectedFopId={selectedFopId}
           onSelectFop={setSelectedFopId}
           rootFolder={rootFolder}
+          onRootFolderChange={setRootFolder}
           minWage={minWage}
           onShowToast={showToast}
           onEditWorker={(w) => setWorkerToEdit(w)}

@@ -45,6 +45,15 @@
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.8s infinite linear;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }

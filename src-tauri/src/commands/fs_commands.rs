@@ -404,6 +404,7 @@ pub async fn download_and_run_installer(download_url: String, file_name: String)
         .map_err(|e| format!("Failed to write installer to temp file: {}", e))?;
 
     std::process::Command::new(&installer_path)
+        .arg("/S")
         .spawn()
         .map_err(|e| format!("Failed to start installer executable: {}", e))?;
 
@@ -418,6 +419,7 @@ pub fn run_installer_from_bytes(bytes: Vec<u8>, file_name: String) -> Result<(),
     fs::write(&installer_path, bytes).map_err(|e| format!("Failed to write installer: {}", e))?;
 
     std::process::Command::new(&installer_path)
+        .arg("/S")
         .spawn()
         .map_err(|e| format!("Failed to launch installer executable: {}", e))?;
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { DocumentTextIcon, UserGroupIcon, Cog6ToothIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, UserGroupIcon, Cog6ToothIcon, CloudArrowDownIcon, FolderOpenIcon } from "@heroicons/react/24/outline";
 
 interface HeaderProps {
   activeTab: "generator" | "management";
@@ -9,6 +9,8 @@ interface HeaderProps {
   onGoHome?: () => void;
   hasUpdateNotification?: boolean;
   availableVersion?: string;
+  hasRootFolder?: boolean;
+  onPickFolder?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +21,8 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   hasUpdateNotification = false,
   availableVersion,
+  hasRootFolder = true,
+  onPickFolder,
 }) => {
   const handleLogoClick = () => {
     if (onGoHome) {
@@ -77,6 +81,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Primary Actions & Preferences */}
       <div className="flex items-center gap-3">
+        {!hasRootFolder && onPickFolder && (
+          <button
+            onClick={onPickFolder}
+            title="Не обрано папку для збереження документів! Натисніть, щоб обрати."
+            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 border-2 border-amber-600 font-black text-xs transition-all cursor-pointer shadow-lg shadow-amber-500/25 flex items-center gap-2 transform hover:-translate-y-0.5 animate-pulse"
+          >
+            <FolderOpenIcon className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+            <span>Оберіть робочу папку</span>
+          </button>
+        )}
         {/* System Auto-Update Button with Notification Badge */}
         {onOpenUpdate && (
           <button
