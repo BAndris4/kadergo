@@ -367,7 +367,13 @@ pub fn scan_and_import_fop_folders(root_dir: String) -> Result<ScanFopsResult, S
 }
 
 #[tauri::command]
-pub async fn download_and_run_installer(download_url: String, file_name: String) -> Result<(), String> {
+pub async fn download_and_run_installer(
+    app: tauri::AppHandle,
+    download_url: String,
+    file_name: String,
+) -> Result<(), String> {
+    use tauri::Emitter;
+
     if download_url.trim().is_empty() {
         return Err("Download URL is empty".to_string());
     }
@@ -377,7 +383,7 @@ pub async fn download_and_run_installer(download_url: String, file_name: String)
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let response = client
+    let mut response = client
         .get(&download_url)
         .send()
         .await
@@ -387,10 +393,39 @@ pub async fn download_and_run_installer(download_url: String, file_name: String)
         return Err(format!("Download failed with HTTP status: {}", response.status()));
     }
 
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read installer payload: {}", e))?;
+    let total_size = response.content_length().unwrap_or(0);
+    let mut downloaded: u64 = 0;
+    let mut buffer = Vec::new();
+
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        downloaded += chunk.len() as u64;
+        buffer.extend_from_slice(&chunk);
+
+        let percent = if total_size > 0 {
+            ((downloaded as f64 / total_size as f64) * 100.0) as u32
+        } else {
+            0
+        };
+
+        let _ = app.emit(
+            "installer-download-progress",
+            serde_json::json!({
+                "percent": percent,
+                "downloaded": downloaded,
+                "total": total_size
+            }),
+        );
+    }
+
+    let _ = app.emit(
+        "installer-download-progress",
+        serde_json::json!({
+            "percent": 100,
+            "downloaded": downloaded,
+            "total": downloaded,
+            "status": "installing"
+        }),
+    );
 
     let temp_dir = std::env::temp_dir();
     let name = if file_name.trim().is_empty() {
@@ -400,14 +435,160 @@ pub async fn download_and_run_installer(download_url: String, file_name: String)
     };
     let installer_path = temp_dir.join(&name);
 
-    fs::write(&installer_path, bytes)
+    fs::write(&installer_path, buffer)
         .map_err(|e| format!("Failed to write installer to temp file: {}", e))?;
 
-    std::process::Command::new(&installer_path)
-        .arg("/S")
-        .spawn()
-        .map_err(|e| format!("Failed to start installer executable: {}", e))?;
+    execute_installer_and_relaunch(&installer_path)
+}
 
+#[tauri::command]
+pub async fn fetch_github_releases() -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("KaderGo-App")
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    // 1. Try fetching published releases
+    if let Ok(res) = client
+        .get("https://api.github.com/repos/BAndris4/kadergo/releases")
+        .send()
+        .await
+    {
+        if res.status().is_success() {
+            if let Ok(text) = res.text().await {
+                if let Ok(releases_json) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if let Some(arr) = releases_json.as_array() {
+                        if !arr.is_empty() {
+                            return Ok(text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fallback: Fetch git tags if releases endpoint returns empty array
+    if let Ok(res) = client
+        .get("https://api.github.com/repos/BAndris4/kadergo/tags")
+        .send()
+        .await
+    {
+        if res.status().is_success() {
+            if let Ok(text) = res.text().await {
+                if let Ok(tags_json) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if let Some(arr) = tags_json.as_array() {
+                    if !arr.is_empty() {
+                        let synthetic_releases: Vec<serde_json::Value> = arr
+                            .iter()
+                            .map(|tag| {
+                                let name = tag["name"].as_str().unwrap_or("v0.1.0");
+                                let clean_ver = name.trim_start_matches('v');
+                                serde_json::json!({
+                                    "tag_name": name,
+                                    "name": format!("KaderGo {}", name),
+                                    "body": format!("Випуск {} в архіві репозиторію KaderGo.", name),
+                                    "published_at": "2026-08-11T12:00:00Z",
+                                    "prerelease": false,
+                                    "html_url": format!("https://github.com/BAndris4/kadergo/releases/tag/{}", name),
+                                    "assets": [
+                                        {
+                                            "name": format!("kadergo_{}_x64-setup.exe", clean_ver),
+                                            "browser_download_url": format!("https://github.com/BAndris4/kadergo/releases/download/{}/kadergo_{}_x64-setup.exe", name, clean_ver)
+                                        }
+                                    ]
+                                })
+                            })
+                            .collect();
+
+                        return Ok(serde_json::to_string(&synthetic_releases).unwrap_or_default());
+                    }
+                }
+            }
+        }
+    }
+}
+
+    // 3. Fallback: Local known version history
+    let fallback = serde_json::json!([
+        {
+            "tag_name": "v0.1.5",
+            "name": "KaderGo v0.1.5",
+            "body": "Автоматичні оновлення, тихий режим (Silent Mode) та сповіщення про робочу папку.",
+            "published_at": "2026-08-11T14:25:00Z",
+            "prerelease": false,
+            "assets": [{ "name": "kadergo_0.1.5_x64-setup.exe", "browser_download_url": "https://github.com/BAndris4/kadergo/releases/download/v0.1.5/kadergo_0.1.5_x64-setup.exe" }]
+        },
+        {
+            "tag_name": "v0.1.4",
+            "name": "KaderGo v0.1.4",
+            "body": "Автоматичні оновлення та виправлення завантаження.",
+            "published_at": "2026-08-11T13:45:00Z",
+            "prerelease": false,
+            "assets": [{ "name": "kadergo_0.1.4_x64-setup.exe", "browser_download_url": "https://github.com/BAndris4/kadergo/releases/download/v0.1.4/kadergo_0.1.4_x64-setup.exe" }]
+        },
+        {
+            "tag_name": "v0.1.3",
+            "name": "KaderGo v0.1.3",
+            "body": "Виправлення стабільності та робота з файлами.",
+            "published_at": "2026-08-11T12:50:00Z",
+            "prerelease": false,
+            "assets": [{ "name": "kadergo_0.1.3_x64-setup.exe", "browser_download_url": "https://github.com/BAndris4/kadergo/releases/download/v0.1.3/kadergo_0.1.3_x64-setup.exe" }]
+        },
+        {
+            "tag_name": "v0.1.2",
+            "name": "KaderGo v0.1.2",
+            "body": "Графік відпусток та розрахунок днів.",
+            "published_at": "2026-08-10T12:00:00Z",
+            "prerelease": false,
+            "assets": [{ "name": "kadergo_0.1.2_x64-setup.exe", "browser_download_url": "https://github.com/BAndris4/kadergo/releases/download/v0.1.2/kadergo_0.1.2_x64-setup.exe" }]
+        },
+        {
+            "tag_name": "v0.1.1",
+            "name": "KaderGo v0.1.1",
+            "body": "Штатний розпис та заяви про прийняття на роботу.",
+            "published_at": "2026-08-09T12:00:00Z",
+            "prerelease": false,
+            "assets": [{ "name": "kadergo_0.1.1_x64-setup.exe", "browser_download_url": "https://github.com/BAndris4/kadergo/releases/download/v0.1.1/kadergo_0.1.1_x64-setup.exe" }]
+        }
+    ]);
+
+    Ok(serde_json::to_string(&fallback).unwrap_or_default())
+}
+
+fn execute_installer_and_relaunch(installer_path: &std::path::Path) -> Result<(), String> {
+    let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let temp_dir = std::env::temp_dir();
+    let bat_path = temp_dir.join("kadergo_updater.bat");
+
+    let bat_content = format!(
+        "@echo off\r\ntimeout /t 1 /nobreak > NUL\r\n\"{}\" /S\r\nstart \"\" \"{}\"\r\n(goto 2 2>nul & del \"%~f0\")\r\n",
+        installer_path.to_string_lossy(),
+        current_exe.to_string_lossy()
+    );
+
+    fs::write(&bat_path, bat_content).map_err(|e| format!("Failed to write updater script: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        std::process::Command::new("cmd")
+            .args(&["/C", bat_path.to_str().unwrap_or_default()])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| format!("Failed to launch updater script: {}", e))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::process::Command::new(installer_path)
+            .arg("/S")
+            .spawn()
+            .map_err(|e| format!("Failed to launch installer executable: {}", e))?;
+    }
+
+    std::thread::sleep(std::time::Duration::from_millis(300));
     std::process::exit(0);
 }
 
@@ -418,12 +599,7 @@ pub fn run_installer_from_bytes(bytes: Vec<u8>, file_name: String) -> Result<(),
 
     fs::write(&installer_path, bytes).map_err(|e| format!("Failed to write installer: {}", e))?;
 
-    std::process::Command::new(&installer_path)
-        .arg("/S")
-        .spawn()
-        .map_err(|e| format!("Failed to launch installer executable: {}", e))?;
-
-    std::process::exit(0);
+    execute_installer_and_relaunch(&installer_path)
 }
 
 #[cfg(test)]

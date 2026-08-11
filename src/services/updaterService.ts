@@ -30,22 +30,21 @@ export interface ReleaseItem {
  */
 export async function fetchReleaseHistory(): Promise<ReleaseItem[]> {
   try {
-    const response = await fetch("https://api.github.com/repos/BAndris4/kadergo/releases", {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-        "User-Agent": "KaderGo-App",
-      },
-    });
-
-    if (!response.ok) {
-      console.warn("Failed to fetch release history from GitHub:", response.statusText);
-      return [];
-    }
-
-    const releases: ReleaseItem[] = await response.json();
+    const { invoke } = await import("@tauri-apps/api/core");
+    const jsonText = await invoke<string>("fetch_github_releases");
+    const releases: ReleaseItem[] = JSON.parse(jsonText);
     return releases.filter((r) => !r.prerelease);
   } catch (error) {
-    console.error("Error fetching release history:", error);
+    console.warn("Rust release fetch fallback to browser fetch:", error);
+    try {
+      const response = await fetch("https://api.github.com/repos/BAndris4/kadergo/releases");
+      if (response.ok) {
+        const releases: ReleaseItem[] = await response.json();
+        return releases.filter((r) => !r.prerelease);
+      }
+    } catch (e) {
+      console.error("Browser release fetch failed:", e);
+    }
     return [];
   }
 }
@@ -206,11 +205,52 @@ export async function downloadAndRunReleaseAsset(
   try {
     onStatusChange?.({
       status: "downloading",
-      message: "Завантаження інсталятора обраної версії...",
+      message: "Розпочато завантаження інсталятора...",
+      progressPercent: 0,
+      downloadedBytes: 0,
+      totalBytes: 0,
     });
 
     const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("download_and_run_installer", { downloadUrl, fileName });
+    const { listen } = await import("@tauri-apps/api/event");
+
+    const unlisten = await listen<{
+      percent: number;
+      downloaded: number;
+      total: number;
+      status?: string;
+    }>("installer-download-progress", (event) => {
+      const { percent, downloaded, total, status } = event.payload;
+
+      if (status === "installing" || percent >= 100) {
+        onStatusChange?.({
+          status: "downloading",
+          message: "Завантаження завершено. Встановлення та перезапуск...",
+          progressPercent: 100,
+          downloadedBytes: downloaded,
+          totalBytes: total || downloaded,
+        });
+      } else {
+        const percentVal = Math.min(100, Math.max(0, percent));
+        onStatusChange?.({
+          status: "downloading",
+          message:
+            total > 0
+              ? `Завантаження: ${percentVal}% (${(downloaded / (1024 * 1024)).toFixed(1)} MB / ${(total / (1024 * 1024)).toFixed(1)} MB)`
+              : `Завантаження... (${(downloaded / (1024 * 1024)).toFixed(1)} MB)`,
+          progressPercent: percentVal,
+          downloadedBytes: downloaded,
+          totalBytes: total,
+        });
+      }
+    });
+
+    try {
+      await invoke("download_and_run_installer", { downloadUrl, fileName });
+    } finally {
+      unlisten();
+    }
+
     return true;
   } catch (error) {
     console.error("Failed to download or run release asset:", error);
