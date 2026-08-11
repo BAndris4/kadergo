@@ -439,44 +439,44 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
             </div>
           )}
 
-          {/* CATEGORY 1: ПОДАТКОВІ ТА ОБЛІКОВІ ВІДОМОСТІ */}
+          {/* CATEGORY 1: ЗВІТНІ ВІДОМОСТІ ТА ТАБЕЛЮВАННЯ */}
           {hasCategory1Matches && (
             <div className="flex flex-col gap-5 animate-fadeIn">
               <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
-                <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
-                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold">
-                    <TableCellsIcon className="w-4 h-4 stroke-[2.2]" />
+                <div className="flex items-center gap-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-[#133b47]">
+                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold shadow-xs">
+                    <TableCellsIcon className="w-4 h-4 stroke-[2.5]" />
                   </div>
-                  Податкові та облікові відомості
+                  Розрахункові відомості та Табелювання
                 </div>
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47]">
+                <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47] border border-[#133b47]/15">
                   2 документи
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* CARD 1: PAYROLL VEDOMOST */}
                 {showPayrollDoc && (
                   <div
                     onClick={() => isFopValidForPayroll && setActiveDocView("payroll")}
-                    className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
+                    className={`rounded-[30px] p-7 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center justify-between">
-                        <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-110 transition-all duration-300">
-                          <TableCellsIcon className="w-8 h-8 stroke-[2.2]" />
+                        <div className="w-14 h-14 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-105 transition-all duration-300">
+                          <TableCellsIcon className="w-7 h-7 stroke-[2.2]" />
                         </div>
-                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-indigo-500/15 text-indigo-900 border border-indigo-300/80">
+                        <span className="px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-indigo-500/15 text-indigo-900 border border-indigo-300/80">
                           Відомість
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
+                        <h3 className="text-xl sm:text-2xl font-black text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-tight">
                           Відомість нарахування
                         </h3>
                         <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
@@ -487,7 +487,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                      className={`w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                         isFopValidForPayroll
                           ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
@@ -502,24 +502,24 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                 {showTabelDoc && (
                   <div
                     onClick={() => isFopValidForPayroll && setActiveDocView("tabel")}
-                    className={`rounded-[32px] p-8 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
+                    className={`rounded-[30px] p-7 border-2 transition-all duration-300 shadow-md hover:shadow-2xl flex flex-col justify-between gap-6 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center justify-between">
-                        <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-110 transition-all duration-300">
-                          <CalendarDaysIcon className="w-8 h-8 stroke-[2.2]" />
+                        <div className="w-14 h-14 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-md group-hover:scale-105 transition-all duration-300">
+                          <CalendarDaysIcon className="w-7 h-7 stroke-[2.2]" />
                         </div>
-                        <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-300/80">
+                        <span className="px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-300/80">
                           Табель
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <h3 className="text-2xl font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors">
+                        <h3 className="text-xl sm:text-2xl font-black text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-tight">
                           Табель обліку часу
                         </h3>
                         <p className="text-xs sm:text-sm font-medium text-[#556e75] leading-relaxed">
@@ -530,7 +530,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-4 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                      className={`w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                         isFopValidForPayroll
                           ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-md cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
@@ -544,36 +544,35 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
             </div>
           )}
 
-          {/* CATEGORY 2: КАДРОВІ ДОКУМЕНТИ */}
-          {hasCategory2Matches && (
+          {/* CATEGORY 2: ОРГАНІЗАЦІЙНІ ТА ПЛАНОВІ ДОКУМЕНТИ */}
+          {(showShtatDoc || showGrafikDoc) && (
             <div className="flex flex-col gap-5 animate-fadeIn">
               <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
-                <div className="flex items-center gap-2.5 text-sm font-bold uppercase tracking-wider text-[#354f57]">
-                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold">
-                    <UserGroupIcon className="w-4 h-4 stroke-[2.2]" />
+                <div className="flex items-center gap-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-[#133b47]">
+                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold shadow-xs">
+                    <BuildingOffice2Icon className="w-4 h-4 stroke-[2.5]" />
                   </div>
-                  Кадрові документи
+                  Організаційні та Планові документи
                 </div>
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47]">
-                  6 документів
+                <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47] border border-[#133b47]/15">
+                  2 документи
                 </span>
               </div>
 
-              {/* GRID OF HR DOCUMENTS WITH UNIFIED SIGNATURE DARK TEAL ICON BOXES + SUBTLE DOT INDICATORS */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. SHTAT (ШТАТНИЙ РОЗПИС) */}
                 {showShtatDoc && (
                   <div
                     onClick={() => isFopValidForPayroll && setActiveDocView("shtat")}
                     className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-all duration-300">
                           <BuildingOffice2Icon className="w-6 h-6 stroke-[2.2]" />
                         </div>
                         <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-sky-500/15 text-sky-900 border border-sky-300/80">
@@ -586,7 +585,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                           Штатний розпис
                         </h4>
                         <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                          Затвердження кількості штатних одиниць та місячного фонду зарплати.
+                          Формування та затвердження кількості штатних одиниць та місячного фонду зарплати.
                         </p>
                       </div>
                     </div>
@@ -610,13 +609,13 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                     onClick={() => isFopValidForPayroll && setActiveDocView("grafik")}
                     className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
+                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-105 transition-all duration-300">
                           <CalendarDaysIcon className="w-6 h-6 stroke-[2.2]" />
                         </div>
                         <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-[#f8a44c]/20 text-[#133b47] border border-[#f8a44c]/40">
@@ -646,33 +645,52 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
 
-                {/* 2. ZAYAVA: PRIYOM */}
+          {/* CATEGORY 3: КАДРОВІ ЗАЯВИ ПРАЦІВНИКІВ */}
+          {(showPriyomDoc || showZvilnennyaDoc || showVidpustkaDoc || showBezKopijokDoc) && (
+            <div className="flex flex-col gap-5 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-[#cbd8d6] pb-3 px-1">
+                <div className="flex items-center gap-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-[#133b47]">
+                  <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-bold shadow-xs">
+                    <UserGroupIcon className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  Кадрові заяви працівників
+                </div>
+                <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-[#133b47]/10 text-[#133b47] border border-[#133b47]/15">
+                  4 документи
+                </span>
+              </div>
+
+              {/* GRID OF HR APPLICATIONS WITH DISTINCT DOT BADGES */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {/* 1. ZAYAVA: PRIYOM */}
                 {showPriyomDoc && (
                   <div
                     onClick={() => handleOpenZayava("priyom")}
-                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                    className={`rounded-[26px] p-5.5 border-2 transition-all duration-300 shadow-sm hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
-                          <UserPlusIcon className="w-6 h-6 stroke-[2.2]" />
+                        <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-xs group-hover:scale-105 transition-all duration-300">
+                          <UserPlusIcon className="w-5.5 h-5.5 stroke-[2.2]" />
                         </div>
-                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE EMERALD DOT */}
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs"></span>
-                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
-                            Заява
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
+                            Прийом
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-base font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
                           Заява на прийом
                         </h4>
                         <p className="text-xs font-medium text-[#556e75] leading-relaxed">
@@ -683,9 +701,9 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
                         isFopValidForPayroll
-                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-xs cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
                       }`}
                     >
@@ -694,45 +712,44 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                   </div>
                 )}
 
-                {/* 3. ZAYAVA: ZVILNENNYA */}
+                {/* 2. ZAYAVA: ZVILNENNYA */}
                 {showZvilnennyaDoc && (
                   <div
                     onClick={() => handleOpenZayava("zvilnennya")}
-                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                    className={`rounded-[26px] p-5.5 border-2 transition-all duration-300 shadow-sm hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
-                          <UserMinusIcon className="w-6 h-6 stroke-[2.2]" />
+                        <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-xs group-hover:scale-105 transition-all duration-300">
+                          <UserMinusIcon className="w-5.5 h-5.5 stroke-[2.2]" />
                         </div>
-                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE ROSE DOT */}
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-rose-500 shadow-xs"></span>
-                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
-                            Заява
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-rose-500/15 text-rose-900 border border-rose-300/80">
+                            Звільнення
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-base font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
                           Заява на звільнення
                         </h4>
                         <p className="text-xs font-medium text-[#556e75] leading-relaxed">
-                          Оформлення заяви про звільнення працівника за згодою сторін.
+                          Оформлення заяви про звільнення за згодою сторін.
                         </p>
                       </div>
                     </div>
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
                         isFopValidForPayroll
-                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-xs cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
                       }`}
                     >
@@ -741,32 +758,31 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                   </div>
                 )}
 
-                {/* 4. ZAYAVA: VIDPUSTKA */}
+                {/* 3. ZAYAVA: VIDPUSTKA */}
                 {showVidpustkaDoc && (
                   <div
                     onClick={() => handleOpenZayava("vidpustka")}
-                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                    className={`rounded-[26px] p-5.5 border-2 transition-all duration-300 shadow-sm hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
-                          <SunIcon className="w-6 h-6 stroke-[2.2]" />
+                        <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-xs group-hover:scale-105 transition-all duration-300">
+                          <SunIcon className="w-5.5 h-5.5 stroke-[2.2]" />
                         </div>
-                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE AMBER DOT */}
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs"></span>
-                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
-                            Заява
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-amber-500/15 text-amber-900 border border-amber-300/80">
+                            Відпустка
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-base font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
                           Заява на відпустку
                         </h4>
                         <p className="text-xs font-medium text-[#556e75] leading-relaxed">
@@ -777,9 +793,9 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
                         isFopValidForPayroll
-                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-xs cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
                       }`}
                     >
@@ -788,32 +804,31 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                   </div>
                 )}
 
-                {/* 5. ZAYAVA: BEZ KOPIJOK */}
+                {/* 4. ZAYAVA: BEZ KOPIJOK */}
                 {showBezKopijokDoc && (
                   <div
                     onClick={() => handleOpenZayava("bez_kopijok")}
-                    className={`rounded-[28px] p-6 border-2 transition-all duration-300 shadow-md hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
+                    className={`rounded-[26px] p-5.5 border-2 transition-all duration-300 shadow-sm hover:shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden group ${
                       isFopValidForPayroll
-                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:scale-[1.015] cursor-pointer"
+                        ? "bg-gradient-to-br from-white via-[#fafdfc] to-[#f2f8f7] border-[#cbd8d6] hover:border-[#133b47] hover:-translate-y-1 cursor-pointer"
                         : "bg-slate-100 border-slate-300 opacity-60 cursor-not-allowed"
                     }`}
                   >
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm group-hover:scale-110 transition-all duration-300">
-                          <BanknotesIcon className="w-6 h-6 stroke-[2.2]" />
+                        <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-xs group-hover:scale-105 transition-all duration-300">
+                          <BanknotesIcon className="w-5.5 h-5.5 stroke-[2.2]" />
                         </div>
-                        {/* UNIFIED MINT ZAYAVA BADGE WITH SUBTLE INDIGO DOT */}
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-xs"></span>
-                          <span className="px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wide uppercase bg-emerald-500/15 text-emerald-900 border border-emerald-300/80">
-                            Заява
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-indigo-500/15 text-indigo-900 border border-indigo-300/80">
+                            Виплата
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <h4 className="text-lg font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-base font-bold text-[#133b47] font-heading group-hover:text-[#0f2e38] transition-colors leading-snug">
                           Без копійок
                         </h4>
                         <p className="text-xs font-medium text-[#556e75] leading-relaxed">
@@ -824,9 +839,9 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
                     <button
                       disabled={!isFopValidForPayroll}
-                      className={`w-full py-3 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                      className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 ${
                         isFopValidForPayroll
-                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-sm cursor-pointer group-hover:brightness-110"
+                          ? "bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] shadow-xs cursor-pointer group-hover:brightness-110"
                           : "bg-slate-300 text-slate-500 cursor-not-allowed"
                       }`}
                     >

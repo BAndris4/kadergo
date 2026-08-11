@@ -154,46 +154,55 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
     setItems(initialItems);
   }, [activeFop, isoDate]);
 
-  // Calculate Title Year Span based ONLY on the LAST YEAR of each working period
+  // Calculate Title Year Span:
+  // If creation date year (Дата складання) != vacation month year (Szabadság місяць/рік): "CreationYear-VacationYear"
+  // Otherwise if equal: "VacationYear"
   const calculateYearSpanStr = (): string => {
+    const creationYear = parseInt(isoDate.split("-")[0], 10) || new Date().getFullYear();
+
     if (items.length === 0) {
-      const currentYear = parseInt(isoDate.split("-")[0], 10) || new Date().getFullYear();
-      return `${currentYear + 1}`;
+      return `${creationYear}`;
     }
 
-    const endYears = new Set<number>();
+    const vacationYears = new Set<number>();
     items.forEach((item) => {
-      // Extract the end year from working_period (e.g. "02.01.2026-01.01.2027" -> end year 2027)
-      const pParts = item.working_period.toString().split("-");
-      if (pParts.length >= 2) {
-        const endDateStr = pParts[1].trim(); // "01.01.2027"
-        const dParts = endDateStr.split(".");
-        if (dParts.length === 3) {
-          const y = parseInt(dParts[2], 10);
-          if (!isNaN(y)) endYears.add(y);
+      // Primary: vacation_month ("MM.YYYY")
+      if (item.vacation_month && item.vacation_month.includes(".")) {
+        const vmParts = item.vacation_month.trim().split(".");
+        if (vmParts.length >= 2) {
+          const y = parseInt(vmParts[vmParts.length - 1], 10);
+          if (!isNaN(y)) vacationYears.add(y);
         }
-      } else {
-        // Fallback to vacation month year (MM.YYYY)
-        const vmParts = item.vacation_month.split(".");
-        if (vmParts.length === 2) {
-          const y = parseInt(vmParts[1], 10);
-          if (!isNaN(y)) endYears.add(y);
+      }
+      // Fallback: working_period ("DD.MM.YYYY-DD.MM.YYYY")
+      if (vacationYears.size === 0 && item.working_period) {
+        const pParts = item.working_period.toString().split("-");
+        if (pParts.length >= 2) {
+          const endDateStr = pParts[1].trim();
+          const dParts = endDateStr.split(".");
+          if (dParts.length === 3) {
+            const y = parseInt(dParts[2], 10);
+            if (!isNaN(y)) vacationYears.add(y);
+          }
         }
       }
     });
 
-    if (endYears.size === 0) {
-      const y = parseInt(isoDate.split("-")[0], 10) || new Date().getFullYear();
-      return `${y + 1}`;
+    if (vacationYears.size === 0) {
+      return `${creationYear}`;
     }
 
-    const minYear = Math.min(...Array.from(endYears));
-    const maxYear = Math.max(...Array.from(endYears));
+    const minVacYear = Math.min(...Array.from(vacationYears));
+    const maxVacYear = Math.max(...Array.from(vacationYears));
 
-    if (minYear === maxYear) {
-      return `${minYear}`;
+    if (creationYear !== maxVacYear) {
+      return `${creationYear}-${maxVacYear}`;
+    } else {
+      if (minVacYear !== maxVacYear) {
+        return `${minVacYear}-${maxVacYear}`;
+      }
+      return `${maxVacYear}`;
     }
-    return `${minYear}-${maxYear}`;
   };
 
   const handleItemChange = (index: number, field: keyof GrafikWorkerItem, value: any) => {
