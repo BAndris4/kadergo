@@ -7,20 +7,42 @@ import {
   ExclamationCircleIcon,
   SparklesIcon,
   InformationCircleIcon,
+  ArrowUturnLeftIcon,
+  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
-import { checkForUpdates, UpdateStatus } from "../services/updaterService";
-
+import {
+  checkForUpdates,
+  installUpdate,
+  fetchReleaseHistory,
+  UpdateStatus,
+  ReleaseItem,
+} from "../services/updaterService";
+import { Update } from "@tauri-apps/plugin-updater";
 import { getVersion } from "@tauri-apps/api/app";
 
 interface UpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialUpdateInfo?: Update | null;
+  onUpdateProcessed?: () => void;
 }
 
-export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => {
+export const UpdateModal: React.FC<UpdateModalProps> = ({
+  isOpen,
+  onClose,
+  initialUpdateInfo = null,
+  onUpdateProcessed,
+}) => {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [currentUpdate, setCurrentUpdate] = useState<Update | null>(initialUpdateInfo);
   const [isChecking, setIsChecking] = useState<boolean>(false);
-  const [currentVersion, setCurrentVersion] = useState<string>("0.1.0");
+  const [isInstalling, setIsInstalling] = useState<boolean>(false);
+  const [currentVersion, setCurrentVersion] = useState<string>("0.1.2");
+  
+  const [releaseHistory, setReleaseHistory] = useState<ReleaseItem[]>([]);
+  const [isLoadingReleases, setIsLoadingReleases] = useState<boolean>(false);
+  const [showRollbackSection, setShowRollbackSection] = useState<boolean>(false);
+  const [selectedRollbackTag, setSelectedRollbackTag] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadVersion() {
@@ -31,23 +53,56 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
         console.error("Failed to get app version:", err);
       }
     }
-    loadVersion();
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && !updateStatus) {
-      handleCheck();
+    if (isOpen) {
+      loadVersion();
+      loadReleases();
+      if (initialUpdateInfo) {
+        setCurrentUpdate(initialUpdateInfo);
+        setUpdateStatus({
+          status: "available",
+          message: `Знайдено нову версію (${initialUpdateInfo.version})! Перегляньте опис та підтвердіть встановлення.`,
+          updateInfo: initialUpdateInfo,
+        });
+      } else {
+        handleCheck();
+      }
     }
   }, [isOpen]);
 
+  const loadReleases = async () => {
+    setIsLoadingReleases(true);
+    const history = await fetchReleaseHistory();
+    setReleaseHistory(history);
+    setIsLoadingReleases(false);
+  };
+
   if (!isOpen) return null;
 
-  const handleCheck = async () => {
+  const handleCheck = async (targetTag?: string) => {
     setIsChecking(true);
-    await checkForUpdates((status) => {
+    const updateObj = await checkForUpdates((status) => {
+      setUpdateStatus(status);
+    }, targetTag);
+
+    setCurrentUpdate(updateObj);
+    setIsChecking(false);
+  };
+
+  const handleStartInstallation = async () => {
+    if (!currentUpdate) return;
+    setIsInstalling(true);
+    const success = await installUpdate(currentUpdate, (status) => {
       setUpdateStatus(status);
     });
-    setIsChecking(false);
+    setIsInstalling(false);
+    if (success && onUpdateProcessed) {
+      onUpdateProcessed();
+    }
+  };
+
+  const handleRollbackSelect = async (rel: ReleaseItem) => {
+    setSelectedRollbackTag(rel.tag_name);
+    await handleCheck(rel.tag_name);
   };
 
   return (
@@ -56,7 +111,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
       onClick={onClose}
     >
       <div
-        className="bg-white border-2 border-[#bdcdcb] rounded-[32px] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden animate-modalScale"
+        className="bg-white border-2 border-[#bdcdcb] rounded-[32px] w-full max-w-xl flex flex-col shadow-2xl overflow-hidden animate-modalScale"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -65,7 +120,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
             <div className="w-10 h-10 rounded-2xl bg-[#133b47] flex items-center justify-center text-[#f8a44c] shadow-sm">
               <CloudArrowDownIcon className="w-5 h-5 stroke-[2.2]" />
             </div>
-            Оновлення системи
+            Оновлення та версії програми
           </h2>
           <button
             onClick={onClose}
@@ -76,20 +131,20 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
         </div>
 
         {/* Modal Body */}
-        <div className="p-8 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
-          {/* Current Version Card */}
+        <div className="p-8 flex flex-col gap-6 max-h-[75vh] overflow-y-auto">
+          {/* Current Version Bar */}
           <div className="p-5 rounded-3xl bg-[#f4f8f7] border-2 border-[#cbd9d7] flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-xs font-bold text-[#556e75] uppercase tracking-wider">
-                Поточна версія
+                Встановлена версія
               </span>
               <span className="text-xl font-black text-[#133b47]">
                 v{currentVersion}
               </span>
             </div>
             <button
-              onClick={handleCheck}
-              disabled={isChecking}
+              onClick={() => handleCheck()}
+              disabled={isChecking || isInstalling}
               className="px-5 py-2.5 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2 disabled:opacity-50"
             >
               <ArrowPathIcon className={`w-4 h-4 stroke-[2.5] ${isChecking ? "animate-spin" : ""}`} />
@@ -97,7 +152,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
             </button>
           </div>
 
-          {/* Update Status Display */}
+          {/* Update Available & Release Notes Section */}
           {updateStatus && (
             <div className="flex flex-col gap-4 animate-fadeIn">
               {/* Up to Date State */}
@@ -108,7 +163,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
                   </div>
                   <div>
                     <h3 className="text-base font-black text-emerald-950">
-                      Система працює на найновішій версії!
+                      У вас встановлено найновішу версію!
                     </h3>
                     <p className="text-xs font-bold text-emerald-700 mt-1">
                       Ви використовуєте актуальну версію програми (v{currentVersion}).
@@ -117,7 +172,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
                 </div>
               )}
 
-              {/* Update Available or Downloading State */}
+              {/* Update Available / Downloading State */}
               {(updateStatus.status === "available" || updateStatus.status === "downloading") && (
                 <div className="p-6 rounded-3xl bg-amber-50 border-2 border-amber-200 flex flex-col gap-4">
                   <div className="flex items-center gap-3">
@@ -126,7 +181,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
                     </div>
                     <div>
                       <h3 className="text-base font-black text-amber-950">
-                        Доступне нове оновлення!
+                        Доступна версія для встановлення!
                       </h3>
                       {updateStatus.updateInfo && (
                         <span className="text-xs font-black text-amber-800 bg-amber-200/70 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
@@ -136,23 +191,43 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
                     </div>
                   </div>
 
-                  {/* Release Notes / Description */}
+                  {/* Release Notes / Changelog */}
                   {updateStatus.updateInfo?.body && (
                     <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white border border-amber-200 text-xs text-amber-950">
                       <span className="font-black text-amber-900 flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
                         <InformationCircleIcon className="w-4 h-4 stroke-[2.2]" />
-                        Опис оновлення (Release Notes)
+                        Опис змін та оновлення (Release Notes)
                       </span>
-                      <div className="font-mono bg-amber-50/50 p-3 rounded-xl max-h-40 overflow-y-auto whitespace-pre-wrap font-semibold leading-relaxed border border-amber-100">
+                      <div className="font-mono bg-amber-50/50 p-3.5 rounded-xl max-h-48 overflow-y-auto whitespace-pre-wrap font-semibold leading-relaxed border border-amber-100 text-slate-800">
                         {updateStatus.updateInfo.body}
                       </div>
                     </div>
                   )}
 
-                  {/* Progress message */}
+                  {/* Status / Download progress indicator */}
                   <div className="p-3.5 rounded-2xl bg-amber-100/70 border border-amber-200 text-xs font-black text-amber-900 text-center">
                     {updateStatus.message}
                   </div>
+
+                  {/* Action decision buttons */}
+                  {updateStatus.status === "available" && currentUpdate && (
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        onClick={onClose}
+                        className="px-5 py-2.5 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        Пізніше
+                      </button>
+                      <button
+                        onClick={handleStartInstallation}
+                        disabled={isInstalling}
+                        className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-2"
+                      >
+                        <CloudArrowDownIcon className="w-4 h-4 stroke-[2.5]" />
+                        <span>Встановити версію (v{currentUpdate.version})</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -168,7 +243,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
                         Сталася помилка
                       </h3>
                       <p className="text-xs font-extrabold text-rose-700">
-                        Не вдалося перевірити наявність оновлень.
+                        Не вдалося перевірити або завантажити оновлення.
                       </p>
                     </div>
                   </div>
@@ -179,6 +254,87 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ isOpen, onClose }) => 
               )}
             </div>
           )}
+
+          {/* Rollback / Previous Versions Collapsible Section */}
+          <div className="border-t-2 border-[#e2eceb] pt-5 flex flex-col gap-3">
+            <button
+              onClick={() => setShowRollbackSection(!showRollbackSection)}
+              className="flex items-center justify-between p-3.5 rounded-2xl bg-[#f4f8f7] hover:bg-[#e8f1ef] border border-[#cbd8d6] transition-all cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <ArrowUturnLeftIcon className="w-4 h-4 text-[#133b47] stroke-[2.2]" />
+                <span className="text-xs font-black text-[#133b47]">
+                  Повернення до попередньої версії (Архів версій)
+                </span>
+              </div>
+              <ChevronDownIcon
+                className={`w-4 h-4 text-[#556e75] transition-transform duration-200 ${
+                  showRollbackSection ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showRollbackSection && (
+              <div className="p-4 rounded-2xl bg-[#f8faf9] border border-[#cbd8d6] flex flex-col gap-4 animate-fadeIn">
+                <p className="text-xs text-[#556e75] font-semibold">
+                  Тут ви можете обрати попередню версію випуску, якщо у новій версії виникли проблеми:
+                </p>
+
+                {isLoadingReleases ? (
+                  <div className="p-4 text-center text-xs font-bold text-[#556e75] flex items-center justify-center gap-2">
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                    <span>Завантаження історії версій...</span>
+                  </div>
+                ) : releaseHistory.length === 0 ? (
+                  <div className="p-3 text-center text-xs font-bold text-[#556e75]">
+                    Попередніх випусків у репозиторії не знайдено.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
+                    {releaseHistory.map((rel) => {
+                      const isCurrent = rel.tag_name.includes(currentVersion);
+                      const isSelected = selectedRollbackTag === rel.tag_name;
+                      return (
+                        <div
+                          key={rel.tag_name}
+                          className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
+                            isSelected
+                              ? "bg-amber-50 border-amber-400 shadow-xs"
+                              : "bg-white border-[#d0dedc] hover:border-[#133b47]"
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-[#133b47]">
+                                {rel.name || rel.tag_name}
+                              </span>
+                              {isCurrent && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                                  Поточна
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-[#6d8a93] font-semibold">
+                              Опубліковано: {new Date(rel.published_at).toLocaleDateString("uk-UA")}
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => handleRollbackSelect(rel)}
+                            disabled={isChecking || isInstalling}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] text-xs font-black transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            <ArrowUturnLeftIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                            <span>Обрати</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Modal Footer */}

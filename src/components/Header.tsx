@@ -7,9 +7,19 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenUpdate?: () => void;
   onGoHome?: () => void;
+  hasUpdateNotification?: boolean;
+  availableVersion?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSettings, onOpenUpdate, onGoHome }) => {
+export const Header: React.FC<HeaderProps> = ({
+  activeTab,
+  onTabChange,
+  onOpenSettings,
+  onOpenUpdate,
+  onGoHome,
+  hasUpdateNotification = false,
+  availableVersion,
+}) => {
   const handleLogoClick = () => {
     if (onGoHome) {
       onGoHome();
@@ -67,14 +77,32 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenSe
 
       {/* Primary Actions & Preferences */}
       <div className="flex items-center gap-3">
-        {/* System Auto-Update Button (Left of Settings) */}
+        {/* System Auto-Update Button with Notification Badge */}
         {onOpenUpdate && (
           <button
             onClick={onOpenUpdate}
-            title="Перевірити оновлення системи"
-            className="p-3.5 rounded-2xl bg-white hover:bg-[#f6faf9] text-[#133b47] border-2 border-[#cbd8d6] font-black transition-all cursor-pointer shadow-xs transform hover:-translate-y-0.5"
+            title={
+              hasUpdateNotification
+                ? `Доступне нове оновлення ${availableVersion || ""}! Натисніть для перегляду.`
+                : "Перевірити оновлення системи"
+            }
+            className={`relative p-3.5 rounded-2xl border-2 font-black transition-all cursor-pointer shadow-xs transform hover:-translate-y-0.5 ${
+              hasUpdateNotification
+                ? "bg-amber-500 text-white border-amber-600 shadow-amber-500/30 animate-pulse"
+                : "bg-white hover:bg-[#f6faf9] text-[#133b47] border-[#cbd8d6]"
+            }`}
           >
-            <CloudArrowDownIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
+            <CloudArrowDownIcon
+              className={`w-5 h-5 stroke-[2.2] ${hasUpdateNotification ? "text-white" : "text-[#133b47]"}`}
+            />
+            {hasUpdateNotification && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-600 text-[9px] font-black text-white items-center justify-center border-2 border-white">
+                  !
+                </span>
+              </span>
+            )}
           </button>
         )}
 

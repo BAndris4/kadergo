@@ -17,6 +17,8 @@ import {
   scanDiscoveredFopFolders,
   importSelectedFops,
 } from "./services/fopService";
+import { checkUpdateOnStartup } from "./services/updaterService";
+import { Update } from "@tauri-apps/plugin-updater";
 import { Header } from "./components/Header";
 import { StatsGrid } from "./components/StatsGrid";
 import { SearchBar } from "./components/SearchBar";
@@ -49,6 +51,9 @@ export default function App() {
   const [isAddFopModalOpen, setIsAddFopModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [availableUpdateInfo, setAvailableUpdateInfo] = useState<Update | null>(null);
+  const [hasUpdateNotification, setHasUpdateNotification] = useState<boolean>(false);
+
   const [discoveredFops, setDiscoveredFops] = useState<DiscoveredFopDto[]>([]);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
 
@@ -73,6 +78,13 @@ export default function App() {
         setExpandedFopIds([activeData[0].id]);
       }
 
+      // Silent background update check on app launch
+      checkUpdateOnStartup().then((updateObj) => {
+        if (updateObj) {
+          setAvailableUpdateInfo(updateObj);
+          setHasUpdateNotification(true);
+        }
+      });
     }
     loadData();
   }, []);
@@ -115,18 +127,11 @@ export default function App() {
   };
 
   const handleConfirmImportFops = async (selectedItems: DiscoveredFopDto[]) => {
-    const updatedFops = await importSelectedFops(selectedItems);
-    setFops(updatedFops);
-    if (updatedFops.length > 0) {
-      const newlyImported = updatedFops.find((f: FopData) =>
-        selectedItems.some((s) => s.kod === f.kod || s.kod === f.fop_kod)
-      );
-      if (newlyImported) {
-        setSelectedFopId(newlyImported.id);
-        setExpandedFopIds((prev) => [...new Set([...prev, newlyImported.id])]);
-      } else if (!selectedFopId) {
-        setSelectedFopId(updatedFops[0].id);
-      }
+    await importSelectedFops(selectedItems);
+    const updated = await fetchFops();
+    setFops(updated);
+    if (updated.length > 0) {
+      setSelectedFopId(updated[0].id);
     }
     showToast(`Успішно імпортовано ${selectedItems.length} обраних ФОП з папки!`);
   };
@@ -175,46 +180,51 @@ export default function App() {
   const handleAddWorkerSubmit = async (formData: CreateWorkerFormState) => {
     if (!fopForNewWorker) return;
     await createWorker(formData, fops);
-    const updated = await fetchFops();
-    setFops(updated);
+    const updatedFops = await fetchFops();
+    setFops(updatedFops);
     setFopForNewWorker(null);
-    showToast(`Працівника "${formData.vezeteknev} ${formData.keresztnev}" успішно додано!`);
+    showToast(`Працівника "${formData.vezeteknev} ${formData.keresztnev}" успішно створено!`);
   };
 
   const handleEditWorkerSubmit = async (formData: EditWorkerFormState) => {
     if (!workerToEdit) return;
     await updateWorker(formData, fops);
-    const updated = await fetchFops();
-    setFops(updated);
+    const updatedFops = await fetchFops();
+    setFops(updatedFops);
     setWorkerToEdit(null);
-    showToast(`Дані працівника "${formData.vezeteknev} ${formData.keresztnev}" успішно оновлено!`);
+    showToast(`Дані працівника "${formData.vezeteknev} ${formData.keresztnev}" оновлено!`);
   };
 
-  const handleDismissWorker = async (date: string) => {
+  const handleDismissWorker = async (dismissalDate: string) => {
     if (!workerToDelete) return;
+    await dismissWorker(workerToDelete.id, dismissalDate, fops);
+    const updatedFops = await fetchFops();
+    setFops(updatedFops);
     const workerName = [workerToDelete.vezeteknev, workerToDelete.keresztnev, workerToDelete.apai_nev].filter(Boolean).join(" ");
-    const updated = await dismissWorker(workerToDelete.id, date, fops);
-    setFops(updated);
     setWorkerToDelete(null);
-    showToast(`Працівника "${workerName}" успішно звільнено!`);
+    showToast(`Працівника "${workerName}" звільнено з ${dismissalDate}!`);
   };
 
   const handleConfirmDeleteWorker = async () => {
     if (!workerToDelete) return;
     const workerName = [workerToDelete.vezeteknev, workerToDelete.keresztnev, workerToDelete.apai_nev].filter(Boolean).join(" ");
-    const updated = await deleteWorker(workerToDelete.id, fops);
-    setFops(updated);
+    await deleteWorker(workerToDelete.id, fops);
+    const updatedFops = await fetchFops();
+    setFops(updatedFops);
     setWorkerToDelete(null);
-    showToast(`Працівника "${workerName}" успішно видалено з бази!`);
+    showToast(`Працівника "${workerName}" успішно видалено з бази даних!`);
   };
 
   const filteredFops = fops
     .filter((fop) => {
-      const fopNev = [fop.vezeteknev, fop.keresztnev, fop.apai_nev].filter(Boolean).join(" ").toLowerCase();
-      const fopKod = (fop.kod || "").toLowerCase();
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return true;
 
-      const matchesFop = fopNev.includes(query) || (fopKod ? fopKod.includes(query) : false);
+      const fopName = [fop.vezeteknev, fop.keresztnev, fop.apai_nev].filter(Boolean).join(" ").toLowerCase();
+      const fopKod = (fop.kod || fop.fop_kod || "").toLowerCase();
+
+      const matchesFop = fopName.includes(query) || fopKod.includes(query);
+
       const matchesWorker = fop.munkasok.some((m) => {
         const mName = [m.vezeteknev, m.keresztnev, m.apai_nev].filter(Boolean).join(" ").toLowerCase();
         const mKod = (m.kod || "").toLowerCase();
@@ -246,6 +256,8 @@ export default function App() {
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenUpdate={() => setIsUpdateModalOpen(true)}
         onGoHome={handleGoHome}
+        hasUpdateNotification={hasUpdateNotification}
+        availableVersion={availableUpdateInfo?.version}
       />
 
       {/* VIEW 1: Document Generator Main View */}
@@ -266,7 +278,6 @@ export default function App() {
           }}
         />
       )}
-
 
       {/* VIEW 2: FOP & Workers Database Management View */}
       {activeTab === "management" && (
@@ -356,6 +367,11 @@ export default function App() {
       <UpdateModal
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
+        initialUpdateInfo={availableUpdateInfo}
+        onUpdateProcessed={() => {
+          setHasUpdateNotification(false);
+          setAvailableUpdateInfo(null);
+        }}
       />
 
       <FolderScanModal
