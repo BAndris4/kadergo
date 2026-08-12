@@ -16,10 +16,11 @@ import {
   HomeIcon,
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem } from "../types/fop";
+import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem } from "../types/fop";
 import {
   generateNakazPriyomDocx,
   generateNakazKasaDocx,
+  generateNakazPrroDocx,
   scanFopNakazy,
   scrapeFopAddressFromNakazy,
   ensureFopDirectory,
@@ -41,7 +42,7 @@ interface NakazGeneratorViewProps {
   onEditFop?: (fop: FopData) => void;
 }
 
-export type NakazTypeKey = "priyom" | "kasa" | "zvilnennya" | "vidpustka" | "premiya";
+export type NakazTypeKey = "priyom" | "kasa" | "prro" | "zvilnennya" | "vidpustka" | "premiya";
 
 interface NakazTypeOption {
   key: NakazTypeKey;
@@ -53,6 +54,7 @@ interface NakazTypeOption {
 const NAKAZ_TYPE_OPTIONS: NakazTypeOption[] = [
   { key: "priyom", label: "Прийняття на роботу", active: true },
   { key: "kasa", label: "Про призначення матеріально відповідальних осіб за касу", active: true },
+  { key: "prro", label: "Про призначення касирів для роботи з ПРРО", active: true },
   { key: "zvilnennya", label: "Звільнення", badge: "Скоро", active: false },
   { key: "vidpustka", label: "Відпустка", badge: "Скоро", active: false },
   { key: "premiya", label: "Преміювання", badge: "Скоро", active: false },
@@ -709,6 +711,94 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     }
   };
 
+  const handleGeneratePrroDoc = async () => {
+    if (!activeFop) {
+      onShowToast("Спочатку оберіть активного ФОП зі списку!");
+      return;
+    }
+
+    if (!hasValidFopAddress) {
+      onShowToast("Помилка: Адреса ФОП є обов'язковою! Заповніть адресу у профілі ФОП перед створенням Наказу.");
+      return;
+    }
+
+    const prroWorkers = (activeFop.munkasok || []).filter((w) => selectedKasaWorkerIds.includes(w.id));
+    if (prroWorkers.length === 0) {
+      onShowToast("Оберіть хоча б одного працівника!");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      let targetDir = "";
+      if (rootFolder) {
+        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        if (fopDir) {
+          targetDir = `${fopDir}\\кадрові документи`;
+        }
+      }
+
+      const ukrMonths = [
+        "січня", "лютого", "березня", "квітня", "травня", "червня",
+        "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"
+      ];
+
+      let dayStr = "15";
+      let monthStr = "липня";
+      let yearStr = "2026";
+
+      if (isoNakazDate) {
+        const parts = isoNakazDate.split("-");
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            dayStr = d < 10 ? `0${d}` : `${d}`;
+            monthStr = ukrMonths[m] || "січня";
+            yearStr = `${y}`;
+          }
+        }
+      }
+
+      const workerItems: NakazPrroWorkerItem[] = prroWorkers.map((w) => {
+        const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+        const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+        const posName = w.foglalkozas_megnevezes ? w.foglalkozas_megnevezes.toLowerCase() : "продавець непродовольчих товарів";
+
+        return {
+          dative_name: dativeName,
+          position_name: posName,
+          initials,
+        };
+      });
+
+      await generateNakazPrroDocx({
+        fop_id: activeFop.id,
+        fop_name: activeFopName,
+        fop_code: activeFopCode,
+        fop_address: currentAddress,
+        fop_edrpou: activeFopEdrpou,
+        fop_initials: activeFopInitials,
+        nakaz_num: nakazNum,
+        nakaz_date_str: formattedNakazDate,
+        day_str: dayStr,
+        month_str: monthStr,
+        year_str: yearStr,
+        workers: workerItems,
+        save_dir: targetDir || undefined,
+      });
+
+      onShowToast(`Наказ № ${nakazNum} успішно створено!`);
+      await performScan();
+    } catch (err: any) {
+      console.error("Error generating Nakaz PRRO docx:", err);
+      onShowToast(`Помилка генерації Наказу: ${err?.toString() || "Невідома помилка"}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const selectedWorkerObj = activeFop && activeFop.munkasok
     ? activeFop.munkasok.find((w) => w.id === selectedWorkerId)
     : null;
@@ -1004,13 +1094,13 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
         {/* LEFT COLUMN: WORKER EDIT CARD & HISTORY REGISTRY (5 COLS) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* 1. WORKER EDIT / KASA SELECTION COMPONENT CARD */}
-          {selectedNakazType === "kasa" ? (
+          {/* 1. WORKER EDIT / KASA / PRRO SELECTION COMPONENT CARD */}
+          {selectedNakazType === "kasa" || selectedNakazType === "prro" ? (
             <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
                 <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
                   <UserIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.8]" />
-                  Параметри наказу за касу
+                  {selectedNakazType === "prro" ? "Параметри наказу ПРРО" : "Параметри наказу за касу"}
                 </span>
               </div>
 
@@ -1325,7 +1415,111 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 <p className="font-normal text-xs md:text-sm">від {formattedNakazDate}</p>
               </div>
 
-              {selectedNakazType === "kasa" ? (
+              {selectedNakazType === "prro" ? (
+                <>
+                  <p className="font-bold text-xs md:text-sm mt-1">
+                    Про призначення касирів для роботи з ПРРО
+                  </p>
+
+                  <div className="flex flex-col gap-0.5 mt-2 text-justify leading-relaxed">
+                    <p>У зв’язку із здійсненням готівкових та безготівкових розрахунків за продаж непродовольчих товарів із використанням програмного реєстратора розрахункових операцій (ПРРО),</p>
+                    <p className="font-bold my-1">НАКАЗУЮ:</p>
+                    <p className="font-bold">
+                      1. Призначити касирами для роботи з ПРРО наступних працівників:
+                    </p>
+
+                    {activeFop && activeFop.munkasok && activeFop.munkasok.filter((w) => selectedKasaWorkerIds.includes(w.id)).length > 0 ? (
+                      activeFop.munkasok
+                        .filter((w) => selectedKasaWorkerIds.includes(w.id))
+                        .map((w, idx, arr) => {
+                          const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                          const posName = w.foglalkozas_megnevezes ? w.foglalkozas_megnevezes.toLowerCase() : "продавець непродовольчих товарів";
+                          const punct = idx === arr.length - 1 ? "." : ";";
+
+                          return (
+                            <p key={w.id} className="pl-6 font-medium">
+                              <span className="font-bold">{dativeName}</span>, посада: {posName}{punct}
+                            </p>
+                          );
+                        })
+                    ) : (
+                      <p className="italic text-rose-600 pl-6 font-bold">
+                        [Оберіть працівників зі списку ліворуч]
+                      </p>
+                    )}
+
+                    <p className="font-bold">2. Надати зазначеним особам право:</p>
+                    <ul className="list-none pl-6 space-y-1">
+                      <li>- відкривати/закривати зміну у ПРРО;</li>
+                      <li>- здійснювати реєстрацію розрахункових операцій;</li>
+                      <li>- оформлювати фіскальні чеки на продаж та повернення товарів;</li>
+                      <li>- формувати щоденні Z-звіти відповідно до вимог законодавства.</li>
+                    </ul>
+
+                    <p className="font-bold">3. Покласти на касирів відповідальність за:</p>
+                    <ul className="list-none pl-6 space-y-1">
+                      <li>- дотримання порядку застосування ПРРО;</li>
+                      <li>- правильність обліку розрахункових операцій;</li>
+                      <li>- ведення касової дисципліни;</li>
+                      <li>- збереження фіскальних звітів, чеків та іншої документації.</li>
+                    </ul>
+
+                    <p>
+                      <span className="font-bold">4. </span>Зобов’язати касирів щоденно формувати Z-звіт у кінці кожної зміни.
+                    </p>
+                    <p>
+                      <span className="font-bold">5. </span>Контроль за виконанням цього наказу залишаю за собою.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-5 pt-4 border-t-2 border-slate-300 text-xs md:text-sm">
+                    <p className="font-bold mb-1">З наказом ознайомлені:</p>
+                    {activeFop && activeFop.munkasok && activeFop.munkasok.filter((w) => selectedKasaWorkerIds.includes(w.id)).length > 0 ? (
+                      activeFop.munkasok
+                        .filter((w) => selectedKasaWorkerIds.includes(w.id))
+                        .map((w) => {
+                          const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+                          const ukrMonths = [
+                            "січня", "лютого", "березня", "квітня", "травня", "червня",
+                            "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"
+                          ];
+                          let dayStr = "15";
+                          let monthStr = "липня";
+                          let yearStr = "2026";
+                          if (isoNakazDate) {
+                            const parts = isoNakazDate.split("-");
+                            if (parts.length === 3) {
+                              const y = parseInt(parts[0], 10);
+                              const m = parseInt(parts[1], 10) - 1;
+                              const d = parseInt(parts[2], 10);
+                              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                                dayStr = d < 10 ? `0${d}` : `${d}`;
+                                monthStr = ukrMonths[m] || "січня";
+                                yearStr = `${y}`;
+                              }
+                            }
+                          }
+
+                          return (
+                            <div key={w.id} className="grid grid-cols-2 gap-4 items-center">
+                              <span className="font-bold italic">(______________)  {initials}</span>
+                              <span className="text-right font-bold">«{dayStr}» {monthStr} {yearStr} р.</span>
+                            </div>
+                          );
+                        })
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4 items-center italic text-slate-400">
+                        <span>(______________)  [ПІП ініціали]</span>
+                        <span className="text-right">«15» липня 2026 р.</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4 items-center mt-3 font-bold">
+                      <span>ФОП {activeFopInitials || "Гал Ф.Ф."}</span>
+                      <span className="text-right">___________________</span>
+                    </div>
+                  </div>
+                </>
+              ) : selectedNakazType === "kasa" ? (
                 <>
                   <p className="font-bold text-xs md:text-sm mt-1">
                     Про призначення матеріально відповідальних осіб за касу
@@ -1451,7 +1645,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
           {/* GENERATE ACTION BUTTON */}
           <button
-            onClick={selectedNakazType === "kasa" ? handleGenerateKasaDoc : handleGenerateDoc}
+            onClick={selectedNakazType === "prro" ? handleGeneratePrroDoc : selectedNakazType === "kasa" ? handleGenerateKasaDoc : handleGenerateDoc}
             disabled={isGenerating || !hasValidFopAddress}
             className={`w-full py-4 rounded-2xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2.5 ${
               hasValidFopAddress

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazKasaRequest, NakazFileItem } from "../types/fop";
+import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazKasaRequest, GenerateNakazPrroRequest, NakazFileItem } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -665,6 +665,10 @@ export async function generateNakazPriyomDocx(req: GenerateNakazPriyomRequest): 
 
 export async function generateNakazKasaDocx(req: GenerateNakazKasaRequest): Promise<string> {
   return await invoke<string>("generate_nakaz_kasa_docx", { req });
+}
+
+export async function generateNakazPrroDocx(req: GenerateNakazPrroRequest): Promise<string> {
+  return await invoke<string>("generate_nakaz_prro_docx", { req });
 }
 
 export async function scanFopNakazy(dirPath: String | string): Promise<NakazFileItem[]> {

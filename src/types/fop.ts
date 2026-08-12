@@ -424,6 +424,28 @@ export interface GenerateNakazKasaRequest {
   save_dir?: string;
 }
 
+export interface NakazPrroWorkerItem {
+  dative_name: string;
+  position_name: string;
+  initials: string;
+}
+
+export interface GenerateNakazPrroRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  day_str: string;
+  month_str: string;
+  year_str: string;
+  workers: NakazPrroWorkerItem[];
+  save_dir?: string;
+}
+
 export interface NakazFileItem {
   nakaz_num: string;
   num_val: number;
