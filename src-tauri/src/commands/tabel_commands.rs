@@ -973,7 +973,8 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, note_r + 1, 1, note_r + 1, 41, note_1, &fmt_subtitle);
     merge_cell(worksheet, note_r + 2, 1, note_r + 2, 41, note_2, &fmt_subtitle);
 
-    // Row 55 height = 37.5pt (0-indexed row 54)
+    // Excel Row 51 height = 37.5pt (50px / 0-indexed row 50)
+    let _ = worksheet.set_row_height(50, 37.5);
     let _ = worksheet.set_row_height(54, 37.5);
 
     // ─── Save ───────────────────────────────────────────────────────

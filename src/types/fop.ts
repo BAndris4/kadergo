@@ -400,6 +400,30 @@ export interface GenerateNakazPriyomRequest {
   save_dir?: string;
 }
 
+export interface NakazKasaWorkerItem {
+  dative_name: string;
+  initials: string;
+  pronoun: string; // "який" | "яка"
+  start_time: string;
+  end_time: string;
+}
+
+export interface GenerateNakazKasaRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  day_str: string;
+  month_str: string;
+  year_str: string;
+  workers: NakazKasaWorkerItem[];
+  save_dir?: string;
+}
+
 export interface NakazFileItem {
   nakaz_num: string;
   num_val: number;
