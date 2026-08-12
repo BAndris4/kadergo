@@ -15,12 +15,16 @@ import {
   SparklesIcon,
   HomeIcon,
   ArrowRightIcon,
+  ArrowTrendingUpIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem } from "../types/fop";
 import {
   generateNakazPriyomDocx,
   generateNakazKasaDocx,
   generateNakazPrroDocx,
+  generateNakazShtatDocx,
+  generateNakazGrafikVidpustokDocx,
   scanFopNakazy,
   scrapeFopAddressFromNakazy,
   ensureFopDirectory,
@@ -42,7 +46,7 @@ interface NakazGeneratorViewProps {
   onEditFop?: (fop: FopData) => void;
 }
 
-export type NakazTypeKey = "priyom" | "kasa" | "prro" | "zvilnennya" | "vidpustka" | "premiya";
+export type NakazTypeKey = "priyom" | "kasa" | "prro" | "shtat" | "grafik_vidpustok";
 
 interface NakazTypeOption {
   key: NakazTypeKey;
@@ -53,11 +57,10 @@ interface NakazTypeOption {
 
 const NAKAZ_TYPE_OPTIONS: NakazTypeOption[] = [
   { key: "priyom", label: "Прийняття на роботу", active: true },
-  { key: "kasa", label: "Про призначення матеріально відповідальних осіб за касу", active: true },
-  { key: "prro", label: "Про призначення касирів для роботи з ПРРО", active: true },
-  { key: "zvilnennya", label: "Звільнення", badge: "Скоро", active: false },
-  { key: "vidpustka", label: "Відпустка", badge: "Скоро", active: false },
-  { key: "premiya", label: "Преміювання", badge: "Скоро", active: false },
+  { key: "kasa", label: "Відповідальність за касу", active: true },
+  { key: "prro", label: "Призначення касирів ПРРО", active: true },
+  { key: "shtat", label: "Затвердження штатного розпису", active: true },
+  { key: "grafik_vidpustok", label: "Графік відпусток", active: true },
 ];
 
 function getUkrainianPronoun(w: Munkas): "який" | "яка" {
@@ -78,6 +81,21 @@ function getUkrainianPronoun(w: Munkas): "який" | "яка" {
     if (f.endsWith("а") || f.endsWith("я")) return "яка";
   }
   return "який";
+}
+
+function calculateNoticeDate(isoDateStr: string): string {
+  if (!isoDateStr) return "";
+  const parts = isoDateStr.split("-");
+  if (parts.length !== 3) return "";
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return "";
+  const dt = new Date(y, m, d + 10);
+  const day = dt.getDate() < 10 ? `0${dt.getDate()}` : `${dt.getDate()}`;
+  const month = dt.getMonth() + 1 < 10 ? `0${dt.getMonth() + 1}` : `${dt.getMonth() + 1}`;
+  const year = dt.getFullYear();
+  return `${day}.${month}.${year}`;
 }
 
 function formatNakazHistoryItem(filename: string) {
@@ -225,47 +243,78 @@ export function segmentUkrainianAddress(raw: string): Cim {
   return cim;
 }
 
-// Formats Cim object into standard Nakaz header string (adds "обл.", "р-н", "м.", "вул.", "буд.")
+// Formats Cim object into standard Nakaz header string (adds "ОБЛАСТЬ", "РАЙОН" with newline after "РАЙОН,", "С./М.", "ВУЛ.", "БУД.")
 export function formatCimForNakaz(cim: Cim | undefined): string {
   if (!cim) return "";
-  const parts: string[] = [];
+  const line1Parts: string[] = [];
+  const line2Parts: string[] = [];
 
   if (cim.iranyitoszam && cim.iranyitoszam.trim()) {
-    parts.push(cim.iranyitoszam.trim());
+    line1Parts.push(cim.iranyitoszam.trim());
   }
 
   if (cim.megye && cim.megye.trim()) {
     let m = cim.megye.trim().replace(/область|обл\.?/gi, "").trim();
-    parts.push(`${m} обл.`);
+    line1Parts.push(`${m.toUpperCase()} ОБЛАСТЬ`);
   }
 
   if (cim.jaras && cim.jaras.trim()) {
     let j = cim.jaras.trim().replace(/район|р-н\.?/gi, "").trim();
-    parts.push(`${j} р-н`);
+    line1Parts.push(`${j.toUpperCase()} РАЙОН`);
   }
 
   if (cim.kozseg && cim.kozseg.trim()) {
     let k = cim.kozseg.trim();
-    if (!k.toLowerCase().startsWith("м.") && !k.toLowerCase().startsWith("с.") && !k.toLowerCase().startsWith("смт")) {
-      k = `м. ${k}`;
+    let kLower = k.toLowerCase();
+    if (!kLower.startsWith("м.") && !kLower.startsWith("с.") && !kLower.startsWith("смт") && !kLower.startsWith("село") && !kLower.startsWith("місто")) {
+      k = `С. ${k.toUpperCase()}`;
+    } else {
+      k = k.toUpperCase();
+      if (k.startsWith("СЕЛО")) {
+        k = k.replace(/^СЕЛО\s*/, "С. ");
+      } else if (k.startsWith("МІСТО")) {
+        k = k.replace(/^МІСТО\s*/, "М. ");
+      }
     }
-    parts.push(k);
+    line2Parts.push(k);
   }
 
   if (cim.utca && cim.utca.trim()) {
-    let u = cim.utca.trim();
-    if (!u.toLowerCase().startsWith("вул.")) {
-      u = `вул. ${u}`;
+    let u = cim.utca.trim().toUpperCase();
+    if (!u.startsWith("ВУЛ.") && !u.startsWith("ВУЛИЦЯ")) {
+      u = `ВУЛ. ${u}`;
     }
-    parts.push(u);
+    line2Parts.push(u);
   }
 
   if (cim.hazszam && cim.hazszam.trim()) {
-    let h = cim.hazszam.trim().replace(/^(будинок|буд\.|б\.)\s*/gi, "").trim();
-    parts.push(`буд. ${h}`);
+    let h = cim.hazszam.trim().replace(/^(будинок|буд\.|б\.)\s*/gi, "").trim().toUpperCase();
+    line2Parts.push(`БУД. ${h}`);
   }
 
-  return parts.join(", ");
+  const line1 = line1Parts.join(", ");
+  const line2 = line2Parts.join(", ");
+
+  if (line1 && line2) {
+    return `${line1},\n${line2}`;
+  }
+  return line1 || line2;
+}
+
+export function normalizeAddressHeader(rawAddress: string): string {
+  if (!rawAddress) return "";
+  let formatted = rawAddress
+    .replace(/ОБЛ\./gi, "ОБЛАСТЬ")
+    .replace(/ОБЛ(?=\s*,|\s*$)/gi, "ОБЛАСТЬ")
+    .replace(/Р-Н\./gi, "РАЙОН")
+    .replace(/Р-Н(?=\s*,|\s*$)/gi, "РАЙОН")
+    .replace(/СЕЛО/gi, "С.")
+    .replace(/МІСТО/gi, "М.");
+
+  if (formatted.includes("РАЙОН,") && !formatted.includes("\n")) {
+    formatted = formatted.replace("РАЙОН,", "РАЙОН,\n");
+  }
+  return formatted;
 }
 
 export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
@@ -343,6 +392,12 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   // Cash register responsibility decree state
   const [selectedKasaWorkerIds, setSelectedKasaWorkerIds] = useState<number[]>([]);
   const [kasaWorkerHours, setKasaWorkerHours] = useState<Record<number, { startTime: string; endTime: string }>>({});
+
+  // Staff schedule decree state (Наказ про затвердження штатного розпису)
+  const [shtatReasonText, setShtatReasonText] = useState<string>("У зв’язку із збільшенням розмірів оплати праці:");
+
+  // Vacation schedule decree state (Наказ про затвердження графіка відпусток)
+  const [vacationPeriodText, setVacationPeriodText] = useState<string>("2026 рік");
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -799,6 +854,133 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     }
   };
 
+  const handleGenerateShtatDoc = async () => {
+    if (!activeFop) {
+      onShowToast("Спочатку оберіть активного ФОП зі списку!");
+      return;
+    }
+
+    if (!hasValidFopAddress) {
+      onShowToast("Помилка: Адреса ФОП є обов'язковою! Заповніть адресу у профілі ФОП перед створенням Наказу.");
+      return;
+    }
+
+    if (!shtatReasonText.trim()) {
+      onShowToast("Вкажіть підставу (причину) наказу!");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      let targetDir = "";
+      if (rootFolder) {
+        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        if (fopDir) {
+          targetDir = `${fopDir}\\кадрові документи`;
+        }
+      }
+
+      const ukrMonths = [
+        "січня", "лютого", "березня", "квітня", "травня", "червня",
+        "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"
+      ];
+
+      let dayStr = "01";
+      let monthStr = "січня";
+      let yearStr = "2026";
+
+      if (isoNakazDate) {
+        const parts = isoNakazDate.split("-");
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            dayStr = d < 10 ? `0${d}` : `${d}`;
+            monthStr = ukrMonths[m] || "січня";
+            yearStr = `${y}`;
+          }
+        }
+      }
+
+      await generateNakazShtatDocx({
+        fop_id: activeFop.id,
+        fop_name: activeFopName,
+        fop_code: activeFopCode,
+        fop_address: currentAddress,
+        fop_edrpou: activeFopEdrpou,
+        fop_initials: activeFopInitials,
+        nakaz_num: nakazNum,
+        nakaz_date_str: formattedNakazDate,
+        day_str: dayStr,
+        month_str: monthStr,
+        year_str: yearStr,
+        reason_text: shtatReasonText.trim(),
+        save_dir: targetDir || undefined,
+      });
+
+      onShowToast(`Наказ № ${nakazNum} успішно створено!`);
+      await performScan();
+    } catch (err: any) {
+      console.error("Error generating Nakaz Shtat docx:", err);
+      onShowToast(`Помилка генерації Наказу: ${err?.toString() || "Невідома помилка"}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateGrafikVidpustokDoc = async () => {
+    if (!activeFop) {
+      onShowToast("Спочатку оберіть активного ФОП зі списку!");
+      return;
+    }
+
+    if (!hasValidFopAddress) {
+      onShowToast("Помилка: Адреса ФОП є обов'язковою! Заповніть адресу у профілі ФОП перед створенням Наказу.");
+      return;
+    }
+
+    if (!vacationPeriodText.trim()) {
+      onShowToast("Вкажіть період (рік) у наказі!");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      let targetDir = "";
+      if (rootFolder) {
+        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        if (fopDir) {
+          targetDir = `${fopDir}\\кадрові документи`;
+        }
+      }
+
+      const calculatedNoticeDate = calculateNoticeDate(isoNakazDate);
+
+      await generateNakazGrafikVidpustokDocx({
+        fop_id: activeFop.id,
+        fop_name: activeFopName,
+        fop_code: activeFopCode,
+        fop_address: currentAddress,
+        fop_edrpou: activeFopEdrpou,
+        fop_initials: activeFopInitials,
+        nakaz_num: nakazNum,
+        nakaz_date_str: formattedNakazDate,
+        period_text: vacationPeriodText.trim(),
+        notice_date_str: calculatedNoticeDate,
+        save_dir: targetDir || undefined,
+      });
+
+      onShowToast(`Наказ № ${nakazNum} успішно створено!`);
+      await performScan();
+    } catch (err: any) {
+      console.error("Error generating Nakaz Grafik Vidpustok docx:", err);
+      onShowToast(`Помилка генерації Наказу: ${err?.toString() || "Невідома помилка"}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const selectedWorkerObj = activeFop && activeFop.munkasok
     ? activeFop.munkasok.find((w) => w.id === selectedWorkerId)
     : null;
@@ -964,8 +1146,8 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
             )}
           </div>
 
-          {/* CUSTOM DROPDOWN 2: WORKER SELECTOR (HIDE FOR KASA, SHOW FOR PRIYOM) */}
-          {selectedNakazType !== "kasa" && (
+          {/* CUSTOM DROPDOWN 2: WORKER SELECTOR (SHOW ONLY FOR PRIYOM) */}
+          {selectedNakazType === "priyom" && (
             <div className="relative w-full sm:w-96" ref={workerDropdownRef}>
               <label className="block text-xs font-black uppercase text-[#133b47] mb-1.5 tracking-wide">
                 Працівник ФОП:
@@ -1094,8 +1276,138 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
         {/* LEFT COLUMN: WORKER EDIT CARD & HISTORY REGISTRY (5 COLS) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* 1. WORKER EDIT / KASA / PRRO SELECTION COMPONENT CARD */}
-          {selectedNakazType === "kasa" || selectedNakazType === "prro" ? (
+          {/* 1. SHTAT DECREE PARAMETERS CARD */}
+          {selectedNakazType === "grafik_vidpustok" ? (
+            <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
+                <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
+                  <DocumentTextIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.5]" />
+                  Параметри графіка відпусток
+                </span>
+              </div>
+
+              {/* CUSTOM STYLED DATE OF DECREE PICKER */}
+              <CustomDatePicker
+                label="Дата наказу:"
+                value={isoNakazDate}
+                onChange={setIsoNakazDate}
+              />
+
+              {/* VACATION PERIOD INPUT / YEAR SELECTOR */}
+              <div className="flex flex-col gap-2 pt-2 border-t-2 border-[#cbd8d6]/60">
+                <label className="text-xs font-black uppercase text-[#133b47] tracking-wide flex items-center gap-1.5">
+                  <PencilSquareIcon className="w-4 h-4 text-[#f8a44c] stroke-[2.5]" />
+                  Період відпусток (рік або періоди):
+                </label>
+                <input
+                  type="text"
+                  value={vacationPeriodText}
+                  onChange={(e) => setVacationPeriodText(e.target.value)}
+                  className="w-full p-3.5 rounded-2xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:ring-2 focus:ring-[#133b47]/10 focus:outline-none text-sm font-black text-[#133b47] bg-[#fafdfc]"
+                  placeholder="напр. 2026 рік або 2026-2027 роки"
+                />
+              </div>
+            </div>
+          ) : selectedNakazType === "shtat" ? (
+            <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-5">
+              <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3.5">
+                <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
+                  <DocumentTextIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.8]" />
+                  Параметри наказу про штат
+                </span>
+              </div>
+
+              {/* CUSTOM STYLED DATE OF DECREE PICKER */}
+              <CustomDatePicker
+                label="Дата введення штату:"
+                value={isoNakazDate}
+                onChange={setIsoNakazDate}
+              />
+
+              {/* REASON PRESETS CARDS */}
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-black uppercase text-[#133b47] tracking-wider">
+                  Оберіть формулювання підстави:
+                </label>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShtatReasonText("У зв’язку із збільшенням розмірів оплати праці:");
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer select-none ${
+                      shtatReasonText.trim() === "У зв’язку із збільшенням розмірів оплати праці:"
+                        ? "bg-gradient-to-r from-[#133b47] to-[#1c5567] text-white border-[#133b47] shadow-md scale-[1.01]"
+                        : "bg-slate-50 hover:bg-white text-[#133b47] border-slate-200 hover:border-[#cbd8d6]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl font-black flex items-center justify-center shrink-0 ${
+                          shtatReasonText.trim() === "У зв’язку із збільшенням розмірів оплати праці:"
+                            ? "bg-[#f8a44c] text-[#133b47]"
+                            : "bg-[#133b47]/10 text-[#133b47]"
+                        }`}
+                      >
+                        <ArrowTrendingUpIcon className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-black leading-tight">Збільшення розмірів оплати праці</span>
+                    </div>
+
+                    {shtatReasonText.trim() === "У зв’язку із збільшенням розмірів оплати праці:" && (
+                      <CheckIcon className="w-5 h-5 text-[#f8a44c] stroke-[3] shrink-0" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShtatReasonText("У зв’язку з необхідністю розширення штату прийняттям працівника:");
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer select-none ${
+                      shtatReasonText.trim() === "У зв’язку з необхідністю розширення штату прийняттям працівника:"
+                        ? "bg-gradient-to-r from-[#133b47] to-[#1c5567] text-white border-[#133b47] shadow-md scale-[1.01]"
+                        : "bg-slate-50 hover:bg-white text-[#133b47] border-slate-200 hover:border-[#cbd8d6]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl font-black flex items-center justify-center shrink-0 ${
+                          shtatReasonText.trim() === "У зв’язку з необхідністю розширення штату прийняттям працівника:"
+                            ? "bg-[#f8a44c] text-[#133b47]"
+                            : "bg-[#133b47]/10 text-[#133b47]"
+                        }`}
+                      >
+                        <UserPlusIcon className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-black leading-tight">Розширення штату (прийняття працівника)</span>
+                    </div>
+
+                    {shtatReasonText.trim() === "У зв’язку з необхідністю розширення штату прийняттям працівника:" && (
+                      <CheckIcon className="w-5 h-5 text-[#f8a44c] stroke-[3] shrink-0" />
+                    )}
+                  </button>
+                </div>
+
+                {/* EDITABLE TEXT AREA CONTAINER */}
+                <div className="flex flex-col gap-2 mt-2 pt-3 border-t-2 border-[#cbd8d6]/60">
+                  <label className="text-xs font-black text-[#133b47] flex items-center gap-1.5">
+                    <PencilSquareIcon className="w-4 h-4 text-[#f8a44c] stroke-[2.5]" />
+                    Текст підстави у наказі:
+                  </label>
+
+                  <textarea
+                    rows={3}
+                    value={shtatReasonText}
+                    onChange={(e) => setShtatReasonText(e.target.value)}
+                    className="w-full p-3.5 rounded-2xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:ring-2 focus:ring-[#133b47]/10 focus:outline-none text-xs font-medium text-slate-800 bg-[#fafdfc] leading-relaxed transition-all shadow-inner"
+                    placeholder="Введіть текст підстави..."
+                  />
+                </div>
+              </div>
+            </div>
+          ) : selectedNakazType === "kasa" || selectedNakazType === "prro" ? (
             <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
                 <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
@@ -1400,7 +1712,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 <p className="uppercase text-sm font-black">ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</p>
                 <p className="uppercase text-sm font-black text-[#133b47]">{activeFopName ? activeFopName.toUpperCase() : "ГАЛ ФЕРЕНЦ ФЕРЕНЦОВИЧ"}</p>
                 {hasValidFopAddress ? (
-                  <p className="uppercase font-normal text-xs md:text-sm text-slate-700">{currentAddress.toUpperCase()}</p>
+                  normalizeAddressHeader(currentAddress).split("\n").map((line, idx) => (
+                    <p key={idx} className="uppercase font-normal text-xs md:text-sm text-slate-700">{line.trim().toUpperCase()}</p>
+                  ))
                 ) : (
                   <p className="font-normal text-xs md:text-sm text-rose-600 italic font-bold">[АДРЕСА ФОП НЕ ВКАЗАНА]</p>
                 )}
@@ -1415,7 +1729,77 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 <p className="font-normal text-xs md:text-sm">від {formattedNakazDate}</p>
               </div>
 
-              {selectedNakazType === "prro" ? (
+              {selectedNakazType === "grafik_vidpustok" ? (
+                <>
+                  <p className="font-bold text-xs md:text-sm mt-1 uppercase text-center font-black">
+                    ПРО ЗАТВЕРДЖЕННЯ ГРАФІКУ ВІДПУСТОК
+                  </p>
+
+                  <div className="flex flex-col gap-2 mt-4 text-justify leading-relaxed">
+                    <p className="font-medium text-slate-900">
+                      Керуючись статтею 10 Закону України «Про відпустки» від 15.11.1996 р. №504/96 ВР
+                    </p>
+                    <p className="font-bold text-center my-2">НАКАЗУЮ:</p>
+                    <p className="font-medium">
+                      <span className="font-bold">1. </span>Затвердити  графік відпусток на <span className="font-bold">{vacationPeriodText}</span> (графік додається):
+                    </p>
+                    <p className="font-medium">
+                      <span className="font-bold">2. </span>Організувати персональне ознайомлення працівників ФОПа під особистий підпис із графіком відпусток до <span className="font-bold">{calculateNoticeDate(isoNakazDate)} р.</span>
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-12 pt-4 border-t-2 border-slate-300 text-xs md:text-sm">
+                    <div className="grid grid-cols-2 gap-4 items-center mt-3 font-bold">
+                      <span>ФОП {activeFopInitials || "Гал Ф.Ф."}</span>
+                      <span className="text-right">___________________</span>
+                    </div>
+                  </div>
+                </>
+              ) : selectedNakazType === "shtat" ? (
+                <>
+                  <p className="font-bold text-xs md:text-sm mt-1 uppercase text-center font-black">
+                    ПРО ЗАТВЕРДЖЕННЯ ШТАТНОГО РОЗПИСУ
+                  </p>
+
+                  <div className="flex flex-col gap-1 mt-3 text-justify leading-relaxed">
+                    <p className="font-medium text-slate-900">{shtatReasonText}</p>
+                    <p className="font-bold text-center my-2">НАКАЗУЮ:</p>
+                    <p className="font-medium">
+                      <span className="font-bold">1. </span>Затвердити і ввести в дію з{" "}
+                      <span className="font-bold">
+                        {(() => {
+                          const ukrMonths = [
+                            "січня", "лютого", "березня", "квітня", "травня", "червня",
+                            "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"
+                          ];
+                          if (isoNakazDate) {
+                            const parts = isoNakazDate.split("-");
+                            if (parts.length === 3) {
+                              const y = parseInt(parts[0], 10);
+                              const m = parseInt(parts[1], 10) - 1;
+                              const d = parseInt(parts[2], 10);
+                              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                                const dayStr = d < 10 ? `0${d}` : `${d}`;
+                                const monthStr = ukrMonths[m] || "січня";
+                                return `${dayStr} ${monthStr} ${y}`;
+                              }
+                            }
+                          }
+                          return "01 січня 2026";
+                        })()} р.
+                      </span>{" "}
+                      штатний розпис.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-8 pt-4 border-t-2 border-slate-300 text-xs md:text-sm">
+                    <div className="grid grid-cols-2 gap-4 items-center mt-3 font-bold">
+                      <span>ФОП {activeFopInitials || "Гал Ф.Ф."}</span>
+                      <span className="text-right">___________________</span>
+                    </div>
+                  </div>
+                </>
+              ) : selectedNakazType === "prro" ? (
                 <>
                   <p className="font-bold text-xs md:text-sm mt-1">
                     Про призначення касирів для роботи з ПРРО
@@ -1645,7 +2029,17 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
           {/* GENERATE ACTION BUTTON */}
           <button
-            onClick={selectedNakazType === "prro" ? handleGeneratePrroDoc : selectedNakazType === "kasa" ? handleGenerateKasaDoc : handleGenerateDoc}
+            onClick={
+              selectedNakazType === "grafik_vidpustok"
+                ? handleGenerateGrafikVidpustokDoc
+                : selectedNakazType === "shtat"
+                ? handleGenerateShtatDoc
+                : selectedNakazType === "prro"
+                ? handleGeneratePrroDoc
+                : selectedNakazType === "kasa"
+                ? handleGenerateKasaDoc
+                : handleGenerateDoc
+            }
             disabled={isGenerating || !hasValidFopAddress}
             className={`w-full py-4 rounded-2xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2.5 ${
               hasValidFopAddress

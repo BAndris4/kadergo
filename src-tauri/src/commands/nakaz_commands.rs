@@ -68,6 +68,31 @@ fn quick_escape(s: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+fn format_address_paragraphs_xml(raw_address: &str) -> String {
+    let mut address_str = raw_address
+        .replace("ОБЛ.", "ОБЛАСТЬ")
+        .replace("ОБЛ,", "ОБЛАСТЬ,")
+        .replace("Р-Н.", "РАЙОН")
+        .replace("Р-Н,", "РАЙОН,")
+        .replace("Р-Н ", "РАЙОН ");
+
+    if address_str.contains("РАЙОН,") && !address_str.contains('\n') {
+        address_str = address_str.replace("РАЙОН,", "РАЙОН,\n");
+    }
+
+    address_str
+        .split('\n')
+        .map(|line| {
+            let line_esc = quick_escape(line.trim());
+            format!(
+                r#"<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>{}</w:t></w:r></w:p>"#,
+                line_esc
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[tauri::command]
 pub fn generate_nakaz_priyom_docx(req: GenerateNakazPriyomRequest) -> Result<String, String> {
     let nakaz_clean = req.nakaz_num.trim();
@@ -135,14 +160,6 @@ pub fn generate_nakaz_priyom_docx(req: GenerateNakazPriyomRequest) -> Result<Str
     zip.start_file("word/styles.xml", options).map_err(|e| e.to_string())?;
     zip.write_all(styles.as_bytes()).map_err(|e| e.to_string())?;
 
-    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
-    let fop_address_esc = quick_escape(&req.fop_address.to_uppercase());
-    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
-    let fop_initials_esc = quick_escape(&req.fop_initials);
-
-    let nakaz_num_esc = quick_escape(&req.nakaz_num);
-    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
-
     let worker_acc_esc = quick_escape(&req.worker_name_accusative);
     let worker_dat_esc = quick_escape(&req.worker_name_dative);
     let worker_initials_esc = quick_escape(&req.worker_initials);
@@ -167,13 +184,22 @@ pub fn generate_nakaz_priyom_docx(req: GenerateNakazPriyomRequest) -> Result<Str
         ),
     };
 
+    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
+    let fop_address_xml = format_address_paragraphs_xml(&req.fop_address);
+    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
+    let fop_initials_esc = quick_escape(&req.fop_initials);
+
+    let nakaz_num_esc = quick_escape(&req.nakaz_num);
+    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
+    let work_start_date_esc = quick_escape(&req.work_start_date_str);
+
     let doc_xml = format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</w:t></w:r></w:p>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>{}</w:t></w:r></w:p>
-<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+{}
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>КОД ЄДРПОУ {}</w:t></w:r></w:p>
 <w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="9639"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9855" w:type="dxa"/><w:tcBorders><w:top w:val="thinThickSmallGap" w:sz="24" w:space="0" w:color="auto"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="uk-UA"/></w:rPr></w:pPr></w:p></w:tc></w:tr></w:tbl>
 <w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
@@ -205,7 +231,7 @@ pub fn generate_nakaz_priyom_docx(req: GenerateNakazPriyomRequest) -> Result<Str
 <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
 </w:body></w:document>"#,
         fop_name_upper,
-        fop_address_esc,
+        fop_address_xml,
         fop_edrpou_esc,
         nakaz_num_esc,
         nakaz_date_esc,
@@ -228,8 +254,7 @@ pub fn generate_nakaz_priyom_docx(req: GenerateNakazPriyomRequest) -> Result<Str
 #[tauri::command]
 pub fn generate_nakaz_kasa_docx(req: GenerateNakazKasaRequest) -> Result<String, String> {
     let nakaz_clean = req.nakaz_num.trim();
-    let fop_initials_clean = req.fop_initials.trim();
-    let filename = format!("Наказ {} матеріально відповідальні {}.docx", nakaz_clean, fop_initials_clean);
+    let filename = format!("Наказ {} матеріально відповідальна особа.docx", nakaz_clean);
 
     let base_dir = match req.save_dir {
         Some(ref d) if !d.trim().is_empty() => std::path::PathBuf::from(d.trim()),
@@ -343,13 +368,6 @@ pub fn generate_nakaz_kasa_docx(req: GenerateNakazKasaRequest) -> Result<String,
     zip.start_file("word/numbering.xml", options).map_err(|e| e.to_string())?;
     zip.write_all(numbering.as_bytes()).map_err(|e| e.to_string())?;
 
-    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
-    let fop_address_esc = quick_escape(&req.fop_address.to_uppercase());
-    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
-    let fop_initials_esc = quick_escape(&req.fop_initials);
-
-    let nakaz_num_esc = quick_escape(&req.nakaz_num);
-    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
     let day_esc = quick_escape(&req.day_str);
     let month_esc = quick_escape(&req.month_str);
     let year_esc = quick_escape(&req.year_str);
@@ -382,13 +400,21 @@ pub fn generate_nakaz_kasa_docx(req: GenerateNakazKasaRequest) -> Result<String,
         ));
     }
 
+    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
+    let fop_address_xml = format_address_paragraphs_xml(&req.fop_address);
+    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
+    let fop_initials_esc = quick_escape(&req.fop_initials);
+
+    let nakaz_num_esc = quick_escape(&req.nakaz_num);
+    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
+
     let doc_xml = format!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</w:t></w:r></w:p>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>{}</w:t></w:r></w:p>
-<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+{}
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>КОД ЄДРПОУ {}</w:t></w:r></w:p>
 <w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="9639"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9855" w:type="dxa"/><w:tcBorders><w:top w:val="thinThickSmallGap" w:sz="24" w:space="0" w:color="auto"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="uk-UA"/></w:rPr></w:pPr></w:p></w:tc></w:tr></w:tbl>
 <w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
@@ -417,7 +443,7 @@ pub fn generate_nakaz_kasa_docx(req: GenerateNakazKasaRequest) -> Result<String,
 <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
 </w:body></w:document>"#,
         fop_name_upper,
-        fop_address_esc,
+        fop_address_xml,
         fop_edrpou_esc,
         nakaz_num_esc,
         nakaz_date_esc,
@@ -460,8 +486,7 @@ pub struct GenerateNakazPrroRequest {
 #[tauri::command]
 pub fn generate_nakaz_prro_docx(req: GenerateNakazPrroRequest) -> Result<String, String> {
     let nakaz_clean = req.nakaz_num.trim();
-    let fop_initials_clean = req.fop_initials.trim();
-    let filename = format!("Наказ {} про призначення касирів {}.docx", nakaz_clean, fop_initials_clean);
+    let filename = format!("Наказ {} про призначення касирів.docx", nakaz_clean);
 
     let base_dir = match req.save_dir {
         Some(ref d) if !d.trim().is_empty() => std::path::PathBuf::from(d.trim()),
@@ -618,7 +643,7 @@ pub fn generate_nakaz_prro_docx(req: GenerateNakazPrroRequest) -> Result<String,
 <w:body>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</w:t></w:r></w:p>
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>{}</w:t></w:r></w:p>
-<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+{}
 <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>КОД ЄДРПОУ {}</w:t></w:r></w:p>
 <w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="9639"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9855" w:type="dxa"/><w:tcBorders><w:top w:val="thinThickSmallGap" w:sz="24" w:space="0" w:color="auto"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="uk-UA"/></w:rPr></w:pPr></w:p></w:tc></w:tr></w:tbl>
 <w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
@@ -659,6 +684,354 @@ pub fn generate_nakaz_prro_docx(req: GenerateNakazPrroRequest) -> Result<String,
         nakaz_date_esc,
         workers_list_xml,
         worker_signatures_xml,
+        fop_initials_esc
+    );
+
+    zip.start_file("word/document.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(doc_xml.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| format!("Failed to finalize docx zip: {}", e))?;
+    Ok(output_path)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GenerateNakazShtatRequest {
+    pub fop_id: i64,
+    pub fop_name: String,
+    pub fop_code: String,
+    pub fop_address: String,
+    pub fop_edrpou: String,
+    pub fop_initials: String,
+    pub nakaz_num: String,
+    pub nakaz_date_str: String,
+    pub day_str: String,
+    pub month_str: String,
+    pub year_str: String,
+    pub reason_text: String,
+    pub save_dir: Option<String>,
+}
+
+#[tauri::command]
+pub fn generate_nakaz_shtat_docx(req: GenerateNakazShtatRequest) -> Result<String, String> {
+    let nakaz_clean = req.nakaz_num.trim();
+    let filename = format!("Наказ {} штат.docx", nakaz_clean);
+
+    let base_dir = match req.save_dir {
+        Some(ref d) if !d.trim().is_empty() => std::path::PathBuf::from(d.trim()),
+        _ => std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+    };
+
+    if !base_dir.exists() {
+        let _ = fs::create_dir_all(&base_dir);
+    }
+
+    let output_path_buf = base_dir.join(&filename);
+    let output_path = output_path_buf.to_string_lossy().to_string();
+
+    let out_file = File::create(&output_path)
+        .map_err(|e| format!("Cannot create output docx file: {}", e))?;
+    let mut zip = ZipWriter::new(out_file);
+    let options = SimpleFileOptions::default();
+
+    // 1. [Content_Types].xml
+    let content_types = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+</Types>"#;
+
+    zip.start_file("[Content_Types].xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(content_types.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 2. _rels/.rels
+    let rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>"#;
+
+    zip.start_file("_rels/.rels", options).map_err(|e| e.to_string())?;
+    zip.write_all(rels.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 3. word/_rels/document.xml.rels
+    let doc_rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+</Relationships>"#;
+
+    zip.start_file("word/_rels/document.xml.rels", options).map_err(|e| e.to_string())?;
+    zip.write_all(doc_rels.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 4. word/styles.xml
+    let styles = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:sz w:val="24"/>
+        <w:szCs w:val="24"/>
+        <w:lang w:val="uk-UA"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+</w:styles>"#;
+
+    zip.start_file("word/styles.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(styles.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 5. word/numbering.xml
+    let numbering = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
+  <w:abstractNum w:abstractNumId="1" w15:restartNumberingAfterBreak="0">
+    <w:nsid w:val="286C6E0C"/>
+    <w:multiLevelType w:val="multilevel"/>
+    <w:tmpl w:val="46AECFB2"/>
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1"/>
+      <w:numFmt w:val="decimal"/>
+      <w:lvlText w:val="%1."/>
+      <w:lvlJc w:val="left"/>
+      <w:pPr>
+        <w:tabs><w:tab w:val="num" w:pos="720"/></w:tabs>
+        <w:ind w:left="720" w:hanging="360"/>
+      </w:pPr>
+    </w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="4">
+    <w:abstractNumId w:val="1"/>
+  </w:num>
+</w:numbering>"#;
+
+    zip.start_file("word/numbering.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(numbering.as_bytes()).map_err(|e| e.to_string())?;
+
+    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
+    let fop_address_xml = format_address_paragraphs_xml(&req.fop_address);
+    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
+    let fop_initials_esc = quick_escape(&req.fop_initials);
+
+    let nakaz_num_esc = quick_escape(&req.nakaz_num);
+    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
+    let day_esc = quick_escape(&req.day_str);
+    let month_esc = quick_escape(&req.month_str);
+    let year_esc = quick_escape(&req.year_str);
+    let reason_esc = quick_escape(&req.reason_text);
+
+    let doc_xml = format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+{}
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>КОД ЄДРПОУ {}</w:t></w:r></w:p>
+<w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="9639"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9855" w:type="dxa"/><w:tcBorders><w:top w:val="thinThickSmallGap" w:sz="24" w:space="0" w:color="auto"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="uk-UA"/></w:rPr></w:pPr></w:p></w:tc></w:tr></w:tbl>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr><w:t>НАКАЗ № {}</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>від {}</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>ПРО ЗАТВЕРДЖЕННЯ ШТАТНОГО РОЗПИСУ</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>НАКАЗУЮ:</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="4"/></w:numPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">Затвердити і ввести в дію з {} {} {} р. штатний розпис.</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="5529"/></w:tabs><w:jc w:val="both"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">ФОП {}</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:tab/><w:tab/><w:tab/></w:r><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>___________________</w:t></w:r></w:p>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
+</w:body></w:document>"#,
+        fop_name_upper,
+        fop_address_xml,
+        fop_edrpou_esc,
+        nakaz_num_esc,
+        nakaz_date_esc,
+        reason_esc,
+        day_esc,
+        month_esc,
+        year_esc,
+        fop_initials_esc
+    );
+
+    zip.start_file("word/document.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(doc_xml.as_bytes()).map_err(|e| e.to_string())?;
+
+    zip.finish().map_err(|e| format!("Failed to finalize docx zip: {}", e))?;
+    Ok(output_path)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GenerateNakazGrafikVidpustokRequest {
+    pub fop_id: i64,
+    pub fop_name: String,
+    pub fop_code: String,
+    pub fop_address: String,
+    pub fop_edrpou: String,
+    pub fop_initials: String,
+    pub nakaz_num: String,
+    pub nakaz_date_str: String,
+    pub period_text: String,
+    pub notice_date_str: String,
+    pub save_dir: Option<String>,
+}
+
+#[tauri::command]
+pub fn generate_nakaz_grafik_vidpustok_docx(req: GenerateNakazGrafikVidpustokRequest) -> Result<String, String> {
+    let nakaz_clean = req.nakaz_num.trim();
+    let filename = format!("Наказ {} графік відпусток.docx", nakaz_clean);
+
+    let base_dir = match req.save_dir {
+        Some(ref d) if !d.trim().is_empty() => std::path::PathBuf::from(d.trim()),
+        _ => std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+    };
+
+    if !base_dir.exists() {
+        let _ = fs::create_dir_all(&base_dir);
+    }
+
+    let output_path_buf = base_dir.join(&filename);
+    let output_path = output_path_buf.to_string_lossy().to_string();
+
+    let out_file = File::create(&output_path)
+        .map_err(|e| format!("Cannot create output docx file: {}", e))?;
+    let mut zip = ZipWriter::new(out_file);
+    let options = SimpleFileOptions::default();
+
+    // 1. [Content_Types].xml
+    let content_types = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+</Types>"#;
+
+    zip.start_file("[Content_Types].xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(content_types.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 2. _rels/.rels
+    let rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>"#;
+
+    zip.start_file("_rels/.rels", options).map_err(|e| e.to_string())?;
+    zip.write_all(rels.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 3. word/_rels/document.xml.rels
+    let doc_rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+</Relationships>"#;
+
+    zip.start_file("word/_rels/document.xml.rels", options).map_err(|e| e.to_string())?;
+    zip.write_all(doc_rels.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 4. word/styles.xml
+    let styles = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+        <w:sz w:val="24"/>
+        <w:szCs w:val="24"/>
+        <w:lang w:val="uk-UA"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+</w:styles>"#;
+
+    zip.start_file("word/styles.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(styles.as_bytes()).map_err(|e| e.to_string())?;
+
+    // 5. word/numbering.xml
+    let numbering = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
+  <w:abstractNum w:abstractNumId="1" w15:restartNumberingAfterBreak="0">
+    <w:nsid w:val="286C6E0C"/>
+    <w:multiLevelType w:val="multilevel"/>
+    <w:tmpl w:val="46AECFB2"/>
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1"/>
+      <w:numFmt w:val="decimal"/>
+      <w:lvlText w:val="%1."/>
+      <w:lvlJc w:val="left"/>
+      <w:pPr>
+        <w:tabs><w:tab w:val="num" w:pos="720"/></w:tabs>
+        <w:ind w:left="720" w:hanging="360"/>
+      </w:pPr>
+    </w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="4">
+    <w:abstractNumId w:val="1"/>
+  </w:num>
+</w:numbering>"#;
+
+    zip.start_file("word/numbering.xml", options).map_err(|e| e.to_string())?;
+    zip.write_all(numbering.as_bytes()).map_err(|e| e.to_string())?;
+
+    let fop_name_upper = quick_escape(&req.fop_name.to_uppercase());
+    let fop_address_xml = format_address_paragraphs_xml(&req.fop_address);
+    let fop_edrpou_esc = quick_escape(&req.fop_edrpou.to_uppercase());
+    let fop_initials_esc = quick_escape(&req.fop_initials);
+
+    let nakaz_num_esc = quick_escape(&req.nakaz_num);
+    let nakaz_date_esc = quick_escape(&req.nakaz_date_str);
+    let period_esc = quick_escape(&req.period_text);
+    let notice_date_esc = quick_escape(&req.notice_date_str);
+
+    let doc_xml = format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>{}</w:t></w:r></w:p>
+{}
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>КОД ЄДРПОУ {}</w:t></w:r></w:p>
+<w:tbl><w:tblPr><w:tblStyle w:val="a4"/><w:tblW w:w="0" w:type="auto"/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="9639"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9855" w:type="dxa"/><w:tcBorders><w:top w:val="thinThickSmallGap" w:sz="24" w:space="0" w:color="auto"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/><w:lang w:val="uk-UA"/></w:rPr></w:pPr></w:p></w:tc></w:tr></w:tbl>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr><w:t>НАКАЗ № {}</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>від {}</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="240" w:line="360" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>ПРО ЗАТВЕРДЖЕННЯ ГРАФІКУ ВІДПУСТОК</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>Керуючись статтею 10 Закону України «Про відпустки» від 15.11.1996 р. №504/96 ВР</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t>НАКАЗУЮ:</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="4"/></w:numPr><w:jc w:val="both"/><w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t xml:space="preserve">Затвердити  графік відпусток на {} (графік додається):</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="4"/></w:numPr><w:jc w:val="both"/><w:spacing w:before="0" w:after="0" w:line="360" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr><w:t xml:space="preserve">Організувати персональне ознайомлення працівників ФОПа під особистий підпис із графіком відпусток до {} р.</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="5529"/></w:tabs><w:jc w:val="both"/><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">ФОП {}</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:tab/><w:tab/><w:tab/></w:r><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t>___________________</w:t></w:r></w:p>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>
+</w:body></w:document>"#,
+        fop_name_upper,
+        fop_address_xml,
+        fop_edrpou_esc,
+        nakaz_num_esc,
+        nakaz_date_esc,
+        period_esc,
+        notice_date_esc,
         fop_initials_esc
     );
 

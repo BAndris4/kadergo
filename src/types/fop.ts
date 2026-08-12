@@ -446,6 +446,36 @@ export interface GenerateNakazPrroRequest {
   save_dir?: string;
 }
 
+export interface GenerateNakazShtatRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  day_str: string;
+  month_str: string;
+  year_str: string;
+  reason_text: string;
+  save_dir?: string;
+}
+
+export interface GenerateNakazGrafikVidpustokRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  period_text: string;
+  notice_date_str: string;
+  save_dir?: string;
+}
+
 export interface NakazFileItem {
   nakaz_num: string;
   num_val: number;
