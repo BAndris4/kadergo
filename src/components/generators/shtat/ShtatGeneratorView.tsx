@@ -11,9 +11,9 @@ import {
   UserGroupIcon,
   BanknotesIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, ShtatPositionItem, GenerateShtatDocxRequest } from "../types/fop";
-import { generateShtatDocx, ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
-import { CustomDatePicker } from "./CustomDatePicker";
+import { FopData, ShtatPositionItem, GenerateShtatDocxRequest } from "../../../types/fop";
+import { generateShtatDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
+import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 
 interface ShtatGeneratorViewProps {
   fops: FopData[];

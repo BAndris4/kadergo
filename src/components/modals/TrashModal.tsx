@@ -1,6 +1,6 @@
 import React from "react";
 import { TrashIcon, XMarkIcon, ArrowPathIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { FopData } from "../types/fop";
+import { FopData } from "../../types/fop";
 
 interface TrashModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999999] animate-fadeIn"
       onClick={onClose}
     >
       <div

@@ -1,5 +1,5 @@
 import React from "react";
-import { Munkas } from "../types/fop";
+import { Munkas } from "../../types/fop";
 import { UserIcon, PencilSquareIcon, TrashIcon, UserMinusIcon } from "@heroicons/react/24/outline";
 
 interface WorkerCardProps {

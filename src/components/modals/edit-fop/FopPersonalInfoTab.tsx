@@ -1,25 +1,33 @@
 import React from "react";
 import { UserIcon } from "@heroicons/react/24/outline";
-import { CreateWorkerFormState } from "../../types/fop";
-import { DatePicker } from "../pickers/DatePicker";
+import { EditFopFormState } from "../../../types/fop";
+import { DatePicker } from "../../pickers/DatePicker";
 
-interface Step1WorkerProps {
-  formData: CreateWorkerFormState;
-  errors: { vezeteknev?: string; keresztnev?: string; apai_nev?: string };
+interface FopPersonalInfoTabProps {
+  formData: EditFopFormState;
+  errors: { vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string };
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onGenderChange: (gender: string) => void;
+  onBirthDateChange: (date: string) => void;
 }
 
-export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, errors, onChange }) => {
+export const FopPersonalInfoTab: React.FC<FopPersonalInfoTabProps> = ({
+  formData,
+  errors,
+  onChange,
+  onGenderChange,
+  onBirthDateChange,
+}) => {
   return (
     <div className="p-6 rounded-3xl bg-[#f8faf9] border-2 border-[#e2eceb]">
       <div className="text-base font-black text-[#133b47] mb-5 font-heading flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl bg-[#133b47]/10 flex items-center justify-center">
           <UserIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
         </div>
-        <span>Основна інформація про працівника</span>
+        <span>1. Особисті дані керівника</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
             Прізвище <span className="text-red-500">*</span>
@@ -27,7 +35,6 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
           <input
             type="text"
             name="vezeteknev"
-            placeholder="Коваленко"
             value={formData.vezeteknev}
             onChange={onChange}
             className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
@@ -44,7 +51,6 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
           <input
             type="text"
             name="keresztnev"
-            placeholder="Олександр"
             value={formData.keresztnev}
             onChange={onChange}
             className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
@@ -61,7 +67,6 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
           <input
             type="text"
             name="apai_nev"
-            placeholder="Іванович"
             value={formData.apai_nev}
             onChange={onChange}
             className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
@@ -73,7 +78,7 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
 
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
-            Ідентифікаційний код
+            Ідентифікаційний код <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -81,11 +86,14 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
             placeholder="123456789"
             value={formData.kod}
             onChange={onChange}
-            className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+            className={`w-full h-13 px-4 rounded-2xl bg-white border-2 text-[#133b47] text-base font-extrabold focus:outline-none focus:ring-4 focus:ring-[#133b47]/10 transition-all ${
+              errors.kod ? "border-red-500" : "border-[#bdcdcb] focus:border-[#133b47]"
+            }`}
           />
+          {errors.kod && <span className="text-xs text-red-600 font-black">{errors.kod}</span>}
         </div>
 
-        {/* Вибір статі (Чоловік / Жінка) - без ікон */}
+        {/* Чіткий текстовий вибір статі */}
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
             Стать
@@ -93,7 +101,7 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
           <div className="grid grid-cols-2 gap-2 h-13">
             <button
               type="button"
-              onClick={() => onChange({ target: { name: "nem", value: "Чоловік" } } as any)}
+              onClick={() => onGenderChange("Чоловік")}
               className={`h-full rounded-2xl font-black text-sm border-2 transition-all cursor-pointer flex items-center justify-center ${
                 formData.nem === "Чоловік"
                   ? "bg-[#133b47] text-[#f8a44c] border-[#133b47] shadow-md"
@@ -105,7 +113,7 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
 
             <button
               type="button"
-              onClick={() => onChange({ target: { name: "nem", value: "Жінка" } } as any)}
+              onClick={() => onGenderChange("Жінка")}
               className={`h-full rounded-2xl font-black text-sm border-2 transition-all cursor-pointer flex items-center justify-center ${
                 formData.nem === "Жінка"
                   ? "bg-[#133b47] text-[#f8a44c] border-[#133b47] shadow-md"
@@ -123,7 +131,7 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
           </label>
           <DatePicker
             value={formData.szuletesi_datum}
-            onChange={(val) => onChange({ target: { name: "szuletesi_datum", value: val } } as any)}
+            onChange={onBirthDateChange}
             placeholder="Дата народження"
           />
         </div>

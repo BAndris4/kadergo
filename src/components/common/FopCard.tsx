@@ -1,7 +1,8 @@
 import React from "react";
-import { UserGroupIcon, ChevronDownIcon, UserPlusIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
-import { FopData, Munkas } from "../types/fop";
+import { UserGroupIcon, ChevronDownIcon, UserPlusIcon, PencilSquareIcon, HomeIcon } from "@heroicons/react/24/outline";
+import { FopData, Munkas } from "../../types/fop";
 import { WorkerCard } from "./WorkerCard";
+import { formatAddressDisplay } from "../../utils/addressUtils";
 
 interface FopCardProps {
   fop: FopData;
@@ -63,16 +64,10 @@ export const FopCard: React.FC<FopCardProps> = ({
               </span>
             )}
 
-            {fop.cim && (fop.cim.kozseg || fop.cim.utca || fop.cim.megye) && (
-              <span className="text-xs font-bold text-[#133b47] bg-[#f4f9f8] px-2.5 py-0.5 rounded-lg border border-[#cbd8d6] mt-0.5 self-start">
-                🏠 {[
-                  fop.cim.iranyitoszam,
-                  fop.cim.megye ? `${fop.cim.megye} обл.` : "",
-                  fop.cim.jaras ? `${fop.cim.jaras} р-н` : "",
-                  fop.cim.kozseg ? `м. ${fop.cim.kozseg}` : "",
-                  fop.cim.utca ? `вул. ${fop.cim.utca}` : "",
-                  fop.cim.hazszam ? `буд. ${fop.cim.hazszam}` : "",
-                ].filter(Boolean).join(", ")}
+            {fop.cim && formatAddressDisplay(fop.cim) && (
+              <span className="text-xs font-bold text-[#133b47] bg-[#f4f9f8] px-2.5 py-1 rounded-lg border border-[#cbd8d6] mt-0.5 self-start inline-flex items-center gap-1.5">
+                <HomeIcon className="w-4 h-4 text-[#133b47] shrink-0 stroke-[2]" />
+                <span>{formatAddressDisplay(fop.cim)}</span>
               </span>
             )}
           </div>
@@ -84,7 +79,7 @@ export const FopCard: React.FC<FopCardProps> = ({
             {formatMunkasCount(fop.munkasok.length)}
           </span>
 
-          {/* Edit Button (Törlés gomb eltávolítva innét, mert csak a módosítás ablakon belül látható) */}
+          {/* Edit Button */}
           <button
             title="Редагувати ФОП"
             onClick={(e) => {
@@ -119,7 +114,7 @@ export const FopCard: React.FC<FopCardProps> = ({
                 e.stopPropagation();
                 onAddWorkerClick(fop);
               }}
-              className="inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl bg-[#133b47] hover:bg-[#0f2e38] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-extrabold text-xs shadow-md transition-all cursor-pointer"
             >
               <UserPlusIcon className="w-4.5 h-4.5 text-[#f8a44c] stroke-[2.5]" />
               Додати нового працівника

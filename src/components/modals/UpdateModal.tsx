@@ -18,8 +18,8 @@ import {
   downloadAndRunReleaseAsset,
   UpdateStatus,
   ReleaseItem,
-} from "../services/updaterService";
-import { MarkdownViewer } from "./MarkdownViewer";
+} from "../../services/updaterService";
+import { MarkdownViewer } from "../common/MarkdownViewer";
 import { Update } from "@tauri-apps/plugin-updater";
 import { getVersion } from "@tauri-apps/api/app";
 
@@ -63,7 +63,6 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
         if (initialUpdateInfo) {
           setCurrentUpdate(initialUpdateInfo);
           setSelectedRollbackRelease(null);
-          // Use GitHub release description body instead of latest.json notes
           const matchedRelease = fetchedHistory.find(
             (r) =>
               r.tag_name === `v${initialUpdateInfo.version}` ||
@@ -102,7 +101,6 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
     setCurrentUpdate(updateObj);
     if (updateObj) {
-      // Find matching GitHub release for its description body
       const matchedRelease = releaseHistory.find(
         (r) => r.tag_name === `v${updateObj.version}` || r.tag_name === updateObj.version
       );
@@ -119,7 +117,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const handleRollbackSelect = (rel: ReleaseItem) => {
     setSelectedRollbackRelease(rel);
     setCurrentUpdate(null);
-    setShowArchive(false); // Automatically close the archive dropdown!
+    setShowArchive(false);
 
     setUpdateStatus({
       status: "available",
@@ -235,7 +233,6 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
         <div className="p-8 flex flex-col gap-5 flex-1 overflow-y-auto bg-[#fdfdfd]">
           {/* Top Status Banner & Actions */}
           {isDownloading ? (
-            /* CLEAN & SOLID IN-APP UPDATING PROGRESS CARD */
             <div className="p-6 rounded-3xl bg-[#f4f8f7] border-2 border-[#bdcdcb] flex flex-col gap-4 shadow-sm animate-fadeIn shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
@@ -374,7 +371,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             </div>
           </div>
 
-          {/* Collapsible Section: Release Archive (Past Versions) */}
+          {/* Collapsible Section: Release Archive */}
           {!isDownloading && (
             <div className="border-t-2 border-[#e2eceb] pt-4 shrink-0 flex flex-col gap-3">
               <button

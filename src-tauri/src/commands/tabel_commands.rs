@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use rust_xlsxwriter::*;
 
 use crate::db::init_sqlite_db;
-use crate::commands::payroll_commands::{get_days_in_month, is_weekday, get_month_name_ukr, parse_day_of_month};
+use crate::commands::payroll_commands::{get_days_in_month, is_weekday, get_month_name_ukr};
 
 // ─── DTOs ───────────────────────────────────────────────────────────────
 
@@ -164,9 +164,6 @@ pub fn preview_tabel(
     }
 
     // 3. Fetch workers
-    let month_start_str = format!("{:04}-{:02}-01", year, month);
-    let month_end_str = format!("{:04}-{:02}-{:02}", year, month, days_in_month);
-
     let mut stmt = conn
         .prepare(
             "SELECT s.id, COALESCE(s.kod, ''), s.vezeteknev, s.keresztnev, COALESCE(s.apai_nev, ''),
@@ -175,14 +172,12 @@ pub fn preview_tabel(
              FROM jogviszony j
              JOIN szemely s ON j.munkavallalo_id = s.id
              WHERE j.fop_id = ?1
-               AND (j.munkakezdes_datum IS NULL OR j.munkakezdes_datum <= ?2)
-               AND (j.munkaviszony_vege IS NULL OR j.munkaviszony_vege >= ?3)
              ORDER BY j.tabel_nomer ASC, s.vezeteknev ASC, s.keresztnev ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let worker_rows = stmt
-        .query_map(params![fop_id, month_end_str, month_start_str], |r| {
+        .query_map(params![fop_id], |r| {
             Ok(TabelWorkerRow {
                 id: r.get(0)?,
                 kod: r.get(1)?,
@@ -214,6 +209,23 @@ pub fn preview_tabel(
 
     for w_res in worker_rows {
         let w = w_res.map_err(|e| e.to_string())?;
+
+        let hired_ymd = w.munkakezdes_datum.as_deref().and_then(crate::commands::payroll_commands::parse_ymd_date);
+        let dismissed_ymd = w.munkaviszony_vege.as_deref().and_then(crate::commands::payroll_commands::parse_ymd_date);
+
+        let target_start = (year, month, 1);
+        let target_end = (year, month, days_in_month);
+
+        if let Some(hired) = hired_ymd {
+            if hired > target_end {
+                continue;
+            }
+        }
+        if let Some(dismissed) = dismissed_ymd {
+            if dismissed < target_start {
+                continue;
+            }
+        }
 
         let pib_posada = format!(
             "{} {} {}, {}",
@@ -253,19 +265,19 @@ pub fn preview_tabel(
         // Default working hours: 8.0 for teljes_munkaido (повний), 4.0 if not (неповний)
         let default_hours = if w.teljes_munkaido { 8.0 } else { 4.0 };
 
-        // Determine working range
-        let hired_day = parse_day_of_month(&w.munkakezdes_datum, year, month);
-        let dismissed_day = parse_day_of_month(&w.munkaviszony_vege, year, month);
-        let start_d = hired_day.unwrap_or(1);
-        let end_d = dismissed_day.unwrap_or(days_in_month);
-
         let mut days = Vec::new();
         let mut worker_total_days = 0u32;
         let mut worker_total_hours = 0.0f64;
 
         for d in 1..=days_in_month {
             let wd = is_weekday(year, month, d);
-            let in_range = d >= start_d && d <= end_d;
+            let in_range = crate::commands::payroll_commands::is_worker_active_on_date(
+                w.munkakezdes_datum.as_deref(),
+                w.munkaviszony_vege.as_deref(),
+                year,
+                month,
+                d,
+            );
 
             let (code, hours, is_worked) = if let Some((ref c, h)) = override_map.get(&(w.id, d)) {
                 (c.clone(), *h, *h > 0.0)
@@ -979,7 +991,7 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
 
     // ─── Save ───────────────────────────────────────────────────────
 
-    let filename = format!("ТАБЕЛЬ_{}_{}.xlsx", preview.month_name_ukr, preview.year);
+    let filename = format!("ТАБЕЛЬ {} {}.xlsx", preview.month_name_ukr, preview.year);
     let output_path = if let Some(ref dir) = req.save_dir {
         let p = Path::new(dir);
         if !p.exists() {

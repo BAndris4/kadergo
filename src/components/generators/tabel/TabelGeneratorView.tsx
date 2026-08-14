@@ -18,7 +18,7 @@ import {
   PlusIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, TabelPreviewDto, TabelPreviewRowDto, WorkerDayOverride } from "../types/fop";
+import { FopData, Munkas, TabelPreviewDto, TabelPreviewRowDto, WorkerDayOverride } from "../../../types/fop";
 import {
   ensureFopDirectory,
   generateTabelExcel,
@@ -26,9 +26,9 @@ import {
   openFolderInExplorer,
   previewTabel,
   previewTabelPeriod,
-} from "../services/fopService";
-import { CustomDateSelector, MONTH_NAMES_UKR } from "./CustomDateSelector";
-import { WorkerCard } from "./WorkerCard";
+} from "../../../services/fopService";
+import { CustomDateSelector, MONTH_NAMES_UKR } from "../../pickers/CustomDateSelector";
+import { WorkerCard } from "../../common/WorkerCard";
 
 // ─── Official Tabel Attendance Codes ─────────────────────────────────
 
@@ -140,14 +140,18 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
     : "";
   const activeFopCode = activeFop ? activeFop.kod || activeFop.fop_kod || "" : "";
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // ─── Load preview ───────────────────────────────────────────────
 
   const loadPreview = useCallback(async () => {
     if (!activeFop) {
       setPreviewData(null);
+      setLoadError(null);
       return;
     }
     setIsLoading(true);
+    setLoadError(null);
     try {
       if (selectionMode === "month") {
         const data = (await previewTabel(
@@ -170,6 +174,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
       }
     } catch (err) {
       console.error("preview_tabel error:", err);
+      setLoadError(String(err));
     } finally {
       setIsLoading(false);
     }
@@ -724,7 +729,12 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
       )}
 
       {/* 4. TIMESHEET TABLE PREVIEW (Grouped by month sections in Period Mode) */}
-      {!activeFop ? (
+      {loadError ? (
+        <div className="p-8 text-center text-xs font-black text-rose-700 bg-rose-50 rounded-2xl border-2 border-rose-200 shadow-md flex flex-col gap-2">
+          <span className="text-sm font-black uppercase text-rose-800">Помилка завантаження даних (DEBUG):</span>
+          <code className="text-xs bg-rose-100 p-3 rounded-xl text-rose-950 font-mono text-left whitespace-pre-wrap select-all">{loadError}</code>
+        </div>
+      ) : !activeFop ? (
         <div className="p-12 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-2xl border border-[#cbd8d6]">
           Будь ласка, оберіть активного ФОП з працівниками для відображення табеля.
         </div>

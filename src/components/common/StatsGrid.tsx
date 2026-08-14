@@ -21,7 +21,6 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ fopCount, workerCount }) =
           </div>
         </div>
 
-        
         {/* Decorative background circle */}
         <div className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full border-[22px] border-white/5 pointer-events-none" />
       </div>
@@ -37,7 +36,6 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ fopCount, workerCount }) =
             <div className="text-sm font-bold text-[#57727c] mt-0.5">Всього працівників</div>
           </div>
         </div>
-
       </div>
     </div>
   );

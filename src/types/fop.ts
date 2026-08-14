@@ -250,6 +250,10 @@ export interface PayrollCalculationRowDto {
   year?: number;
   month?: number;
   is_hired_or_dismissed_this_month?: boolean;
+  teljes_munkaido?: boolean;
+  worker_days?: number;
+  total_work_days?: number;
+  worker_days_20?: number;
 }
 
 
@@ -381,6 +385,16 @@ export interface GenerateGrafikDocxRequest {
   save_dir?: string;
 }
 
+export interface NakazPriyomWorkerItem {
+  worker_name_accusative: string;
+  worker_name_dative: string;
+  worker_initials: string;
+  position_name: string;
+  salary_str: string;
+  work_start_date_str: string;
+  employment_type: string;
+}
+
 export interface GenerateNakazPriyomRequest {
   fop_id: number;
   fop_name: string;
@@ -390,13 +404,29 @@ export interface GenerateNakazPriyomRequest {
   fop_initials: string;
   nakaz_num: string;
   nakaz_date_str: string;
-  employment_type: string; // "main" | "sumisnyctvo" | "nepovny_chas"
+  workers: NakazPriyomWorkerItem[];
+  save_dir?: string;
+}
+
+export interface NakazZvilnennyaWorkerItem {
   worker_name_accusative: string;
   worker_name_dative: string;
   worker_initials: string;
   position_name: string;
-  salary_str: string;
-  work_start_date_str: string;
+  dismissal_date_str: string;
+  reason_text: string;
+}
+
+export interface GenerateNakazZvilnennyaRequest {
+  fop_id: number;
+  fop_name: string;
+  fop_code: string;
+  fop_address: string;
+  fop_edrpou: string;
+  fop_initials: string;
+  nakaz_num: string;
+  nakaz_date_str: string;
+  workers: NakazZvilnennyaWorkerItem[];
   save_dir?: string;
 }
 
@@ -426,7 +456,7 @@ export interface GenerateNakazKasaRequest {
 
 export interface NakazPrroWorkerItem {
   dative_name: string;
-  position_name: string;
+  posada: string;
   initials: string;
 }
 
@@ -458,7 +488,8 @@ export interface GenerateNakazShtatRequest {
   day_str: string;
   month_str: string;
   year_str: string;
-  reason_text: string;
+  shtat_date_str: string;
+  reason_text?: string;
   save_dir?: string;
 }
 
@@ -471,8 +502,9 @@ export interface GenerateNakazGrafikVidpustokRequest {
   fop_initials: string;
   nakaz_num: string;
   nakaz_date_str: string;
-  period_text: string;
-  notice_date_str: string;
+  year_str: string;
+  period_text?: string;
+  notice_date_str?: string;
   save_dir?: string;
 }
 

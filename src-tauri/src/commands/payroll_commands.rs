@@ -48,6 +48,10 @@ pub struct PayrollCalculationRowDto {
     pub year: i32,
     pub month: u32,
     pub is_hired_or_dismissed_this_month: bool,
+    pub teljes_munkaido: bool,
+    pub worker_days: u32,
+    pub total_work_days: u32,
+    pub worker_days_20: u32,
 }
 
 
@@ -107,14 +111,72 @@ pub fn is_weekday(year: i32, month: u32, day: u32) -> bool {
     dow >= 1 && dow <= 5
 }
 
+pub fn parse_ymd_date(date_str: &str) -> Option<(i32, u32, u32)> {
+    let clean = date_str.trim();
+    if clean.is_empty() {
+        return None;
+    }
+
+    if clean.contains('-') {
+        let parts: Vec<&str> = clean.split('-').collect();
+        if parts.len() == 3 {
+            let y: i32 = parts[0].parse().ok()?;
+            let m: u32 = parts[1].parse().ok()?;
+            let d: u32 = parts[2].parse().ok()?;
+            return Some((y, m, d));
+        }
+    } else if clean.contains('.') {
+        let parts: Vec<&str> = clean.split('.').collect();
+        if parts.len() == 3 {
+            if parts[0].len() == 4 {
+                let y: i32 = parts[0].parse().ok()?;
+                let m: u32 = parts[1].parse().ok()?;
+                let d: u32 = parts[2].parse().ok()?;
+                return Some((y, m, d));
+            } else {
+                let d: u32 = parts[0].parse().ok()?;
+                let m: u32 = parts[1].parse().ok()?;
+                let y: i32 = parts[2].parse().ok()?;
+                return Some((y, m, d));
+            }
+        }
+    }
+    None
+}
+
+pub fn is_worker_active_on_date(
+    start_date_opt: Option<&str>,
+    end_date_opt: Option<&str>,
+    target_year: i32,
+    target_month: u32,
+    day: u32,
+) -> bool {
+    let cur = (target_year, target_month, day);
+
+    if let Some(start_str) = start_date_opt {
+        if let Some(hired) = parse_ymd_date(start_str) {
+            if cur < hired {
+                return false;
+            }
+        }
+    }
+
+    if let Some(end_str) = end_date_opt {
+        if let Some(dismissed) = parse_ymd_date(end_str) {
+            if cur > dismissed {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
 pub fn parse_day_of_month(date_str: &Option<String>, year: i32, month: u32) -> Option<u32> {
     if let Some(ref d) = date_str {
-        let parts: Vec<&str> = d.split('-').collect();
-        if parts.len() == 3 {
-            if let (Ok(y), Ok(m), Ok(day)) = (parts[0].parse::<i32>(), parts[1].parse::<u32>(), parts[2].parse::<u32>()) {
-                if y == year && m == month {
-                    return Some(day);
-                }
+        if let Some((y, m, day)) = parse_ymd_date(d) {
+            if y == year && m == month {
+                return Some(day);
             }
         }
     }
@@ -164,16 +226,19 @@ fn calculate_worker_month_kopek(
 
     let days_in_month = get_days_in_month(year, month);
 
-    let month_start_str = format!("{:04}-{:02}-01", year, month);
-    let month_end_str = format!("{:04}-{:02}-{:02}", year, month, days_in_month);
+    let hired_ymd = munkakezdes.as_deref().and_then(parse_ymd_date);
+    let dismissed_ymd = munkaviszony_vege.as_deref().and_then(parse_ymd_date);
 
-    if let Some(ref k) = munkakezdes {
-        if k > &month_end_str {
+    let target_start = (year, month, 1);
+    let target_end = (year, month, days_in_month);
+
+    if let Some(hired) = hired_ymd {
+        if hired > target_end {
             return prev_kopeks;
         }
     }
-    if let Some(ref v) = munkaviszony_vege {
-        if v < &month_start_str {
+    if let Some(dismissed) = dismissed_ymd {
+        if dismissed < target_start {
             return prev_kopeks;
         }
     }
@@ -392,9 +457,6 @@ pub fn preview_payroll(
         .map(|o| (o.worker_id, o))
         .collect();
 
-    let month_start_str = format!("{:04}-{:02}-01", year, month);
-    let month_end_str = format!("{:04}-{:02}-{:02}", year, month, days_in_month);
-
     let mut stmt = conn
         .prepare(
             "SELECT s.id, s.vezeteknev, s.keresztnev, s.apai_nev,
@@ -403,15 +465,12 @@ pub fn preview_payroll(
              FROM jogviszony j
              JOIN szemely s ON j.munkavallalo_id = s.id
              WHERE j.fop_id = ?1
-               AND (j.munkakezdes_datum IS NULL OR j.munkakezdes_datum <= ?2)
-               AND (j.munkaviszony_vege IS NULL OR j.munkaviszony_vege >= ?3)
              ORDER BY s.vezeteknev ASC, s.keresztnev ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let worker_rows = stmt
-        .query_map(params![fop_id, month_end_str, month_start_str], |r| {
-
+        .query_map(params![fop_id], |r| {
             Ok(WorkerDbRow {
                 id: r.get(0)?,
                 vezeteknev: r.get::<_, Option<String>>(1).ok().flatten().unwrap_or_default(),
@@ -430,8 +489,25 @@ pub fn preview_payroll(
 
     for w_res in worker_rows {
         let w = w_res.map_err(|e| e.to_string())?;
+
+        let hired_ymd = w.munkakezdes_datum.as_deref().and_then(parse_ymd_date);
+        let dismissed_ymd = w.munkaviszony_vege.as_deref().and_then(parse_ymd_date);
+
+        let target_start = (year, month, 1);
+        let target_end = (year, month, days_in_month);
+
+        if let Some(hired) = hired_ymd {
+            if hired > target_end {
+                continue;
+            }
+        }
+        if let Some(dismissed) = dismissed_ymd {
+            if dismissed < target_start {
+                continue;
+            }
+        }
         let pib = if !w.keresztnev.is_empty() {
-            format!("{}\n{} {}", w.vezeteknev, w.keresztnev, w.apai_nev).trim().to_string()
+            format!("{} {} {}", w.vezeteknev, w.keresztnev, w.apai_nev).trim().to_string()
         } else {
             w.vezeteknev.clone()
         };
@@ -571,6 +647,10 @@ pub fn preview_payroll(
             year,
             month,
             is_hired_or_dismissed_this_month,
+            teljes_munkaido: is_full_time,
+            worker_days,
+            total_work_days,
+            worker_days_20,
         });
     }
 
@@ -665,31 +745,38 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         .set_text_wrap()
         .set_border(FormatBorder::Thin);
 
-    // Thousands separator formatting for currency/floats: #,##0.00;-#,##0.00;"-"
+    // Thousands separator formatting for currency/floats: #,##0.00;-#,##0.00;"-" (Centered)
     let format_data_num = Format::new()
         .set_font_name(font_family)
         .set_font_size(10)
-        .set_align(FormatAlign::Right)
+        .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter)
         .set_num_format("#,##0.00;-#,##0.00;\"-\"")
         .set_border(FormatBorder::Thin);
 
-    // Bold numeric format for Column M
+    // Bold numeric format for Column M (Centered)
     let format_data_num_bold = Format::new()
         .set_font_name(font_family)
         .set_font_size(10)
         .set_bold()
-        .set_align(FormatAlign::Right)
+        .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter)
         .set_num_format("#,##0.00;-#,##0.00;\"-\"")
         .set_border(FormatBorder::Thin);
 
 
-    // Thousands separator for integers: #,##0;-#,##0;"-"
-    let format_data_int = Format::new()
+    let format_data_num_center = Format::new()
         .set_font_name(font_family)
         .set_font_size(10)
-        .set_align(FormatAlign::Right)
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter)
+        .set_num_format("#,##0.00;-#,##0.00;\"-\"")
+        .set_border(FormatBorder::Thin);
+
+    let format_data_int_center = Format::new()
+        .set_font_name(font_family)
+        .set_font_size(10)
+        .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter)
         .set_num_format("#,##0;-#,##0;\"-\"")
         .set_border(FormatBorder::Thin);
@@ -720,15 +807,15 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
     worksheet.set_column_width(0, 2.71).map_err(|e| e.to_string())?;  // A: №
     worksheet.set_column_width(1, 10.28).map_err(|e| e.to_string())?; // B: П.І.Б.
     worksheet.set_column_width(2, 11.57).map_err(|e| e.to_string())?; // C: Посада
-    worksheet.set_column_width(3, 9.71).map_err(|e| e.to_string())?;  // D: Днів/годин
-    worksheet.set_column_width(4, 8.28).map_err(|e| e.to_string())?;  // E: Залишок
+    worksheet.set_column_width(3, 12.86).map_err(|e| e.to_string())?; // D: Днів/годин (95px)
+    worksheet.set_column_width(4, 10.71).map_err(|e| e.to_string())?; // E: Залишок (85px)
     worksheet.set_column_width(5, 8.28).map_err(|e| e.to_string())?;  // F: Ставка
     worksheet.set_column_width(6, 11.57).map_err(|e| e.to_string())?; // G: Осн. зарплата
     worksheet.set_column_width(7, 8.57).map_err(|e| e.to_string())?;  // H: Відпускні
     worksheet.set_column_width(8, 6.71).map_err(|e| e.to_string())?;  // I: Лікарняні місяць
     worksheet.set_column_width(9, 5.57).map_err(|e| e.to_string())?;  // J: Лікарняні дні
     worksheet.set_column_width(10, 7.00).map_err(|e| e.to_string())?; // K: Лікарняні сума
-    worksheet.set_column_width(11, 7.85).map_err(|e| e.to_string())?; // L: Індексація
+    worksheet.set_column_width(11, 9.29).map_err(|e| e.to_string())?;  // L: Індексація (70px)
     worksheet.set_column_width(12, 9.71).map_err(|e| e.to_string())?; // M: Всього грн
     worksheet.set_column_width(13, 9.14).map_err(|e| e.to_string())?; // N: ПСП
     worksheet.set_column_width(14, 10.28).map_err(|e| e.to_string())?;// O: ЄСВ
@@ -739,7 +826,7 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
     worksheet.set_column_width(19, 9.14).map_err(|e| e.to_string())?; // T: Аванс
     worksheet.set_column_width(20, 9.14).map_err(|e| e.to_string())?; // U: Чергова виплата
     worksheet.set_column_width(21, 9.14).map_err(|e| e.to_string())?; // V: Всього виплачено
-    worksheet.set_column_width(22, 9.14).map_err(|e| e.to_string())?; // W: Залишок
+    worksheet.set_column_width(22, 10.71).map_err(|e| e.to_string())?;// W: Залишок (80px)
     worksheet.set_column_width(23, 10.00).map_err(|e| e.to_string())?;// X: Підпис
 
     // Row heights matching original
@@ -824,26 +911,26 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         // D: Днів/годин
         worksheet.write_with_format(r, 3, &row.work_days_str, &format_data_center).map_err(|e| e.to_string())?;
         // E: Залишок
-        worksheet.write_with_format(r, 4, row.prev_kopeks, &format_data_num).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 4, row.prev_kopeks, &format_data_num_center).map_err(|e| e.to_string())?;
         // F: Ставка
-        worksheet.write_with_format(r, 5, row.rate, &format_data_int).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 5, row.rate, &format_data_int_center).map_err(|e| e.to_string())?;
 
         // G: Заробітна плата (основна)
         worksheet.write_with_format(r, 6, row.worked_salary, &format_data_num).map_err(|e| e.to_string())?;
         // H: Відпускні (manual addition)
-        worksheet.write_with_format(r, 7, row.manual_addition, &format_data_num).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 7, row.manual_addition, &format_data_num_center).map_err(|e| e.to_string())?;
         // I, J, K, L: write numeric 0 with format #,##0.00;-#,##0.00;"-" (renders visually as "-")
-        worksheet.write_with_format(r, 8, 0.0, &format_data_num).map_err(|e| e.to_string())?;
-        worksheet.write_with_format(r, 9, 0.0, &format_data_num).map_err(|e| e.to_string())?;
-        worksheet.write_with_format(r, 10, 0.0, &format_data_num).map_err(|e| e.to_string())?;
-        worksheet.write_with_format(r, 11, 0.0, &format_data_num).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 8, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 9, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 10, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 11, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
 
         // M: Всього грн = SUM(G:L) (BOLD)
         let formula_m = format!("=SUM(G{}:L{})", excel_r, excel_r);
         worksheet.write_formula_with_format(r, 12, formula_m.as_str(), &format_data_num_bold).map_err(|e| e.to_string())?;
 
         // N: PSP (0.00)
-        worksheet.write_with_format(r, 13, 0.0, &format_data_num).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(r, 13, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
 
         // O: ЄСВ = MAX(ROUND(M * 0.22, 2), min_esv_threshold) if min wage threshold applies
         let min_esv_threshold = round2(req.min_wage * 0.22);
@@ -871,8 +958,8 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         let formula_s = format!("=ROUND(M{}-(M{}*0.18+M{}*0.05), 2)", excel_r, excel_r, excel_r);
         worksheet.write_formula_with_format(r, 18, formula_s.as_str(), &format_data_num).map_err(|e| e.to_string())?;
 
-        // T: Аванс (Value calculated rounded UP integer)
-        worksheet.write_with_format(r, 19, row.advance_t, &format_data_int).map_err(|e| e.to_string())?;
+        // T: Аванс (Value calculated rounded UP integer formatted with 2 decimals)
+        worksheet.write_with_format(r, 19, row.advance_t, &format_data_num).map_err(|e| e.to_string())?;
 
         let is_dismissed = row.remaining_kopeks_w == 0.0;
 
@@ -882,18 +969,18 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         } else {
             format!("=INT(ROUND(S{}+E{}-T{}, 2))", excel_r, excel_r, excel_r)
         };
-        worksheet.write_formula_with_format(r, 20, formula_u.as_str(), &format_data_int).map_err(|e| e.to_string())?;
+        worksheet.write_formula_with_format(r, 20, formula_u.as_str(), &format_data_num).map_err(|e| e.to_string())?;
 
         // V: Всього виплачено = SUM(T:U)
         let formula_v = format!("=SUM(T{}:U{})", excel_r, excel_r);
-        worksheet.write_formula_with_format(r, 21, formula_v.as_str(), &format_data_int).map_err(|e| e.to_string())?;
+        worksheet.write_formula_with_format(r, 21, formula_v.as_str(), &format_data_num).map_err(|e| e.to_string())?;
 
         // W: Залишок = 0.0 if dismissed, ROUND((S + E) - V, 2) if active
         if is_dismissed {
-            worksheet.write_with_format(r, 22, 0.0, &format_data_num).map_err(|e| e.to_string())?;
+            worksheet.write_with_format(r, 22, 0.0, &format_data_num_center).map_err(|e| e.to_string())?;
         } else {
             let formula_w = format!("=ROUND((S{}+E{})-V{}, 2)", excel_r, excel_r, excel_r);
-            worksheet.write_formula_with_format(r, 22, formula_w.as_str(), &format_data_num).map_err(|e| e.to_string())?;
+            worksheet.write_formula_with_format(r, 22, formula_w.as_str(), &format_data_num_center).map_err(|e| e.to_string())?;
         }
 
         // X: Signature line
@@ -987,7 +1074,7 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
     worksheet.merge_range(footer_r, 3, footer_r, 6, "__________________________", &format_footer_text).map_err(|e| e.to_string())?;
 
     // Determine target save path
-    let filename = format!("ВІДОМІСТЬ_{}_{}.xlsx", preview.month_name_ukr, preview.year);
+    let filename = format!("ВІДОМІСТЬ {} {}.xlsx", preview.month_name_ukr, preview.year);
 
     let output_path = if let Some(ref dir) = req.save_dir {
         let p = Path::new(dir);

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ExclamationTriangleIcon, XMarkIcon, UserMinusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { DatePicker } from "./DatePicker";
+import { DatePicker } from "../pickers/DatePicker";
 
 interface DeleteWorkerConfirmModalProps {
   isOpen: boolean;
@@ -36,7 +36,7 @@ export const DeleteWorkerConfirmModal: React.FC<DeleteWorkerConfirmModalProps> =
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999999] animate-fadeIn"
       onClick={onClose}
     >
       <div

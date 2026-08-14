@@ -7,12 +7,12 @@ import {
   PlusIcon,
   FolderOpenIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, GrafikWorkerItem } from "../types/fop";
-import { CustomDatePicker } from "./CustomDatePicker";
-import { CustomMonthYearPicker } from "./CustomMonthYearPicker";
-import { CustomPeriodRangePicker } from "./CustomPeriodRangePicker";
-import { WorkerCard } from "./WorkerCard";
-import { generateGrafikDocx, ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
+import { FopData, Munkas, GrafikWorkerItem } from "../../../types/fop";
+import { CustomDatePicker } from "../../pickers/CustomDatePicker";
+import { CustomMonthYearPicker } from "../../pickers/CustomMonthYearPicker";
+import { CustomPeriodRangePicker } from "../../pickers/CustomPeriodRangePicker";
+import { WorkerCard } from "../../common/WorkerCard";
+import { generateGrafikDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
 
 interface GrafikGeneratorViewProps {
   fops: FopData[];

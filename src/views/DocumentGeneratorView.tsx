@@ -20,12 +20,12 @@ import {
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer, pickRootFolder, saveRootFolder } from "../services/fopService";
-import { PayrollGeneratorView } from "../components/PayrollGeneratorView";
-import { TabelGeneratorView } from "../components/TabelGeneratorView";
-import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/ZayavaPriyomGeneratorView";
-import { ShtatGeneratorView } from "../components/ShtatGeneratorView";
-import { GrafikGeneratorView } from "../components/GrafikGeneratorView";
-import { NakazGeneratorView } from "../components/NakazGeneratorView";
+import { PayrollGeneratorView } from "../components/generators/payroll/PayrollGeneratorView";
+import { TabelGeneratorView } from "../components/generators/tabel/TabelGeneratorView";
+import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/generators/zayava/ZayavaPriyomGeneratorView";
+import { ShtatGeneratorView } from "../components/generators/shtat/ShtatGeneratorView";
+import { GrafikGeneratorView } from "../components/generators/grafik/GrafikGeneratorView";
+import { NakazGeneratorView } from "../components/generators/nakaz/NakazGeneratorView";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -201,7 +201,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
       )}
 
       {/* 1. TOP ACTIVE FOP CONTROL BAR WITH GLASSMORPHISM AND GRADIENT */}
-      <div className="bg-gradient-to-r from-white via-[#f8faf9] to-[#f0f7f6] rounded-[28px] p-5 px-8 border-2 border-[#cbd8d6] shadow-md flex flex-col md:flex-row items-center justify-between gap-6 relative z-20 transition-all duration-300">
+      <div className="bg-gradient-to-r from-white via-[#f8faf9] to-[#f0f7f6] rounded-[28px] p-5 px-8 border-2 border-[#cbd8d6] shadow-md flex flex-col md:flex-row items-center justify-between gap-6 relative z-50 transition-all duration-300">
         <div className="flex items-center gap-4 shrink-0">
           <div className="w-12 h-12 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center border-2 border-[#133b47] shadow-sm">
             <BuildingOffice2Icon className="w-6 h-6 stroke-[2.2]" />
@@ -253,7 +253,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 
           {/* DROPDOWN POPUP MENU */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[24px] border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-40 animate-modalScale">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[24px] border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-[100] animate-modalScale">
               <div className="p-3.5 border-b border-[#e2eceb] bg-[#f8faf9] flex items-center gap-2.5">
                 <MagnifyingGlassIcon className="w-5 h-5 text-[#556e75] shrink-0 stroke-[2]" />
                 <input

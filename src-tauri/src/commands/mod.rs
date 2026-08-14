@@ -6,7 +6,7 @@ pub mod tabel_commands;
 pub mod zayava_commands;
 pub mod shtat_commands;
 pub mod grafik_commands;
-pub mod nakaz_commands;
+pub mod nakaz;
 
 pub use fop_commands::*;
 pub use fs_commands::*;
@@ -16,5 +16,6 @@ pub use tabel_commands::*;
 pub use zayava_commands::*;
 pub use shtat_commands::*;
 pub use grafik_commands::*;
-pub use nakaz_commands::*;
+pub use nakaz::*;
+
 

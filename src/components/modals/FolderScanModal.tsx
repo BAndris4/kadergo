@@ -9,7 +9,7 @@ import {
   ExclamationCircleIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { DiscoveredFopDto } from "../types/fop";
+import { DiscoveredFopDto } from "../../types/fop";
 
 interface FolderScanModalProps {
   isOpen: boolean;
@@ -35,7 +35,6 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
       if (newItems.length > 0) {
         setSelectedPaths(newItems.map((f) => f.folder_path));
       } else {
-        // If all items already exist in DB, select all so user can force import/sync them easily
         setSelectedPaths(discoveredFops.map((f) => f.folder_path));
       }
     }
@@ -74,7 +73,7 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999999] animate-fadeIn"
       onClick={onClose}
     >
       <div

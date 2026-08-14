@@ -23,8 +23,8 @@ import {
   CheckCircleIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, PayrollCalculationPreviewDto, PayrollCalculationRowDto } from "../types/fop";
-import { WorkerCard } from "./WorkerCard";
+import { FopData, Munkas, PayrollCalculationPreviewDto, PayrollCalculationRowDto } from "../../../types/fop";
+import { WorkerCard } from "../../common/WorkerCard";
 import {
   ensureFopDirectory,
   generatePayrollExcel,
@@ -33,8 +33,8 @@ import {
   previewPayroll,
   previewPayrollPeriod,
   saveWorkerKopek,
-} from "../services/fopService";
-import { CustomDateSelector, MONTH_NAMES_UKR } from "./CustomDateSelector";
+} from "../../../services/fopService";
+import { CustomDateSelector, MONTH_NAMES_UKR } from "../../pickers/CustomDateSelector";
 
 interface ActiveFormulaInfo {
   pib: string;
@@ -228,12 +228,16 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
     : "";
   const activeFopCode = activeFop ? activeFop.kod || activeFop.fop_kod || "" : "";
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadPreview = useCallback(async () => {
     if (!activeFop) {
       setPreviewData(null);
+      setLoadError(null);
       return;
     }
     setIsLoading(true);
+    setLoadError(null);
     try {
       if (selectionMode === "month") {
         const overridesList = Object.entries(workerOverrides).map(([wId, val]) => ({
@@ -262,6 +266,7 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
       }
     } catch (err) {
       console.error("Failed to load payroll preview:", err);
+      setLoadError(String(err));
     } finally {
       setIsLoading(false);
     }
@@ -600,7 +605,12 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
         </div>
       )}
 
-      {!activeFop ? (
+      {loadError ? (
+        <div className="p-8 text-center text-xs font-black text-rose-700 bg-rose-50 rounded-2xl border-2 border-rose-200 shadow-md flex flex-col gap-2">
+          <span className="text-sm font-black uppercase text-rose-800">Помилка завантаження даних (DEBUG):</span>
+          <code className="text-xs bg-rose-100 p-3 rounded-xl text-rose-950 font-mono text-left whitespace-pre-wrap select-all">{loadError}</code>
+        </div>
+      ) : !activeFop ? (
         <div className="p-12 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-2xl border border-[#cbd8d6]">
           Будь ласка, оберіть активного ФОП з працівниками для відображення відомості.
         </div>
@@ -696,14 +706,21 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
                         </td>
                         <td
                           className="p-2 text-right text-[#133b47] font-bold font-mono cursor-help border-b border-dashed border-[#cbd8d6]"
-                          onMouseEnter={() =>
+                          onMouseEnter={() => {
+                            const isFullTime = row.teljes_munkaido !== false;
+                            const rateText = isFullTime
+                              ? `${row.rate.toFixed(2)} грн (повний)`
+                              : `${(row.rate / 2).toFixed(2)} грн (неповний)`;
+                            const daysRatioStr = row.worker_days && row.total_work_days
+                              ? `${row.worker_days}/${row.total_work_days} дн.`
+                              : `${row.work_days_str}`;
                             handleCellHover(
                               row.pib,
                               "ОСНОВНА ЗАРПЛАТА",
-                              `${row.rate.toFixed(2)} грн × (${row.work_days_str})`,
+                              `${rateText} × ${daysRatioStr}`,
                               `${row.worked_salary.toFixed(2)} грн`
-                            )
-                          }
+                            );
+                          }}
                           onMouseLeave={handleCellLeave}
                         >
                           {row.worked_salary.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -811,14 +828,16 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
                         </td>
                         <td
                           className="p-2 text-right text-[#556e75] font-mono cursor-help border-b border-dashed border-[#cbd8d6]"
-                          onMouseEnter={() =>
+                          onMouseEnter={() => {
+                            const days20 = row.worker_days_20 ?? 16;
+                            const totalDays = row.worker_days ?? 21;
                             handleCellHover(
                               row.pib,
                               "АВАНС",
-                              `(${row.work_days_str}) × ${row.net_s.toFixed(2)} грн`,
+                              `${days20}/${totalDays} × ${row.net_s.toFixed(2)} грн`,
                               `${row.advance_t.toFixed(2)} грн`
-                            )
-                          }
+                            );
+                          }}
                           onMouseLeave={handleCellLeave}
                         >
                           {row.advance_t.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

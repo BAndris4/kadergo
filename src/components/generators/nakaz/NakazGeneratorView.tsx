@@ -17,10 +17,19 @@ import {
   ArrowRightIcon,
   ArrowTrendingUpIcon,
   UserPlusIcon,
+  UserMinusIcon,
+  BanknotesIcon,
+  QrCodeIcon,
+  BuildingOffice2Icon,
+  CalendarDaysIcon,
+  Squares2X2Icon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem } from "../types/fop";
+import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem, NakazPriyomWorkerItem, NakazZvilnennyaWorkerItem } from "../../../types/fop";
+import { formatAddressDisplay } from "../../../utils/addressUtils";
 import {
   generateNakazPriyomDocx,
+  generateNakazZvilnennyaDocx,
   generateNakazKasaDocx,
   generateNakazPrroDocx,
   generateNakazShtatDocx,
@@ -31,9 +40,9 @@ import {
   openFileDirectly,
   openFolderInExplorer,
   updateFopDirect,
-} from "../services/fopService";
-import { getWorkerAccusativeName, getWorkerDativeName, getWorkerInitials, formatUkrainianDate, formatDotDateWithZeros } from "../utils/ukrainianDeclension";
-import { CustomDatePicker } from "./CustomDatePicker";
+} from "../../../services/fopService";
+import { getWorkerAccusativeName, getWorkerDativeName, getWorkerInitials, formatUkrainianDate, formatDotDateWithZeros, declinePositionGenitive } from "../../../utils/ukrainianDeclension";
+import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 
 interface NakazGeneratorViewProps {
   fops: FopData[];
@@ -46,22 +55,190 @@ interface NakazGeneratorViewProps {
   onEditFop?: (fop: FopData) => void;
 }
 
-export type NakazTypeKey = "priyom" | "kasa" | "prro" | "shtat" | "grafik_vidpustok";
+export type NakazTypeKey = "priyom" | "zvilnennya" | "kasa" | "prro" | "shtat" | "grafik_vidpustok";
 
-interface NakazTypeOption {
+export interface NakazTypeOption {
   key: NakazTypeKey;
   label: string;
-  badge?: string;
+  description: string;
+  badge: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconBg: string;
+  badgeClass: string;
+  actionText: string;
+  actionArrowBg: string;
+  cardBorder: string;
+  cardBg: string;
   active: boolean;
 }
 
-const NAKAZ_TYPE_OPTIONS: NakazTypeOption[] = [
-  { key: "priyom", label: "Прийняття на роботу", active: true },
-  { key: "kasa", label: "Відповідальність за касу", active: true },
-  { key: "prro", label: "Призначення касирів ПРРО", active: true },
-  { key: "shtat", label: "Затвердження штатного розпису", active: true },
-  { key: "grafik_vidpustok", label: "Графік відпусток", active: true },
+export const NAKAZ_TYPE_OPTIONS: NakazTypeOption[] = [
+  {
+    key: "priyom",
+    label: "Прийняття на роботу",
+    description: "Наказ про прийняття одного або кількох працівників z вибором дати.",
+    badge: "Прийняття",
+    icon: UserPlusIcon,
+    iconBg: "bg-emerald-100 text-emerald-700",
+    badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    actionText: "text-emerald-700 group-hover:text-emerald-600 font-bold",
+    actionArrowBg: "bg-emerald-600 text-white group-hover:bg-emerald-700",
+    cardBorder: "hover:border-emerald-500/60 hover:ring-2 hover:ring-emerald-500/20",
+    cardBg: "from-emerald-50/80 via-white to-slate-50/60",
+    active: true,
+  },
+  {
+    key: "zvilnennya",
+    label: "Звільнення з роботи",
+    description: "Наказ про звільнення працівників за угодою сторін (ст. 36 КЗпП України).",
+    badge: "Звільнення",
+    icon: UserMinusIcon,
+    iconBg: "bg-rose-100 text-rose-700",
+    badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
+    actionText: "text-rose-700 group-hover:text-rose-600 font-bold",
+    actionArrowBg: "bg-rose-600 text-white group-hover:bg-rose-700",
+    cardBorder: "hover:border-rose-500/60 hover:ring-2 hover:ring-rose-500/20",
+    cardBg: "from-rose-50/80 via-white to-slate-50/60",
+    active: true,
+  },
+  {
+    key: "kasa",
+    label: "Відповідальність за касу",
+    description: "Призначення матеріально відповідальних осіб за зберігання готівки у касі.",
+    badge: "Матеріальна",
+    icon: BanknotesIcon,
+    iconBg: "bg-amber-100 text-amber-700",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
+    actionText: "text-amber-700 group-hover:text-amber-600 font-bold",
+    actionArrowBg: "bg-amber-600 text-white group-hover:bg-amber-700",
+    cardBorder: "hover:border-amber-500/60 hover:ring-2 hover:ring-amber-500/20",
+    cardBg: "from-amber-50/80 via-white to-slate-50/60",
+    active: true,
+  },
+  {
+    key: "prro",
+    label: "Призначення касирів ПРРО",
+    description: "Призначення касирів для роботи з ПРРО, відкриття змін та Z-звітів.",
+    badge: "ПРРО",
+    icon: QrCodeIcon,
+    iconBg: "bg-purple-100 text-purple-700",
+    badgeClass: "bg-purple-100 text-purple-800 border-purple-300",
+    actionText: "text-purple-700 group-hover:text-purple-600 font-bold",
+    actionArrowBg: "bg-purple-600 text-white group-hover:bg-purple-700",
+    cardBorder: "hover:border-purple-500/60 hover:ring-2 hover:ring-purple-500/20",
+    cardBg: "from-purple-50/80 via-white to-slate-50/60",
+    active: true,
+  },
+  {
+    key: "shtat",
+    label: "Затвердження штатного розпису",
+    description: "Наказ про затвердження нового штатного розпису підприємства.",
+    badge: "Штат",
+    icon: BuildingOffice2Icon,
+    iconBg: "bg-indigo-100 text-indigo-700",
+    badgeClass: "bg-indigo-100 text-indigo-800 border-indigo-300",
+    actionText: "text-indigo-700 group-hover:text-indigo-600 font-bold",
+    actionArrowBg: "bg-indigo-600 text-white group-hover:bg-indigo-700",
+    cardBorder: "hover:border-indigo-500/60 hover:ring-2 hover:ring-indigo-500/20",
+    cardBg: "from-indigo-50/80 via-white to-slate-50/60",
+    active: true,
+  },
+  {
+    key: "grafik_vidpustok",
+    label: "Графік відпусток",
+    description: "Наказ про затвердження графіку щорічних оплачуваних відпусток працівників.",
+    badge: "Графік",
+    icon: CalendarDaysIcon,
+    iconBg: "bg-teal-100 text-teal-700",
+    badgeClass: "bg-teal-100 text-teal-800 border-teal-300",
+    actionText: "text-teal-700 group-hover:text-teal-600 font-bold",
+    actionArrowBg: "bg-teal-600 text-white group-hover:bg-teal-700",
+    cardBorder: "hover:border-teal-500/60 hover:ring-2 hover:ring-teal-500/20",
+    cardBg: "from-teal-50/80 via-white to-slate-50/60",
+    active: true,
+  },
 ];
+
+export function detectNakazCategory(filename: string) {
+  const f = (filename || "").toLowerCase();
+
+  if (f.includes("прийом") || f.includes("прийняття")) {
+    return {
+      key: "priyom" as NakazTypeKey,
+      label: "Прийняття на роботу",
+      badge: "Прийняття",
+      badgeClass: "bg-emerald-100 text-emerald-800 border border-emerald-300",
+      numBadgeClass: "bg-emerald-600 text-white",
+      iconBg: "bg-emerald-600 text-white",
+      IconComponent: UserPlusIcon,
+    };
+  }
+  if (f.includes("звільнення") || f.includes("звільнити")) {
+    return {
+      key: "zvilnennya" as NakazTypeKey,
+      label: "Звільнення з роботи",
+      badge: "Звільнення",
+      badgeClass: "bg-rose-100 text-rose-800 border border-rose-300",
+      numBadgeClass: "bg-rose-600 text-white",
+      iconBg: "bg-rose-600 text-white",
+      IconComponent: UserMinusIcon,
+    };
+  }
+  if (f.includes("матеріально") || f.includes("каса") || f.includes("касу")) {
+    return {
+      key: "kasa" as NakazTypeKey,
+      label: "Відповідальність за касу",
+      badge: "Матеріальна",
+      badgeClass: "bg-amber-100 text-amber-800 border border-amber-300",
+      numBadgeClass: "bg-amber-600 text-white",
+      iconBg: "bg-amber-600 text-white",
+      IconComponent: BanknotesIcon,
+    };
+  }
+  if (f.includes("прро") || f.includes("касирів")) {
+    return {
+      key: "prro" as NakazTypeKey,
+      label: "Призначення касирів ПРРО",
+      badge: "ПРРО",
+      badgeClass: "bg-purple-100 text-purple-800 border border-purple-300",
+      numBadgeClass: "bg-purple-600 text-white",
+      iconBg: "bg-purple-600 text-white",
+      IconComponent: QrCodeIcon,
+    };
+  }
+  if (f.includes("штат") || f.includes("штатного")) {
+    return {
+      key: "shtat" as NakazTypeKey,
+      label: "Затвердження штатного розпису",
+      badge: "Штат",
+      badgeClass: "bg-indigo-100 text-indigo-800 border border-indigo-300",
+      numBadgeClass: "bg-indigo-600 text-white",
+      iconBg: "bg-indigo-600 text-white",
+      IconComponent: BuildingOffice2Icon,
+    };
+  }
+  if (f.includes("відпусток") || f.includes("графік")) {
+    return {
+      key: "grafik_vidpustok" as NakazTypeKey,
+      label: "Графік відпусток",
+      badge: "Графік",
+      badgeClass: "bg-teal-100 text-teal-800 border border-teal-300",
+      numBadgeClass: "bg-teal-600 text-white",
+      iconBg: "bg-teal-600 text-white",
+      IconComponent: CalendarDaysIcon,
+    };
+  }
+
+  return {
+    key: "unknown" as const,
+    label: "Кадровий наказ",
+    badge: "Наказ",
+    badgeClass: "bg-slate-100 text-slate-700 border border-slate-300",
+    numBadgeClass: "bg-slate-700 text-white",
+    iconBg: "bg-[#133b47] text-[#f8a44c]",
+    IconComponent: DocumentTextIcon,
+  };
+}
 
 function getUkrainianPronoun(w: Munkas): "який" | "яка" {
   const nemLower = w.nem?.toLowerCase() || "";
@@ -125,7 +302,15 @@ function formatNakazHistoryItem(filename: string) {
   const formattedTitle = titlePart
     .split(" ")
     .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => {
+      if (word.includes(".")) {
+        return word
+          .split(".")
+          .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : ""))
+          .join(".");
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
     .join(" ");
 
   return {
@@ -157,24 +342,26 @@ export function segmentUkrainianAddress(raw: string): Cim {
     kozseg: "",
     utca: "",
     hazszam: "",
+    epulet: "",
+    lakas_szoba: "",
   };
 
   if (!raw || !raw.trim()) return cim;
 
   let clean = raw.trim();
 
-  // Extract 5-digit zip code reliably (handles non-ASCII boundaries)
+  // Extract 5-digit zip code reliably
   const zipMatch = clean.match(/(?:^|[^\d])(\d{5})(?:[^\d]|$)/);
   if (zipMatch) {
     cim.iranyitoszam = zipMatch[1];
   }
 
-  // Split by comma/semicolon, then split internal space-separated sub-tokens (positive lookahead)
+  // Split by comma/semicolon, then split internal space-separated sub-tokens
   const rawParts = clean.split(/[,;]/).map((p) => p.trim()).filter(Boolean);
   const parts: string[] = [];
   for (const p of rawParts) {
     const subs = p
-      .split(/\s+(?=(?:м\.|с\.|смт|вул\.|вулиця|буд\.|будинок)\s+)/gi)
+      .split(/\s+(?=(?:м\.|с\.|смт|вул\.|вулиця|буд\.|будинок|корп\.|корпус|кв\.|квартира)\s+)/gi)
       .map((s) => s.trim())
       .filter(Boolean);
     parts.push(...subs);
@@ -203,7 +390,7 @@ export function segmentUkrainianAddress(raw: string): Cim {
       continue;
     }
 
-    // Village / Kozseg (село, с., м., місто, смт) -> Preserve "м. " or "с. " prefix
+    // Village / Kozseg (село, с., м., місто, смт)
     if (
       pLower.startsWith("село ") ||
       pLower.startsWith("с. ") ||
@@ -219,18 +406,39 @@ export function segmentUkrainianAddress(raw: string): Cim {
       continue;
     }
 
-    // Street / Utca (вулиця, вул.) -> Preserve "вул. " prefix
+    // Street / Utca (вулиця, вул.)
     if (pLower.includes("вул") || pLower.includes("вулиця")) {
       let u = part.replace(/^(вулиця|вул\.)\s*/gi, "").trim();
       cim.utca = `вул. ${toTitleCase(u)}`;
       continue;
     }
 
+    // Corpus / Epulet (корпус, корп.)
+    if (pLower.includes("корп") || pLower.includes("корпус")) {
+      let ep = part.replace(/^(корпус|корп\.|к\.)\s*/gi, "").trim();
+      cim.epulet = ep;
+      continue;
+    }
+
+    // Apartment / Lakas_szoba (квартира, кв.)
+    if (pLower.includes("кв") || pLower.includes("квартира") || pLower.includes("кім")) {
+      let lak = part.replace(/^(квартира|кв\.|кімната|кім\.)\s*/gi, "").trim();
+      cim.lakas_szoba = lak;
+      continue;
+    }
+
     // Building / Hazszam (будинок, буд., б.)
     if (pLower.includes("буд") || pLower.includes("будинок") || pLower.includes("б.")) {
       let h = part.replace(/^(будинок|буд\.|б\.)\s*/gi, "").trim();
-      h = h.replace("-/", "/");
-      cim.hazszam = h;
+      if (h.includes("/")) {
+        const hParts = h.split("/");
+        cim.hazszam = hParts[0].trim();
+        if (hParts[1] && !cim.lakas_szoba) {
+          cim.lakas_szoba = hParts[1].trim();
+        }
+      } else {
+        cim.hazszam = h;
+      }
       continue;
     }
 
@@ -292,6 +500,16 @@ export function formatCimForNakaz(cim: Cim | undefined): string {
     line2Parts.push(`БУД. ${h}`);
   }
 
+  if (cim.epulet && cim.epulet.trim()) {
+    let ep = cim.epulet.trim().replace(/^(корпус|корп\.|к\.)\s*/gi, "").trim().toUpperCase();
+    line2Parts.push(`КОРП. ${ep}`);
+  }
+
+  if (cim.lakas_szoba && cim.lakas_szoba.trim()) {
+    let lak = cim.lakas_szoba.trim().replace(/^(квартира|кв\.|кімната|кім\.)\s*/gi, "").trim().toUpperCase();
+    line2Parts.push(`КВ. ${lak}`);
+  }
+
   const line1 = line1Parts.join(", ");
   const line2 = line2Parts.join(", ");
 
@@ -323,7 +541,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   rootFolder,
   onShowToast,
   onBack,
-  onEditWorker,
+  onEditWorker: _onEditWorker,
   onUpdateFopList,
   onEditFop,
 }) => {
@@ -352,14 +570,11 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       }`
     : "";
 
-  const [selectedNakazType, setSelectedNakazType] = useState<NakazTypeKey>("priyom");
+  const [selectedNakazType, setSelectedNakazType] = useState<NakazTypeKey | null>(null);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
-  const [isWorkerDropdownOpen, setIsWorkerDropdownOpen] = useState(false);
-  const [workerSearchQuery, setWorkerSearchQuery] = useState("");
-  const workerDropdownRef = useRef<HTMLDivElement>(null);
+
 
   const [scannedFiles, setScannedFiles] = useState<NakazFileItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -379,19 +594,70 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
   const hasCheckedAddressRef = useRef(false);
   const [nakazNum, setNakazNum] = useState<string>("1");
-
-  const [employmentType, setEmploymentType] = useState<"main" | "sumisnyctvo" | "nepovny_chas">("main");
   const [isoNakazDate, setIsoNakazDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
-  const [isoWorkStartDate, setIsoWorkStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
-  const [workerAccusative, setWorkerAccusative] = useState("");
-  const [workerDative, setWorkerDative] = useState("");
-  const [workerInitials, setWorkerInitials] = useState("");
-  const [positionName, setPositionName] = useState("продавець непродовольчих товарів");
-  const [salaryStr, setSalaryStr] = useState("8 647,00 грн.");
+  const [isoWorkStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [salaryStr] = useState("8 647,00 грн.");
 
   // Cash register responsibility decree state
   const [selectedKasaWorkerIds, setSelectedKasaWorkerIds] = useState<number[]>([]);
   const [kasaWorkerHours, setKasaWorkerHours] = useState<Record<number, { startTime: string; endTime: string }>>({});
+
+  // Multi-worker selection states for Priyom & Zvilnennya
+  const [selectedPriyomWorkerIds, setSelectedPriyomWorkerIds] = useState<number[]>([]);
+  const [selectedZvilnennyaWorkerIds, setSelectedZvilnennyaWorkerIds] = useState<number[]>([]);
+
+  // Calculate target hire date from the first selected worker for priyom
+  const priyomTargetDate = React.useMemo(() => {
+    if (selectedPriyomWorkerIds.length === 0 || !activeFop || !activeFop.munkasok) return null;
+    const firstWorker = activeFop.munkasok.find((w) => w.id === selectedPriyomWorkerIds[0]);
+    return firstWorker ? (firstWorker.munkakezdes_datum || "") : null;
+  }, [selectedPriyomWorkerIds, activeFop]);
+
+  // Calculate target dismissal date from the first selected worker for zvilnennya
+  const zvilnennyaTargetDate = React.useMemo(() => {
+    if (selectedZvilnennyaWorkerIds.length === 0 || !activeFop || !activeFop.munkasok) return null;
+    const firstWorker = activeFop.munkasok.find((w) => w.id === selectedZvilnennyaWorkerIds[0]);
+    return firstWorker ? (firstWorker.munkaviszony_vege || "") : null;
+  }, [selectedZvilnennyaWorkerIds, activeFop]);
+
+  // Automatically sync decree date (isoNakazDate) with the worker's date (priyomTargetDate / zvilnennyaTargetDate)
+  useEffect(() => {
+    if (selectedNakazType === "priyom" && priyomTargetDate) {
+      setIsoNakazDate(priyomTargetDate);
+    } else if (selectedNakazType === "zvilnennya" && zvilnennyaTargetDate) {
+      setIsoNakazDate(zvilnennyaTargetDate);
+    }
+  }, [selectedNakazType, priyomTargetDate, zvilnennyaTargetDate]);
+
+  const handleTogglePriyomWorker = (w: Munkas) => {
+    const wDate = w.munkakezdes_datum || "";
+    if (selectedPriyomWorkerIds.includes(w.id)) {
+      setSelectedPriyomWorkerIds((prev) => prev.filter((id) => id !== w.id));
+    } else {
+      if (priyomTargetDate !== null && wDate !== priyomTargetDate) {
+        onShowToast(`У один наказ про прийняття можна включити лише працівників з однаковою датою прийняття (${priyomTargetDate})!`);
+        return;
+      }
+      setSelectedPriyomWorkerIds((prev) => [...prev, w.id]);
+    }
+  };
+
+  const handleToggleZvilnennyaWorker = (w: Munkas) => {
+    const wDate = w.munkaviszony_vege || "";
+    if (!wDate.trim()) {
+      onShowToast("Для створення наказу про звільнення у профілі працівника має бути вказана дата звільнення!");
+      return;
+    }
+    if (selectedZvilnennyaWorkerIds.includes(w.id)) {
+      setSelectedZvilnennyaWorkerIds((prev) => prev.filter((id) => id !== w.id));
+    } else {
+      if (zvilnennyaTargetDate !== null && wDate !== zvilnennyaTargetDate) {
+        onShowToast(`У один наказ про звільнення можна включити лише працівників з однаковою датою звільнення (${zvilnennyaTargetDate})!`);
+        return;
+      }
+      setSelectedZvilnennyaWorkerIds((prev) => [...prev, w.id]);
+    }
+  };
 
   // Staff schedule decree state (Наказ про затвердження штатного розпису)
   const [shtatReasonText, setShtatReasonText] = useState<string>("У зв’язку із збільшенням розмірів оплати праці:");
@@ -404,6 +670,25 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   useEffect(() => {
     if (activeFop && activeFop.munkasok && activeFop.munkasok.length > 0) {
       setSelectedKasaWorkerIds((prev) => (prev.length > 0 ? prev : activeFop.munkasok.map((w) => w.id)));
+      
+      // Auto-select initial priyom workers matching the first worker's start date
+      const firstActive = activeFop.munkasok[0];
+      if (firstActive) {
+        const targetKezd = firstActive.munkakezdes_datum || "";
+        const matchingPriyom = activeFop.munkasok.filter((w) => (w.munkakezdes_datum || "") === targetKezd).map((w) => w.id);
+        setSelectedPriyomWorkerIds(matchingPriyom);
+      }
+
+      // Auto-select initial zvilnennya workers matching the first dismissed worker's end date
+      const dismissedList = activeFop.munkasok.filter((w) => w.munkaviszony_vege && w.munkaviszony_vege.trim().length > 0);
+      if (dismissedList.length > 0) {
+        const targetVege = dismissedList[0].munkaviszony_vege || "";
+        const matchingZviln = dismissedList.filter((w) => (w.munkaviszony_vege || "") === targetVege).map((w) => w.id);
+        setSelectedZvilnennyaWorkerIds(matchingZviln);
+      } else {
+        setSelectedZvilnennyaWorkerIds([]);
+      }
+
       setKasaWorkerHours((prev) => {
         const updated = { ...prev };
         for (const w of activeFop.munkasok) {
@@ -424,9 +709,6 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
         setIsTypeDropdownOpen(false);
-      }
-      if (workerDropdownRef.current && !workerDropdownRef.current.contains(event.target as Node)) {
-        setIsWorkerDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -488,6 +770,8 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         kozseg: activeFop.cim.kozseg || "",
         utca: activeFop.cim.utca || "",
         hazszam: activeFop.cim.hazszam || "",
+        epulet: activeFop.cim.epulet || "",
+        lakas_szoba: activeFop.cim.lakas_szoba || "",
       });
     } else if (detectedAddressRaw) {
       const seg = segmentUkrainianAddress(detectedAddressRaw);
@@ -516,16 +800,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         onUpdateFopList(newFopList);
       }
 
-      const formatted = [
-        segmentedAddress.iranyitoszam,
-        segmentedAddress.megye,
-        segmentedAddress.jaras,
-        segmentedAddress.kozseg,
-        segmentedAddress.utca ? `вул. ${segmentedAddress.utca}` : "",
-        segmentedAddress.hazszam ? `буд. ${segmentedAddress.hazszam}` : "",
-      ]
-        .filter(Boolean)
-        .join(", ");
+      const formatted = formatAddressDisplay(segmentedAddress);
 
       setCurrentAddress(formatted);
       setIsEditAddressModalOpen(false);
@@ -537,78 +812,13 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     }
   };
 
-  const handleSelectWorker = (wId: number) => {
-    setSelectedWorkerId(wId);
-    if (!activeFop || !activeFop.munkasok) return;
 
-    const worker = activeFop.munkasok.find((w) => w.id === wId);
-    if (!worker) return;
-
-    if (!worker.foallas) {
-      setEmploymentType("sumisnyctvo");
-    } else if (!worker.teljes_munkaido) {
-      setEmploymentType("nepovny_chas");
-    } else {
-      setEmploymentType("main");
-    }
-
-    if (worker.munkakezdes_datum) {
-      setIsoWorkStartDate(worker.munkakezdes_datum);
-    } else {
-      setIsoWorkStartDate(new Date().toISOString().split("T")[0]);
-    }
-
-    if (worker.kerelem_datum) {
-      setIsoNakazDate(worker.kerelem_datum);
-    } else if (worker.munkakezdes_datum) {
-      setIsoNakazDate(worker.munkakezdes_datum);
-    } else {
-      setIsoNakazDate(new Date().toISOString().split("T")[0]);
-    }
-
-    const acc = getWorkerAccusativeName(worker.vezeteknev, worker.keresztnev, worker.apai_nev, worker.nem);
-    const dat = getWorkerDativeName(worker.vezeteknev, worker.keresztnev, worker.apai_nev, worker.nem);
-    const init = getWorkerInitials(worker.vezeteknev, worker.keresztnev, worker.apai_nev);
-
-    setWorkerAccusative(acc);
-    setWorkerDative(dat);
-    setWorkerInitials(init);
-
-    if (worker.foglalkozas_megnevezes) {
-      setPositionName(worker.foglalkozas_megnevezes);
-    }
-    if (worker.fizetes) {
-      const formattedSalary = `${worker.fizetes.toLocaleString("uk-UA", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })} грн.`;
-      setSalaryStr(formattedSalary);
-    }
-  };
-
-  useEffect(() => {
-    if (activeFop && activeFop.munkasok && activeFop.munkasok.length > 0 && !selectedWorkerId) {
-      handleSelectWorker(activeFop.munkasok[0].id);
-    }
-  }, [activeFop]);
 
   const formattedNakazDate = formatUkrainianDate(isoNakazDate, "yearWord");
   const formattedWorkStartDateDot = formatDotDateWithZeros(isoWorkStartDate);
   const formattedWorkStartDate = `${formattedWorkStartDateDot}`;
 
-  const getClause1Text = () => {
-    const accText = workerAccusative || "[ПІП працівника]";
-    const posText = positionName || "[Посада]";
-    const salText = salaryStr || "[Оклад] грн.";
 
-    if (employmentType === "sumisnyctvo") {
-      return `1. Прийняти ${accText} на посаду ${posText} з окладом ${salText} за сумісництвом.`;
-    }
-    if (employmentType === "nepovny_chas") {
-      return `1. Прийняти ${accText} на посаду ${posText} з окладом ${salText} зі встановленням неповного робочого часу з оплатою праці пропорційно відпраційованому часу`;
-    }
-    return `1. Прийняти ${accText} на посаду ${posText} з окладом ${salText}.`;
-  };
 
   const handleGenerateDoc = async () => {
     if (!activeFop) {
@@ -621,8 +831,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       return;
     }
 
-    if (!workerAccusative.trim()) {
-      onShowToast("Оберіть працівника!");
+    const selectedWorkers = (activeFop.munkasok || []).filter((w) => selectedPriyomWorkerIds.includes(w.id));
+    if (selectedWorkers.length === 0) {
+      onShowToast("Оберіть хоча б одного працівника для прийняття!");
       return;
     }
 
@@ -636,6 +847,29 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         }
       }
 
+      const workerItems: NakazPriyomWorkerItem[] = selectedWorkers.map((w) => {
+        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+        const sal = w.fizetes
+          ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`
+          : salaryStr;
+        const workStart = w.munkakezdes_datum
+          ? formatDotDateWithZeros(w.munkakezdes_datum)
+          : formattedWorkStartDate;
+
+        return {
+          worker_name_accusative: acc,
+          worker_name_dative: dat,
+          worker_initials: init,
+          position_name: pos,
+          salary_str: sal,
+          work_start_date_str: workStart,
+          employment_type: !w.foallas ? "sumisnyctvo" : !w.teljes_munkaido ? "nepovny_chas" : "main",
+        };
+      });
+
       await generateNakazPriyomDocx({
         fop_id: activeFop.id,
         fop_name: activeFopName,
@@ -645,21 +879,83 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         fop_initials: activeFopInitials,
         nakaz_num: nakazNum,
         nakaz_date_str: formattedNakazDate,
-        employment_type: employmentType,
-        worker_name_accusative: workerAccusative,
-        worker_name_dative: workerDative,
-        worker_initials: workerInitials,
-        position_name: positionName,
-        salary_str: salaryStr,
-        work_start_date_str: formattedWorkStartDate,
+        workers: workerItems,
         save_dir: targetDir || undefined,
       });
 
-      onShowToast(`Наказ № ${nakazNum} успішно створено!`);
-
+      onShowToast(`Наказ № ${nakazNum} про прийняття успішно створено!`);
       await performScan();
     } catch (err: any) {
-      console.error("Error generating Nakaz docx:", err);
+      console.error("Error generating Nakaz Priyom docx:", err);
+      onShowToast(`Помилка генерації Наказу: ${err?.toString() || "Невідома помилка"}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateZvilnennyaDoc = async () => {
+    if (!activeFop) {
+      onShowToast("Спочатку оберіть активного ФОП зі списку!");
+      return;
+    }
+
+    if (!hasValidFopAddress) {
+      onShowToast("Помилка: Адреса ФОП є обов'язковою! Заповніть адресу у профілі ФОП перед створенням Наказу.");
+      return;
+    }
+
+    const selectedWorkers = (activeFop.munkasok || []).filter((w) => selectedZvilnennyaWorkerIds.includes(w.id));
+    if (selectedWorkers.length === 0) {
+      onShowToast("Оберіть хоча б одного працівника для звільнення!");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      let targetDir = "";
+      if (rootFolder) {
+        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        if (fopDir) {
+          targetDir = `${fopDir}\\кадрові документи`;
+        }
+      }
+
+      const workerItems: NakazZvilnennyaWorkerItem[] = selectedWorkers.map((w) => {
+        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+        const disDate = w.munkaviszony_vege
+          ? formatDotDateWithZeros(w.munkaviszony_vege)
+          : formattedNakazDate;
+
+        return {
+          worker_name_accusative: acc,
+          worker_name_dative: dat,
+          worker_initials: init,
+          position_name: pos,
+          dismissal_date_str: disDate,
+          reason_text: "за угодою сторін, п. 1 ст. 36 КЗпП України",
+        };
+      });
+
+      await generateNakazZvilnennyaDocx({
+        fop_id: activeFop.id,
+        fop_name: activeFopName,
+        fop_code: activeFopCode,
+        fop_address: currentAddress,
+        fop_edrpou: activeFopEdrpou,
+        fop_initials: activeFopInitials,
+        nakaz_num: nakazNum,
+        nakaz_date_str: formattedNakazDate,
+        workers: workerItems,
+        save_dir: targetDir || undefined,
+      });
+
+      onShowToast(`Наказ № ${nakazNum} про звільнення успішно створено!`);
+      await performScan();
+    } catch (err: any) {
+      console.error("Error generating Nakaz Zvilnennya docx:", err);
       onShowToast(`Помилка генерації Наказу: ${err?.toString() || "Невідома помилка"}`);
     } finally {
       setIsGenerating(false);
@@ -823,7 +1119,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
         return {
           dative_name: dativeName,
-          position_name: posName,
+          posada: posName,
           initials,
         };
       });
@@ -915,6 +1211,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         day_str: dayStr,
         month_str: monthStr,
         year_str: yearStr,
+        shtat_date_str: formattedNakazDate,
         reason_text: shtatReasonText.trim(),
         save_dir: targetDir || undefined,
       });
@@ -966,6 +1263,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         fop_initials: activeFopInitials,
         nakaz_num: nakazNum,
         nakaz_date_str: formattedNakazDate,
+        year_str: vacationPeriodText.trim(),
         period_text: vacationPeriodText.trim(),
         notice_date_str: calculatedNoticeDate,
         save_dir: targetDir || undefined,
@@ -981,24 +1279,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     }
   };
 
-  const selectedWorkerObj = activeFop && activeFop.munkasok
-    ? activeFop.munkasok.find((w) => w.id === selectedWorkerId)
-    : null;
-
-  const selectedWorkerFullName = selectedWorkerObj
-    ? [selectedWorkerObj.vezeteknev, selectedWorkerObj.keresztnev, selectedWorkerObj.apai_nev].filter(Boolean).join(" ")
-    : "";
-
   const selectedTypeObj = NAKAZ_TYPE_OPTIONS.find((t) => t.key === selectedNakazType) || NAKAZ_TYPE_OPTIONS[0];
-
-  const filteredMunkasok = activeFop && activeFop.munkasok
-    ? activeFop.munkasok.filter((w) => {
-        const name = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ").toLowerCase();
-        const pos = (w.foglalkozas_megnevezes || "").toLowerCase();
-        const q = workerSearchQuery.toLowerCase().trim();
-        return name.includes(q) || pos.includes(q);
-      })
-    : [];
 
   const filteredHistoryFiles = scannedFiles.filter((item) => {
     const q = historySearchQuery.trim().toLowerCase();
@@ -1013,47 +1294,40 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   return (
     <div className="flex flex-col gap-6 animate-fadeIn pb-16 w-full font-sans text-slate-800">
       {/* 1. LARGE HIGH-VISIBILITY TOP HEADER BAR */}
-      <div className="bg-[#133b47] rounded-[24px] px-6 py-5 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+      <div className="bg-[#133b47] rounded-[24px] px-6 py-4.5 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+        {/* LEFT SECTION: BACK BUTTON & TITLE */}
         <div className="flex items-center gap-4 w-full md:w-auto">
           <button
             onClick={onBack}
-            className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-[#f8a44c] flex items-center justify-center transition-all cursor-pointer shrink-0 border-2 border-white/20 shadow-md"
+            className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 text-[#f8a44c] flex items-center justify-center transition-all cursor-pointer shrink-0 border-2 border-white/20 shadow-md hover:scale-105"
             title="Назад до вибору документів"
           >
             <ArrowLeftIcon className="w-6 h-6 stroke-[2.8]" />
           </button>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#f8a44c] text-[#133b47] flex items-center justify-center font-black shadow-lg shrink-0">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#f8a44c] text-[#133b47] flex items-center justify-center font-black shadow-lg shrink-0">
               <DocumentTextIcon className="w-7 h-7 stroke-[2.5]" />
             </div>
-            <div>
+            <div className="flex flex-col">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-xl md:text-2xl font-black tracking-tight leading-tight">
                   Накази підприємства
                 </h2>
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47]">
+                <span className="px-3 py-0.5 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47] shadow-xs">
                   {scannedFiles.length} в реєстрі
                 </span>
               </div>
-              <div className="flex items-center gap-3 mt-1 flex-wrap">
-                <p className="text-sm text-[#c3d9d6] font-bold">
-                  {activeFopName ? (
-                    <>
-                      ФОП: <strong className="text-white text-base underline">{activeFopName}</strong>
-                    </>
-                  ) : (
-                    "Оберіть ФОП у верхньому меню"
-                  )}
-                </p>
-              </div>
+              <span className="text-xs text-[#c3d9d6] font-bold mt-0.5">
+                Генератор кадрових наказів підприємця
+              </span>
             </div>
           </div>
         </div>
 
-        {/* FOP EDIT ICON & FOLDER EXPLORER ICON BUTTONS (ICON ONLY) */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0">
-          {activeFop && (
+        {/* RIGHT SECTION: ACTIVE FOP CARD WITH INTEGRATED EDIT BUTTON */}
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
+          {activeFop ? (
             <button
               type="button"
               onClick={() => {
@@ -1063,237 +1337,331 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                   handleOpenEditFopModalAnytime();
                 }
               }}
-              className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-[#f8a44c] flex items-center justify-center transition-all cursor-pointer border-2 border-white/20 shadow-md shrink-0"
-              title="Редагувати дані ФОП у базі даних"
+              className="bg-white/10 hover:bg-white/20 border-2 border-white/20 hover:border-[#f8a44c]/60 rounded-2xl px-4 py-2 flex items-center gap-3 transition-all cursor-pointer shadow-md group"
+              title="Натисніть, щоб редагувати дані ФОП"
             >
-              <PencilSquareIcon className="w-6 h-6 stroke-[2.5]" />
-            </button>
-          )}
+              <div className="w-9 h-9 rounded-xl bg-[#f8a44c] text-[#133b47] flex items-center justify-center font-black shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                <UserIcon className="w-5 h-5 stroke-[2.8]" />
+              </div>
 
-          <button
-            onClick={async () => {
-              if (rootFolder && activeFop) {
-                const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
-                if (fopDir) {
-                  await openFolderInExplorer(`${fopDir}\\кадрові документи`);
-                }
-              }
-            }}
-            className="w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-[#f8a44c] flex items-center justify-center transition-all cursor-pointer border-2 border-white/20 shadow-md shrink-0"
-            title="Відкрити папку «кадрові документи» у Провіднику"
-          >
-            <FolderOpenIcon className="w-6 h-6 stroke-[2.5]" />
-          </button>
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] uppercase font-black tracking-wider text-[#c3d9d6] leading-none">
+                  Активний ФОП
+                </span>
+                <span className="text-sm font-black text-white group-hover:text-[#f8a44c] transition-colors leading-snug mt-0.5 truncate max-w-[220px] sm:max-w-xs">
+                  {activeFopName}
+                </span>
+              </div>
+
+              <div className="w-8 h-8 rounded-xl bg-white/10 text-[#f8a44c] group-hover:bg-[#f8a44c] group-hover:text-[#133b47] flex items-center justify-center transition-all shrink-0 ml-1">
+                <PencilSquareIcon className="w-4 h-4 stroke-[2.8]" />
+              </div>
+            </button>
+          ) : (
+            <span className="text-xs font-bold text-[#c3d9d6] italic bg-white/10 px-4 py-2 rounded-xl">
+              Оберіть ФОП у верхньому меню
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 2. ERGONOMIC TOOLBAR: LARGE DESIGNER DROPDOWNS & NAKAZ NUMBER */}
-      <div className="bg-white rounded-[24px] p-5 border-2 border-[#cbd8d6] shadow-md flex flex-col lg:flex-row items-center justify-between gap-5 relative z-30">
-        {/* CUSTOM DROPDOWN 1: NAKAZ TYPE PICKER */}
-        <div className="flex items-center gap-4 w-full lg:w-auto">
-          <div className="relative w-full sm:w-72" ref={typeDropdownRef}>
-            <label className="block text-xs font-black uppercase text-[#133b47] mb-1.5 tracking-wide">
-              Тип Наказу:
-            </label>
+      {/* 2. ERGONOMIC TOOLBAR: LARGE DESIGNER DROPDOWNS & NAKAZ NUMBER (ONLY IN WORKSPACE MODE) */}
+      {selectedNakazType !== null && (
+        <div className="bg-white rounded-[24px] p-5 border-2 border-[#cbd8d6] shadow-md flex flex-col lg:flex-row items-center justify-between gap-5 relative z-10 animate-fadeIn">
+          {/* NAKAZ TYPE PICKER & HUB TOGGLE */}
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            {/* ALL DECREES HUB BUTTON */}
             <button
               type="button"
-              onClick={() => setIsTypeDropdownOpen((prev) => !prev)}
-              className="w-full h-13 px-4 rounded-2xl bg-[#fafdfc] border-2 border-[#cbd8d6] hover:border-[#133b47] text-[#133b47] text-sm font-black focus:outline-none transition-all flex items-center justify-between shadow-xs cursor-pointer"
+              onClick={() => setSelectedNakazType(null)}
+              className="h-13 px-4 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 border-2 cursor-pointer bg-[#133b47]/10 hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] border-[#133b47]/20 shadow-xs"
+              title="Повернутися до вибору типу наказу"
             >
-              <div className="flex items-center gap-2.5 truncate">
-                <DocumentTextIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.5] shrink-0" />
-                <span className="truncate">{selectedTypeObj.label}</span>
-              </div>
-              <ChevronDownIcon
-                className={`w-5 h-5 text-[#133b47] shrink-0 transition-transform duration-200 stroke-[2.5] ${
-                  isTypeDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
+              <Squares2X2Icon className="w-5 h-5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Всі накази</span>
             </button>
 
-            {/* TYPE DROPDOWN MENU */}
-            {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-[9999] animate-modalScale p-2 flex flex-col gap-1.5">
-                {NAKAZ_TYPE_OPTIONS.map((opt) => (
-                  <div
-                    key={opt.key}
-                    onClick={() => {
-                      if (opt.active) {
-                        setSelectedNakazType(opt.key);
-                        setIsTypeDropdownOpen(false);
-                      }
-                    }}
-                    className={`p-3 rounded-xl text-sm font-black transition-all flex items-center justify-between gap-2 ${
-                      opt.key === selectedNakazType
-                        ? "bg-[#133b47] text-[#f8a44c]"
-                        : opt.active
-                        ? "hover:bg-[#f4f9f8] text-[#133b47] cursor-pointer"
-                        : "opacity-50 text-slate-400 cursor-not-allowed"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {opt.badge && (
-                      <span className="text-xs px-2.5 py-0.5 rounded-full font-black bg-slate-200 text-slate-600">
-                        {opt.badge}
-                      </span>
-                    )}
-                    {opt.key === selectedNakazType && (
-                      <CheckIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.5]" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* CUSTOM DROPDOWN 2: WORKER SELECTOR (SHOW ONLY FOR PRIYOM) */}
-          {selectedNakazType === "priyom" && (
-            <div className="relative w-full sm:w-96" ref={workerDropdownRef}>
-              <label className="block text-xs font-black uppercase text-[#133b47] mb-1.5 tracking-wide">
-                Працівник ФОП:
-              </label>
+            {/* CREATIVE CUSTOM DROPDOWN SELECTOR */}
+            <div className="relative w-full sm:w-96" ref={typeDropdownRef}>
               <button
                 type="button"
-                onClick={() => setIsWorkerDropdownOpen((prev) => !prev)}
-                className="w-full h-13 px-4 rounded-2xl bg-[#fafdfc] border-2 border-[#cbd8d6] hover:border-[#133b47] text-[#133b47] text-sm font-black focus:outline-none transition-all flex items-center justify-between shadow-xs cursor-pointer"
+                onClick={() => setIsTypeDropdownOpen((prev) => !prev)}
+                className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#cbd8d6] hover:border-[#133b47] text-[#133b47] text-sm font-black focus:outline-none transition-all duration-200 flex items-center justify-between shadow-xs cursor-pointer hover:shadow-md"
               >
-                {selectedWorkerObj ? (
-                  <div className="flex items-center gap-3 truncate">
-                    <div className="w-7 h-7 rounded-lg bg-[#133b47] text-[#f8a44c] text-xs font-black flex items-center justify-center shrink-0">
-                      {selectedWorkerObj.vezeteknev.charAt(0)}
+                <div className="flex items-center gap-3 truncate">
+                  {selectedTypeObj && (
+                    <div className={`w-8 h-8 rounded-xl ${selectedTypeObj.iconBg} flex items-center justify-center shrink-0 shadow-xs`}>
+                      <selectedTypeObj.icon className="w-4 h-4 stroke-[2.5]" />
                     </div>
-                    <div className="flex flex-col text-left truncate leading-tight">
-                      <span className="truncate font-black text-[#133b47] text-sm">
-                        {selectedWorkerFullName}
-                      </span>
-                      <span className="text-xs text-[#556e75] font-bold truncate">
-                        {selectedWorkerObj.foglalkozas_megnevezes || "Працівник"}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-[#556e75] font-bold">-- Оберіть працівника --</span>
-                )}
-
+                  )}
+                  <span className="truncate text-sm font-black text-[#133b47]">{selectedTypeObj ? selectedTypeObj.label : "Оберіть тип Наказу"}</span>
+                </div>
                 <ChevronDownIcon
-                  className={`w-5 h-5 text-[#133b47] shrink-0 transition-transform duration-200 stroke-[2.5] ml-2 ${
-                    isWorkerDropdownOpen ? "rotate-180" : ""
+                  className={`w-5 h-5 text-[#133b47] shrink-0 transition-transform duration-300 stroke-[2.5] ${
+                    isTypeDropdownOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
-              {/* WORKERS DROPDOWN MENU */}
-              {isWorkerDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-[9999] animate-modalScale">
-                  <div className="p-3 border-b-2 border-[#cbd8d6] bg-[#f4f9f8] flex items-center gap-2">
-                    <MagnifyingGlassIcon className="w-5 h-5 text-[#556e75] shrink-0 stroke-[2.5]" />
-                    <input
-                      type="text"
-                      placeholder="Пошук працівника..."
-                      value={workerSearchQuery}
-                      onChange={(e) => setWorkerSearchQuery(e.target.value)}
-                      className="w-full text-sm font-black text-[#133b47] bg-transparent focus:outline-none"
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="max-h-64 overflow-y-auto p-2 flex flex-col gap-1.5">
-                    {filteredMunkasok.length === 0 ? (
-                      <div className="p-4 text-center text-sm font-bold text-[#556e75]">
-                        Працівників не знайдено.
-                      </div>
-                    ) : (
-                      filteredMunkasok.map((m) => {
-                        const name = [m.vezeteknev, m.keresztnev, m.apai_nev].filter(Boolean).join(" ");
-                        const isSelected = m.id === selectedWorkerId;
-
-                        return (
-                          <div
-                            key={m.id}
-                            onClick={() => {
-                              handleSelectWorker(m.id);
-                              setIsWorkerDropdownOpen(false);
-                            }}
-                            className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                              isSelected
-                                ? "bg-[#133b47] text-white shadow-md"
-                                : "hover:bg-[#f4f9f8] text-[#133b47]"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 truncate">
-                              <div
-                                className={`w-8 h-8 rounded-lg text-sm font-black flex items-center justify-center shrink-0 ${
-                                  isSelected ? "bg-[#f8a44c] text-[#133b47]" : "bg-[#133b47]/10 text-[#133b47]"
-                                }`}
-                              >
-                                {m.vezeteknev.charAt(0)}
-                              </div>
-
-                              <div className="flex flex-col truncate text-left">
-                                <span className="text-sm font-black truncate leading-tight">{name}</span>
-                                <span
-                                  className={`text-xs truncate mt-0.5 font-bold ${
-                                    isSelected ? "text-[#c3d9d6]" : "text-[#556e75]"
-                                  }`}
-                                >
-                                  {m.foglalkozas_megnevezes || "Працівник"}
-                                </span>
-                              </div>
-                            </div>
-
-                            {isSelected && (
-                              <CheckIcon className="w-5 h-5 text-[#f8a44c] shrink-0 stroke-[2.5]" />
-                            )}
+              {/* TYPE DROPDOWN POPUP MENU */}
+              {isTypeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full sm:w-96 bg-white/98 backdrop-blur-md rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-20 animate-modalScale p-2 flex flex-col gap-1">
+                  {NAKAZ_TYPE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = opt.key === selectedNakazType;
+                    return (
+                      <div
+                        key={opt.key}
+                        onClick={() => {
+                          if (opt.active) {
+                            setSelectedNakazType(opt.key);
+                            setIsTypeDropdownOpen(false);
+                          }
+                        }}
+                        className={`p-3 rounded-xl transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+                          isSelected
+                            ? "bg-[#133b47] text-white shadow-sm font-black scale-[1.01]"
+                            : "hover:bg-[#f4f9f8] text-[#133b47]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 truncate">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+                            isSelected ? "bg-white/20 text-white" : opt.iconBg
+                          }`}>
+                            <Icon className="w-5 h-5 stroke-[2.5]" />
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
+                          <span className={`text-sm font-black truncate ${isSelected ? "text-white" : "text-[#133b47]"}`}>
+                            {opt.label}
+                          </span>
+                        </div>
+
+                        {isSelected && (
+                          <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                            <CheckIcon className="w-4 h-4 text-white stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* COMPACT NAKAZ NUMBER INPUT */}
-        <div className="flex flex-col items-end w-full lg:w-auto">
-          <label className="block text-xs font-black uppercase text-[#133b47] mb-1.5 tracking-wide">
-            Номер Наказу:
-          </label>
-          <div className="flex items-center gap-2 bg-[#133b47] text-white px-4 h-13 rounded-2xl border-2 border-[#133b47] shrink-0 shadow-md">
-            <span className="text-base font-black text-[#f8a44c]">№</span>
-            <input
-              type="text"
-              value={nakazNum}
-              onChange={(e) => setNakazNum(e.target.value)}
-              className="w-16 bg-white/10 text-white font-black text-lg text-center rounded-xl py-1 focus:outline-none focus:bg-white/20"
-            />
+          {/* COMPACT NAKAZ NUMBER INPUT */}
+          <div className="flex flex-col items-end w-full lg:w-auto">
+            <label className="block text-xs font-black uppercase text-[#133b47] mb-1.5 tracking-wide">
+              Номер Наказу:
+            </label>
+            <div className="flex items-center gap-2 bg-[#133b47] text-white px-4 h-13 rounded-2xl border-2 border-[#133b47] shrink-0 shadow-md">
+              <span className="text-base font-black text-[#f8a44c]">№</span>
+              <input
+                type="text"
+                value={nakazNum}
+                onChange={(e) => setNakazNum(e.target.value)}
+                className="w-16 bg-white/10 text-white font-black text-lg text-center rounded-xl py-1 focus:outline-none focus:bg-white/20"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* MAIN TWO-COLUMN WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
-        {/* LEFT COLUMN: WORKER EDIT CARD & HISTORY REGISTRY (5 COLS) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* 1. SHTAT DECREE PARAMETERS CARD */}
-          {selectedNakazType === "grafik_vidpustok" ? (
-            <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
-                <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
-                  <DocumentTextIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.5]" />
-                  Параметри графіка відпусток
-                </span>
+      {/* 3. MAIN WORKSPACE / DECREE SELECTION HUB */}
+      {selectedNakazType === null ? (
+        <div className="flex flex-col gap-6 animate-fadeIn z-10">
+          {/* HUB HERO HEADER */}
+          <div className="bg-gradient-to-r from-[#133b47] via-[#1a4a58] to-[#133b47] rounded-[28px] p-7 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-white/10 relative overflow-hidden">
+            <div className="flex items-center gap-5 z-10">
+              <div className="w-16 h-16 rounded-2xl bg-[#f8a44c] text-[#133b47] flex items-center justify-center font-black shadow-lg shrink-0">
+                <Squares2X2Icon className="w-9 h-9 stroke-[2.2]" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+                    Оберіть тип Наказу
+                  </h2>
+                  <span className="px-3.5 py-1 rounded-full text-xs font-black bg-[#f8a44c] text-[#133b47] shadow-xs">
+                    6 категорій
+                  </span>
+                </div>
+                <p className="text-sm text-[#c3d9d6] font-bold">
+                  Виберіть потрібний кадровий наказ для створення та друку (.docx)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6-CARD SELECTION GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {NAKAZ_TYPE_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setSelectedNakazType(opt.key)}
+                  className={`p-6 rounded-[28px] border-2 border-[#cbd8d6] bg-gradient-to-br ${opt.cardBg} ${opt.cardBorder} shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between gap-5 text-left group hover:-translate-y-1 relative overflow-hidden`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className={`w-14 h-14 rounded-2xl ${opt.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-8 h-8 stroke-[2.2]" />
+                    </div>
+                    <span className={`text-xs font-black uppercase px-3 py-1 rounded-full border shadow-2xs ${opt.badgeClass}`}>
+                      {opt.badge}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-lg font-black text-[#133b47] group-hover:text-[#0f2e38] transition-colors leading-snug">
+                      {opt.label}
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      {opt.description}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200/80 pt-4 text-xs font-black">
+                    <span className={`transition-colors ${opt.actionText}`}>Створити наказ</span>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center group-hover:translate-x-1.5 transition-all duration-300 shadow-md ${opt.actionArrowBg}`}>
+                      <ArrowRightIcon className="w-4 h-4 stroke-[3]" />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* HISTORY SECTION IN HUB VIEW */}
+          <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4 mt-2">
+            <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-black shadow-xs">
+                  <ClockIcon className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-[#133b47]">
+                    Історія створених наказів ФОП
+                  </h3>
+                  <span className="text-xs text-[#556e75] font-bold">
+                    Збережені кадрові документи у папці підприємства
+                  </span>
+                </div>
               </div>
 
-              {/* CUSTOM STYLED DATE OF DECREE PICKER */}
-              <CustomDatePicker
-                label="Дата наказу:"
-                value={isoNakazDate}
-                onChange={setIsoNakazDate}
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={performScan}
+                  className="p-2.5 rounded-xl bg-[#f4f9f8] hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] transition-all cursor-pointer border border-[#cbd8d6] flex items-center justify-center shadow-xs"
+                  title="Оновити список наказів"
+                >
+                  <ArrowPathIcon className={`w-4 h-4 stroke-[2.8] ${isScanning ? "animate-spin" : ""}`} />
+                </button>
 
-              {/* VACATION PERIOD INPUT / YEAR SELECTOR */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (rootFolder && activeFop) {
+                      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+                      if (fopDir) {
+                        await openFolderInExplorer(`${fopDir}\\кадрові документи`);
+                      }
+                    }
+                  }}
+                  className="p-2.5 rounded-xl bg-[#f4f9f8] hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] transition-all cursor-pointer border border-[#cbd8d6] flex items-center justify-center shadow-xs"
+                  title="Відкрити папку «кадрові документи» у Провіднику"
+                >
+                  <FolderOpenIcon className="w-4 h-4 stroke-[2.8]" />
+                </button>
+              </div>
+            </div>
+
+            {/* HISTORY CARDS LIST IN HUB */}
+            {filteredHistoryFiles.length === 0 ? (
+              <div className="p-8 text-center text-[#556e75] flex flex-col items-center justify-center gap-2 bg-[#fafdfc] rounded-2xl border-2 border-dashed border-[#cbd8d6]">
+                <DocumentTextIcon className="w-10 h-10 stroke-[1.8] text-slate-400" />
+                <p className="text-sm font-black text-[#133b47]">Історія наказів порожня</p>
+                <p className="text-xs text-[#556e75] font-bold">
+                  Створіть свій перший наказ вище або завантажте згенеровані файли.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+                {filteredHistoryFiles.map((item, idx) => {
+                  const category = detectNakazCategory(item.filename);
+                  const { nakazLabel, formattedTitle } = formatNakazHistoryItem(item.filename);
+                  const IconComp = category.IconComponent;
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={async () => {
+                        try {
+                          await openFileDirectly(item.filepath);
+                        } catch (e) {
+                          console.error("Failed to open file directly:", e);
+                        }
+                      }}
+                      className="p-4 rounded-2xl border-2 border-[#cbd8d6] hover:border-[#133b47] bg-white hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 group"
+                      title="Натисніть, щоб відкрити цей наказ у Word"
+                    >
+                      <div className="flex items-center gap-3.5 overflow-hidden">
+                        <div className={`w-11 h-11 rounded-xl ${category.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                          <IconComp className="w-6 h-6 stroke-[2.5]" />
+                        </div>
+
+                        <div className="flex flex-col truncate">
+                          <div className="flex items-center gap-2 truncate">
+                            <span className={`text-xs font-black px-2.5 py-0.5 rounded-md shrink-0 shadow-2xs ${category.numBadgeClass}`}>
+                              {nakazLabel}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md shrink-0 ${category.badgeClass}`}>
+                              {category.badge}
+                            </span>
+                          </div>
+                          <span className="text-sm font-black text-[#133b47] group-hover:text-[#0f2e38] truncate mt-1">
+                            {formattedTitle}
+                          </span>
+                          {item.date_modified && (
+                            <span className="text-[11px] font-bold text-[#556e75]">
+                              {item.date_modified}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 group-hover:bg-[#133b47] group-hover:text-[#f8a44c] flex items-center justify-center transition-all shrink-0">
+                        <DocumentTextIcon className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* MAIN TWO-COLUMN WORKSPACE */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10">
+          {/* LEFT COLUMN: WORKER EDIT CARD & HISTORY REGISTRY (5 COLS) */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            {/* 1. SHTAT DECREE PARAMETERS CARD */}
+            {selectedNakazType === "grafik_vidpustok" ? (
+              <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
+                  <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
+                    <DocumentTextIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.5]" />
+                    Параметри графіка відпусток
+                  </span>
+                </div>
+
+                {/* CUSTOM STYLED DATE OF DECREE PICKER */}
+                <CustomDatePicker
+                  label="Дата наказу:"
+                  value={isoNakazDate}
+                  onChange={setIsoNakazDate}
+                />
+
+                {/* VACATION PERIOD INPUT / YEAR SELECTOR */}
               <div className="flex flex-col gap-2 pt-2 border-t-2 border-[#cbd8d6]/60">
                 <label className="text-xs font-black uppercase text-[#133b47] tracking-wide flex items-center gap-1.5">
                   <PencilSquareIcon className="w-4 h-4 text-[#f8a44c] stroke-[2.5]" />
@@ -1497,57 +1865,197 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 )}
               </div>
             </div>
+          ) : selectedNakazType === "priyom" ? (
+            <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
+                <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
+                  <UserIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.8]" />
+                  Працівники для прийняття
+                </span>
+                {activeFop && activeFop.munkasok && (
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-[#133b47] text-[#f8a44c] shadow-xs">
+                    {selectedPriyomWorkerIds.length} / {activeFop.munkasok.length} обрано
+                  </span>
+                )}
+              </div>
+
+              {/* CUSTOM STYLED DATE OF DECREE PICKER */}
+              <CustomDatePicker
+                label="Дата наказу:"
+                value={isoNakazDate}
+                onChange={setIsoNakazDate}
+              />
+
+              {priyomTargetDate && (
+                <div className="bg-[#f0f7f6] p-3 rounded-2xl border border-[#cbd8d6] flex items-center justify-between gap-2 text-xs font-black text-[#133b47]">
+                  <span>Фіксація дати прийняття:</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#133b47] text-[#f8a44c]">
+                    {formatDotDateWithZeros(priyomTargetDate)}
+                  </span>
+                </div>
+              )}
+
+              {/* WORKERS MULTI-SELECT CHECKLIST FOR PRIYOM */}
+              {activeFop && activeFop.munkasok && activeFop.munkasok.length > 0 ? (
+                <div className="flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1">
+                  {activeFop.munkasok.map((w) => {
+                    const isChecked = selectedPriyomWorkerIds.includes(w.id);
+                    const wDate = w.munkakezdes_datum || "";
+                    const isMatch = priyomTargetDate === null || wDate === priyomTargetDate;
+                    const isDisabled = !isChecked && !isMatch;
+                    const fullName = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ");
+                    const initial = w.vezeteknev ? w.vezeteknev.charAt(0).toUpperCase() : "?";
+                    const empTag = !w.foallas ? " (сумісництво)" : !w.teljes_munkaido ? " (неповний час)" : " (основне)";
+
+                    return (
+                      <div
+                        key={w.id}
+                        onClick={() => handleTogglePriyomWorker(w)}
+                        className={`p-3.5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3.5 cursor-pointer select-none ${
+                          isChecked
+                            ? "bg-gradient-to-r from-[#fafdfc] to-[#f0f7f6] border-[#133b47] shadow-md ring-2 ring-[#133b47]/10"
+                            : isDisabled
+                            ? "bg-slate-100/70 border-slate-200 opacity-50 cursor-not-allowed"
+                            : "bg-slate-50 border-slate-200 hover:border-[#cbd8d6] hover:bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 truncate">
+                          <div
+                            className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 transition-all shadow-sm ${
+                              isChecked
+                                ? "bg-[#133b47] text-[#f8a44c] scale-105"
+                                : "bg-[#133b47]/10 text-[#133b47]"
+                            }`}
+                          >
+                            {initial}
+                          </div>
+                          <div className="flex flex-col truncate text-left">
+                            <span className={`text-sm font-black truncate leading-snug ${isChecked ? "text-[#133b47]" : "text-slate-700"}`}>
+                              {fullName}
+                            </span>
+                            <span className="text-[11px] font-bold text-[#556e75] truncate mt-0.5">
+                              {wDate ? `Прийнято: ${formatDotDateWithZeros(wDate)}${empTag}` : `Дата не вказана${empTag}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isDisabled ? (
+                          <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md shrink-0">
+                            Інша дата
+                          </span>
+                        ) : (
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                              isChecked ? "bg-[#133b47] text-[#f8a44c] shadow-xs" : "border-2 border-slate-300 bg-white"
+                            }`}
+                          >
+                            {isChecked && <CheckIcon className="w-4 h-4 stroke-[3]" />}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm font-bold text-rose-500 bg-rose-50 p-4 rounded-xl border border-rose-200 text-center">
+                  У ФОП немає доданих працівників!
+                </p>
+              )}
+            </div>
           ) : (
             <div className="bg-white rounded-[24px] p-6 border-2 border-[#cbd8d6] shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-3">
                 <span className="text-sm font-black uppercase tracking-wider text-[#133b47] flex items-center gap-2">
                   <UserIcon className="w-5 h-5 text-[#f8a44c] stroke-[2.8]" />
-                  Обраний працівник
+                  Працівники для звільнення
                 </span>
-                <div className="flex items-center gap-2">
-                  {onEditWorker && selectedWorkerObj && (
-                    <button
-                      type="button"
-                      onClick={() => onEditWorker(selectedWorkerObj)}
-                      className="w-8 h-8 rounded-lg bg-[#133b47]/10 hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] border border-[#cbd8d6] flex items-center justify-center transition-colors cursor-pointer"
-                      title="Редагувати дані працівника"
-                    >
-                      <PencilSquareIcon className="w-4 h-4 stroke-[2.5]" />
-                    </button>
-                  )}
-                </div>
+                {activeFop && activeFop.munkasok && (
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-[#133b47] text-[#f8a44c] shadow-xs">
+                    {selectedZvilnennyaWorkerIds.length} / {activeFop.munkasok.filter((w) => w.munkaviszony_vege && w.munkaviszony_vege.trim().length > 0).length} обрано
+                  </span>
+                )}
               </div>
 
-              {selectedWorkerObj ? (
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3.5 bg-[#fafdfc] p-4 rounded-2xl border-2 border-[#cbd8d6]">
-                    <div className="w-12 h-12 rounded-xl bg-[#133b47] text-[#f8a44c] font-black text-lg flex items-center justify-center shrink-0 shadow-md">
-                      {selectedWorkerObj.vezeteknev.charAt(0)}
-                    </div>
-                    <div className="flex flex-col truncate">
-                      <span className="text-base font-black text-[#133b47] truncate">
-                        {selectedWorkerFullName}
-                      </span>
-                      <span className="text-xs font-bold text-[#556e75] truncate mt-0.5">
-                        {positionName}
-                      </span>
-                    </div>
-                  </div>
+              {/* CUSTOM STYLED DATE OF DECREE PICKER */}
+              <CustomDatePicker
+                label="Дата наказу:"
+                value={isoNakazDate}
+                onChange={setIsoNakazDate}
+              />
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-[#f4f9f8] p-3 rounded-xl border border-[#cbd8d6] flex flex-col">
-                      <span className="text-xs text-[#556e75] font-black uppercase">Оклад:</span>
-                      <span className="font-black text-[#133b47] text-sm mt-0.5">{salaryStr}</span>
-                    </div>
-                    <div className="bg-[#f4f9f8] p-3 rounded-xl border border-[#cbd8d6] flex flex-col">
-                      <span className="text-xs text-[#556e75] font-black uppercase">Початок роботи:</span>
-                      <span className="font-black text-[#133b47] text-sm mt-0.5">{formattedWorkStartDate}</span>
-                    </div>
-                  </div>
+              {zvilnennyaTargetDate && (
+                <div className="bg-[#f0f7f6] p-3 rounded-2xl border border-[#cbd8d6] flex items-center justify-between gap-2 text-xs font-black text-[#133b47]">
+                  <span>Фіксація дати звільнення:</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#133b47] text-[#f8a44c]">
+                    {formatDotDateWithZeros(zvilnennyaTargetDate)}
+                  </span>
+                </div>
+              )}
+
+              {/* WORKERS MULTI-SELECT CHECKLIST FOR ZVILNENNYA */}
+              {activeFop && activeFop.munkasok && activeFop.munkasok.length > 0 ? (
+                <div className="flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1">
+                  {activeFop.munkasok.map((w) => {
+                    const isChecked = selectedZvilnennyaWorkerIds.includes(w.id);
+                    const wDate = w.munkaviszony_vege || "";
+                    const hasVege = wDate.trim().length > 0;
+                    const isMatch = zvilnennyaTargetDate === null || wDate === zvilnennyaTargetDate;
+                    const isDisabled = !hasVege || (!isChecked && !isMatch);
+                    const fullName = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ");
+                    const initial = w.vezeteknev ? w.vezeteknev.charAt(0).toUpperCase() : "?";
+
+                    return (
+                      <div
+                        key={w.id}
+                        onClick={() => handleToggleZvilnennyaWorker(w)}
+                        className={`p-3.5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3.5 cursor-pointer select-none ${
+                          isChecked
+                            ? "bg-gradient-to-r from-[#fafdfc] to-[#f0f7f6] border-[#133b47] shadow-md ring-2 ring-[#133b47]/10"
+                            : isDisabled
+                            ? "bg-slate-100/70 border-slate-200 opacity-50 cursor-not-allowed"
+                            : "bg-slate-50 border-slate-200 hover:border-[#cbd8d6] hover:bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 truncate">
+                          <div
+                            className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 transition-all shadow-sm ${
+                              isChecked
+                                ? "bg-[#133b47] text-[#f8a44c] scale-105"
+                                : "bg-[#133b47]/10 text-[#133b47]"
+                            }`}
+                          >
+                            {initial}
+                          </div>
+                          <div className="flex flex-col truncate text-left">
+                            <span className={`text-sm font-black truncate leading-snug ${isChecked ? "text-[#133b47]" : "text-slate-700"}`}>
+                              {fullName}
+                            </span>
+                            <span className="text-[11px] font-bold text-[#556e75] truncate mt-0.5">
+                              {hasVege ? `Дата звільнення: ${formatDotDateWithZeros(wDate)}` : "Працює (немає дати звільнення)"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isDisabled ? (
+                          <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md shrink-0">
+                            {!hasVege ? "Працює" : "Інша дата"}
+                          </span>
+                        ) : (
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                              isChecked ? "bg-[#133b47] text-[#f8a44c] shadow-xs" : "border-2 border-slate-300 bg-white"
+                            }`}
+                          >
+                            {isChecked && <CheckIcon className="w-4 h-4 stroke-[3]" />}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm font-bold text-rose-500 bg-rose-50 p-4 rounded-xl border border-rose-200 text-center">
-                  Працівника не обрано!
+                  У ФОП немає доданих працівників!
                 </p>
               )}
             </div>
@@ -1568,13 +2076,32 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 )}
               </div>
 
-              <button
-                onClick={performScan}
-                className="text-xs font-black text-[#133b47] hover:underline cursor-pointer"
-                title="Оновити список"
-              >
-                Оновити
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={performScan}
+                  className="p-2 rounded-xl bg-[#f4f9f8] hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] transition-all cursor-pointer border border-[#cbd8d6] flex items-center justify-center shadow-xs"
+                  title="Оновити список наказів"
+                >
+                  <ArrowPathIcon className={`w-4 h-4 stroke-[2.8] ${isScanning ? "animate-spin" : ""}`} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (rootFolder && activeFop) {
+                      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+                      if (fopDir) {
+                        await openFolderInExplorer(`${fopDir}\\кадрові документи`);
+                      }
+                    }
+                  }}
+                  className="p-2 rounded-xl bg-[#f4f9f8] hover:bg-[#133b47] text-[#133b47] hover:text-[#f8a44c] transition-all cursor-pointer border border-[#cbd8d6] flex items-center justify-center shadow-xs"
+                  title="Відкрити папку «кадрові документи» у Провіднику"
+                >
+                  <FolderOpenIcon className="w-4 h-4 stroke-[2.8]" />
+                </button>
+              </div>
             </div>
 
             {/* UNIFIED PROFESSIONAL SEARCH IN HISTORY */}
@@ -1611,7 +2138,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
             ) : (
               <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-1">
                 {filteredHistoryFiles.map((item, idx) => {
+                  const category = detectNakazCategory(item.filename);
                   const { nakazLabel, formattedTitle } = formatNakazHistoryItem(item.filename);
+                  const IconComp = category.IconComponent;
 
                   return (
                     <div
@@ -1623,27 +2152,35 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                           console.error("Failed to open file directly:", e);
                         }
                       }}
-                      className="p-3.5 rounded-xl border-2 border-[#cbd8d6] hover:border-[#133b47] bg-gradient-to-r from-white via-[#fafdfc] to-[#f4f9f8] hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                      className="p-3.5 rounded-2xl border-2 border-[#cbd8d6] hover:border-[#133b47] bg-white hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 group"
                       title="Натисніть, щоб відкрити цей наказ у Word"
                     >
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="px-3 py-1 rounded-lg bg-[#133b47] text-[#f8a44c] font-black text-xs shrink-0 group-hover:scale-105 transition-transform">
-                          {nakazLabel}
-                        </span>
+                        <div className={`w-10 h-10 rounded-xl ${category.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                          <IconComp className="w-5 h-5 stroke-[2.5]" />
+                        </div>
 
                         <div className="flex flex-col truncate">
-                          <span className="text-sm font-black text-[#133b47] group-hover:text-[#0f2e38] truncate">
+                          <div className="flex items-center gap-2 truncate">
+                            <span className={`text-xs font-black px-2 py-0.5 rounded-md shrink-0 shadow-2xs ${category.numBadgeClass}`}>
+                              {nakazLabel}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md shrink-0 ${category.badgeClass}`}>
+                              {category.badge}
+                            </span>
+                          </div>
+                          <span className="text-sm font-black text-[#133b47] group-hover:text-[#0f2e38] truncate mt-1">
                             {formattedTitle}
                           </span>
                           {item.date_modified && (
-                            <span className="text-xs font-bold text-[#556e75]">
+                            <span className="text-[11px] font-bold text-[#556e75]">
                               {item.date_modified}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="w-8 h-8 rounded-lg bg-[#133b47]/10 text-[#133b47] group-hover:bg-[#133b47] group-hover:text-[#f8a44c] flex items-center justify-center transition-colors shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 group-hover:bg-[#133b47] group-hover:text-[#f8a44c] flex items-center justify-center transition-all shrink-0">
                         <DocumentTextIcon className="w-4 h-4 stroke-[2.5]" />
                       </div>
                     </div>
@@ -1709,7 +2246,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
               )}
 
               <div className="text-center font-bold">
-                <p className="uppercase text-sm font-black">ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ</p>
+                <p className="text-sm font-black">Фізична особа-підприємець</p>
                 <p className="uppercase text-sm font-black text-[#133b47]">{activeFopName ? activeFopName.toUpperCase() : "ГАЛ ФЕРЕНЦ ФЕРЕНЦОВИЧ"}</p>
                 {hasValidFopAddress ? (
                   normalizeAddressHeader(currentAddress).split("\n").map((line, idx) => (
@@ -1731,16 +2268,16 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
               {selectedNakazType === "grafik_vidpustok" ? (
                 <>
-                  <p className="font-bold text-xs md:text-sm mt-1 uppercase text-center font-black">
+                  <p className="font-bold text-xs md:text-sm mt-1 mb-6 uppercase text-center font-black">
                     ПРО ЗАТВЕРДЖЕННЯ ГРАФІКУ ВІДПУСТОК
                   </p>
 
                   <div className="flex flex-col gap-2 mt-4 text-justify leading-relaxed">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-slate-900 mb-2">
                       Керуючись статтею 10 Закону України «Про відпустки» від 15.11.1996 р. №504/96 ВР
                     </p>
-                    <p className="font-bold text-center my-2">НАКАЗУЮ:</p>
-                    <p className="font-medium">
+                    <p className="font-bold text-center my-4">НАКАЗУЮ:</p>
+                    <p className="font-medium mt-2">
                       <span className="font-bold">1. </span>Затвердити  графік відпусток на <span className="font-bold">{vacationPeriodText}</span> (графік додається):
                     </p>
                     <p className="font-medium">
@@ -1757,14 +2294,14 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 </>
               ) : selectedNakazType === "shtat" ? (
                 <>
-                  <p className="font-bold text-xs md:text-sm mt-1 uppercase text-center font-black">
+                  <p className="font-bold text-xs md:text-sm mt-1 mb-6 uppercase text-center font-black">
                     ПРО ЗАТВЕРДЖЕННЯ ШТАТНОГО РОЗПИСУ
                   </p>
 
                   <div className="flex flex-col gap-1 mt-3 text-justify leading-relaxed">
-                    <p className="font-medium text-slate-900">{shtatReasonText}</p>
-                    <p className="font-bold text-center my-2">НАКАЗУЮ:</p>
-                    <p className="font-medium">
+                    <p className="font-medium text-slate-900 mb-2">{shtatReasonText}</p>
+                    <p className="font-bold text-center my-4">НАКАЗУЮ:</p>
+                    <p className="font-medium mt-2">
                       <span className="font-bold">1. </span>Затвердити і ввести в дію з{" "}
                       <span className="font-bold">
                         {(() => {
@@ -1821,8 +2358,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                           const punct = idx === arr.length - 1 ? "." : ";";
 
                           return (
-                            <p key={w.id} className="pl-6 font-medium">
-                              <span className="font-bold">{dativeName}</span>, посада: {posName}{punct}
+                            <p key={w.id} className="pl-6 font-medium flex items-start gap-2">
+                              <span className="text-[10px] font-mono leading-relaxed">o</span>
+                              <span><span className="font-bold">{dativeName}</span>, посада: {posName}{punct}</span>
                             </p>
                           );
                         })
@@ -1833,20 +2371,20 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                     )}
 
                     <p className="font-bold">2. Надати зазначеним особам право:</p>
-                    <ul className="list-none pl-6 space-y-1">
-                      <li>- відкривати/закривати зміну у ПРРО;</li>
-                      <li>- здійснювати реєстрацію розрахункових операцій;</li>
-                      <li>- оформлювати фіскальні чеки на продаж та повернення товарів;</li>
-                      <li>- формувати щоденні Z-звіти відповідно до вимог законодавства.</li>
-                    </ul>
+                    <div className="pl-6 space-y-0">
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>відкривати/закривати зміну у ПРРО;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>здійснювати реєстрацію розрахункових операцій;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>оформлювати фіскальні чеки на продаж та повернення товарів;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>формувати щоденні Z-звіти відповідно до вимог законодавства.</span></p>
+                    </div>
 
                     <p className="font-bold">3. Покласти на касирів відповідальність за:</p>
-                    <ul className="list-none pl-6 space-y-1">
-                      <li>- дотримання порядку застосування ПРРО;</li>
-                      <li>- правильність обліку розрахункових операцій;</li>
-                      <li>- ведення касової дисципліни;</li>
-                      <li>- збереження фіскальних звітів, чеків та іншої документації.</li>
-                    </ul>
+                    <div className="pl-6 space-y-0">
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>дотримання порядку застосування ПРРО;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>правильність обліку розрахункових операцій;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>ведення касової дисципліни;</span></p>
+                      <p className="flex items-start gap-2"><span className="text-[10px] font-mono leading-relaxed">o</span><span>збереження фіскальних звітів, чеків та іншої документації.</span></p>
+                    </div>
 
                     <p>
                       <span className="font-bold">4. </span>Зобов’язати касирів щоденно формувати Z-звіт у кінці кожної зміни.
@@ -2003,24 +2541,173 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : selectedNakazType === "zvilnennya" ? (
                 <>
-                  <p className="font-bold text-xs md:text-sm mt-1">Про прийняття на роботу</p>
+                  <p className="font-black text-sm md:text-base mt-1 uppercase text-center text-[#133b47] tracking-wide">
+                    ПРО ЗВІЛЬНЕННЯ З РОБОТИ
+                  </p>
+                  <p className="font-bold mt-2 text-slate-800">
+                    Наказую:
+                  </p>
 
-                  <div className="flex flex-col gap-3 mt-2 text-justify leading-relaxed">
-                    <p>{getClause1Text()}</p>
-                    <p>
-                      2. Оформити трудовий договір з {formattedWorkStartDate}, в якому зазначити умови праці (режим, права і обов'язки сторін, і т.д).
-                    </p>
-                    <p>
-                      3. {workerDative || "[ПІП працівника]"} приступити до роботи з {formattedWorkStartDate}.
-                    </p>
-                    <p className="pl-6">Підстава: заява {workerInitials || "[ПІП ініціали]"}</p>
+                  <div className="flex flex-col gap-3 mt-3 text-justify leading-relaxed">
+                    {(() => {
+                      const selectedWorkers = (activeFop?.munkasok || []).filter((w) => selectedZvilnennyaWorkerIds.includes(w.id));
+                      if (selectedWorkers.length === 0) {
+                        return (
+                          <p className="italic text-rose-600 font-bold">
+                            [Оберіть працівників для звільнення зі списку ліворуч]
+                          </p>
+                        );
+                      }
+                      const disDate = zvilnennyaTargetDate ? formatDotDateWithZeros(zvilnennyaTargetDate) : formattedNakazDate;
+
+                      if (selectedWorkers.length === 1) {
+                        const w = selectedWorkers[0];
+                        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+                        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+
+                        return (
+                          <>
+                            <p>
+                              1. <span className="font-bold">{acc}</span>, звільнити за угодою сторін, з посади <span className="font-bold">{pos}</span> від {disDate} р. відповідно до ст. 36 КЗпП України.
+                            </p>
+                            <p>
+                              2. Провести остаточний розрахунок з {init} та виплатити компенсацію за всі дні невикористаної відпустки.
+                            </p>
+                            <p className="pl-6">Підстава: заява {init}</p>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <>
+                          <p>
+                            1. Звільнити з роботи від {disDate} р. наступних працівників:
+                          </p>
+                          {selectedWorkers.map((w, idx) => {
+                            const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                            const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+                            return (
+                              <p key={w.id} className="pl-6 font-medium">
+                                1.{idx + 1}. <span className="font-bold">{acc}</span>, звільнити за угодою сторін, з посади <span className="font-bold">{pos}</span> відповідно до ст. 36 КЗпП України.
+                              </p>
+                            );
+                          })}
+                          <p>
+                            2. Провести остаточний розрахунок з працівниками та виплатити компенсацію за всі дні невикористаної відпустки.
+                          </p>
+                          <p className="pl-6">Підстава: заяви працівників</p>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex flex-col gap-2 mt-5 pt-4 border-t-2 border-slate-300 text-xs md:text-sm">
-                    <p>ФОП {activeFopInitials || "Гал Ф.Ф."}___________________</p>
-                    <p>З наказом ознайомлений(а), {workerInitials || "[ПІП ініціали]"}                       ___________________</p>
+                    <div className="grid grid-cols-2 gap-4 items-center mt-1 font-bold">
+                      <span>ФОП {activeFopInitials || "Гал Ф.Ф."}</span>
+                      <span className="text-right">___________________</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-xs md:text-sm mt-1 uppercase text-center font-black">
+                    ПРО ПРИЙНЯТТЯ НА РОБОТУ
+                  </p>
+
+                  <div className="flex flex-col gap-3 mt-3 text-justify leading-relaxed">
+                    {(() => {
+                      const selectedWorkers = (activeFop?.munkasok || []).filter((w) => selectedPriyomWorkerIds.includes(w.id));
+                      if (selectedWorkers.length === 0) {
+                        return (
+                          <p className="italic text-rose-600 font-bold">
+                            [Оберіть працівників для прийняття зі списку ліворуч]
+                          </p>
+                        );
+                      }
+                      const startDate = priyomTargetDate ? formatDotDateWithZeros(priyomTargetDate) : formattedWorkStartDate;
+
+                      if (selectedWorkers.length === 1) {
+                        const w = selectedWorkers[0];
+                        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+                        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+                        const sal = w.fizetes
+                          ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`
+                          : salaryStr;
+
+                        const empTypeStr = !w.foallas ? " за сумісництвом" : !w.teljes_munkaido ? " на неповний робочий час" : "";
+
+                        return (
+                          <>
+                            <p>
+                              1. Прийняти <span className="font-bold">{acc}</span> на посаду <span className="font-bold">{pos}</span>{empTypeStr} з посадовим окладом в сумі <span className="font-bold">{sal}</span> на місяць.
+                            </p>
+                            <p>
+                              2. Оформити трудовий договір з {dat}, в якому зазначити умови праці.
+                            </p>
+                            <p>
+                              3. {init} приступити до роботи з {startDate} р.
+                            </p>
+                            <p className="pl-6">Підстава: заява {init}</p>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <>
+                          <p>
+                            1. Прийняти на роботу з {startDate} р. наступних працівників:
+                          </p>
+                          {selectedWorkers.map((w, idx) => {
+                            const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                            const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+                            const sal = w.fizetes
+                              ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`
+                              : salaryStr;
+                            const empTypeStr = !w.foallas ? " за сумісництвом" : !w.teljes_munkaido ? " на неповний робочий час" : "";
+                            return (
+                              <p key={w.id} className="pl-6 font-medium">
+                                1.{idx + 1}. <span className="font-bold">{acc}</span> на посаду <span className="font-bold">{pos}</span>{empTypeStr} з посадовим окладом в сумі <span className="font-bold">{sal}</span> на місяць.
+                              </p>
+                            );
+                          })}
+                          <p>
+                            2. Оформити трудові договори з працівниками, в яких зазначити умови праці (режим, права і обов'язки сторін, і т.д).
+                          </p>
+                          <p>
+                            3. Працівникам приступити до роботи з {startDate} р.
+                          </p>
+                          <p className="pl-6">Підстава: заяви працівників</p>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-5 pt-4 border-t-2 border-slate-300 text-xs md:text-sm">
+                    <p className="font-bold mb-1">З наказом ознайомлені:</p>
+                    {activeFop && activeFop.munkasok && activeFop.munkasok.filter((w) => selectedPriyomWorkerIds.includes(w.id)).length > 0 ? (
+                      activeFop.munkasok
+                        .filter((w) => selectedPriyomWorkerIds.includes(w.id))
+                        .map((w) => {
+                          const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+                          return (
+                            <div key={w.id} className="grid grid-cols-2 gap-4 items-center font-bold">
+                              <span>(______________)  {initials}</span>
+                              <span className="text-right">«____» ____________ 2024 р.</span>
+                            </div>
+                          );
+                        })
+                    ) : (
+                      <p className="italic text-slate-400 font-medium">[Підписи працівників]</p>
+                    )}
+                    <div className="grid grid-cols-2 gap-4 items-center mt-3 font-bold">
+                      <span>ФОП {activeFopInitials || "Гал Ф.Ф."}</span>
+                      <span className="text-right">___________________</span>
+                    </div>
                   </div>
                 </>
               )}
@@ -2038,6 +2725,8 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 ? handleGeneratePrroDoc
                 : selectedNakazType === "kasa"
                 ? handleGenerateKasaDoc
+                : selectedNakazType === "zvilnennya"
+                ? handleGenerateZvilnennyaDoc
                 : handleGenerateDoc
             }
             disabled={isGenerating || !hasValidFopAddress}
@@ -2052,10 +2741,11 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
           </button>
         </div>
       </div>
+    )}
 
       {/* FOP ADDRESS EDIT & SEGMENTATION MODAL */}
       {isEditAddressModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[99999] animate-fadeIn">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[999999] animate-fadeIn">
           <div className="bg-white rounded-[28px] p-7 max-w-xl w-full border-2 border-[#cbd8d6] shadow-2xl flex flex-col gap-6 animate-modalScale">
             <div className="flex items-center justify-between border-b-2 border-[#cbd8d6] pb-4">
               <div className="flex items-center gap-3.5">
@@ -2080,8 +2770,21 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
               </button>
             </div>
 
-            {/* LARGE FORM INPUT FIELDS WITH CLEAN LABELS */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* FORM INPUT FIELDS FOR ALL ADDRESS COMPONENTS */}
+            <div className="grid grid-cols-2 gap-4 text-sm max-h-[60vh] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-[#133b47]">Країна:</label>
+                <input
+                  type="text"
+                  value={segmentedAddress.orszag || "Україна"}
+                  onChange={(e) =>
+                    setSegmentedAddress((prev) => ({ ...prev, orszag: e.target.value }))
+                  }
+                  placeholder="Україна"
+                  className="p-3.5 rounded-xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:outline-none font-black text-[#133b47] text-base bg-[#fafdfc]"
+                />
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-black text-[#133b47]">Індекс:</label>
                 <input
@@ -2148,14 +2851,40 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-black text-[#133b47]">Будинок / квартира:</label>
+                <label className="text-xs font-black text-[#133b47]">Будинок:</label>
                 <input
                   type="text"
                   value={segmentedAddress.hazszam || ""}
                   onChange={(e) =>
                     setSegmentedAddress((prev) => ({ ...prev, hazszam: e.target.value }))
                   }
-                  placeholder="11/2"
+                  placeholder="11"
+                  className="p-3.5 rounded-xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:outline-none font-black text-[#133b47] text-base bg-[#fafdfc]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-[#133b47]">Корпус:</label>
+                <input
+                  type="text"
+                  value={segmentedAddress.epulet || ""}
+                  onChange={(e) =>
+                    setSegmentedAddress((prev) => ({ ...prev, epulet: e.target.value }))
+                  }
+                  placeholder="А"
+                  className="p-3.5 rounded-xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:outline-none font-black text-[#133b47] text-base bg-[#fafdfc]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5 col-span-2">
+                <label className="text-xs font-black text-[#133b47]">Квартира / Кімната:</label>
+                <input
+                  type="text"
+                  value={segmentedAddress.lakas_szoba || ""}
+                  onChange={(e) =>
+                    setSegmentedAddress((prev) => ({ ...prev, lakas_szoba: e.target.value }))
+                  }
+                  placeholder="2"
                   className="p-3.5 rounded-xl border-2 border-[#cbd8d6] focus:border-[#133b47] focus:outline-none font-black text-[#133b47] text-base bg-[#fafdfc]"
                 />
               </div>

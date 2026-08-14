@@ -278,3 +278,47 @@ export function formatDotDateWithZeros(dateStr: string): string {
   }
   return s;
 }
+
+// Declension for position titles in Genitive case (Родовий відмінок in lower case)
+// E.g. "Продавець непродовольчих товарів" -> "продавця непродовольчих товарів"
+// "Касир торговельного залу" -> "касира торговельного залу"
+export function declinePositionGenitive(position: string): string {
+  if (!position || !position.trim()) return "працівника";
+  const pos = position.trim().toLowerCase();
+
+  const words = pos.split(" ");
+  const declinedWords = words.map((w, idx) => {
+    // Only decline the primary noun/modifier if it's not already in genitive case attribute
+    if (idx > 0 && !w.startsWith("продав") && !w.startsWith("пекар")) {
+      return w;
+    }
+
+    if (w === "головний") return "головного";
+    if (w === "старший") return "старшого";
+    if (w === "молодший") return "молодшого";
+    if (w === "провідний") return "провідного";
+
+    if (w.endsWith("продавець")) return w.slice(0, -9) + "продавця";
+    if (w.endsWith("товарознавець")) return w.slice(0, -13) + "товарознавця";
+    if (w.endsWith("охоронець")) return w.slice(0, -9) + "охоронця";
+    if (w.endsWith("фахівець")) return w.slice(0, -8) + "фахівця";
+    if (w.endsWith("ець")) return w.slice(0, -3) + "ця";
+
+    if (w.endsWith("ниця")) return w.slice(0, -4) + "ниці";
+    if (w.endsWith("ник")) return w.slice(0, -3) + "ника";
+    if (w.endsWith("щик")) return w.slice(0, -3) + "щика";
+
+    if (w.endsWith("ар") || w.endsWith("ярь")) return w.slice(0, -2) + "аря";
+    if (w.endsWith("кухар")) return "кухаря";
+    if (w.endsWith("пекар")) return "пекаря";
+    if (w.endsWith("водій")) return w.slice(0, -2) + "водія";
+
+    if (w.endsWith("р") || w.endsWith("т") || w.endsWith("н") || w.endsWith("л") || w.endsWith("к") || w.endsWith("с") || w.endsWith("в") || w.endsWith("м") || w.endsWith("д") || w.endsWith("г") || w.endsWith("б") || w.endsWith("п") || w.endsWith("з")) {
+      return w + "а";
+    }
+
+    return w;
+  });
+
+  return declinedWords.join(" ");
+}

@@ -1,15 +1,21 @@
 import React from "react";
 import { IdentificationIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
-import { CreateFopFormState } from "../../types/fop";
-import { DatePicker } from "../pickers/DatePicker";
+import { EditWorkerFormState } from "../../../types/fop";
+import { DatePicker } from "../../pickers/DatePicker";
 
-interface Step3Props {
-  formData: CreateFopFormState;
+interface WorkerPassportTabProps {
+  formData: EditWorkerFormState;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onTypeToggle: (type: 0 | 1) => void;
+  onDateChange: (field: "kiallitasi_datum" | "lejarati_datum", value: string) => void;
 }
 
-export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onTypeToggle }) => {
+export const WorkerPassportTab: React.FC<WorkerPassportTabProps> = ({
+  formData,
+  onChange,
+  onTypeToggle,
+  onDateChange,
+}) => {
   return (
     <div className="p-6 rounded-3xl bg-[#f8faf9] border-2 border-[#e2eceb]">
       <div className="text-base font-black text-[#133b47] mb-5 font-heading flex items-center justify-between">
@@ -17,7 +23,7 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
           <div className="w-8 h-8 rounded-xl bg-[#133b47]/10 flex items-center justify-center">
             <IdentificationIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
           </div>
-          <span>Паспортні дані</span>
+          <span>4. Паспортні дані / Документ</span>
         </div>
         <span className="text-xs font-black text-[#5c777f] bg-[#e6eeed] px-3 py-1 rounded-full border border-[#cbd8d6]">
           Необов'язково
@@ -63,7 +69,7 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
               placeholder="НВ"
               value={formData.szeria}
               onChange={onChange}
-              className="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
             />
           </div>
         )}
@@ -78,20 +84,20 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
             placeholder={formData.okmany_tipus === 0 ? "123456" : "001234567"}
             value={formData.okmanyszam}
             onChange={onChange}
-            className="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+            className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
           />
         </div>
 
         {formData.okmany_tipus === 0 && (
           <div className="flex flex-col gap-2 sm:col-span-2">
-            <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">Орган видачі</label>
+            <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">Ким виданий (Орган)</label>
             <input
               type="text"
               name="kiallitott_hatosag"
               placeholder="Ужгородським МВ УМВС України в Закарпатській обл."
               value={formData.kiallitott_hatosag}
               onChange={onChange}
-              className="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
             />
           </div>
         )}
@@ -105,7 +111,7 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
               placeholder="2112"
               value={formData.hatosagi_kod}
               onChange={onChange}
-              className="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-base font-extrabold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
             />
           </div>
         )}
@@ -114,8 +120,8 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">Дата видачі</label>
           <DatePicker
             value={formData.kiallitasi_datum}
-            onChange={(val) => onChange({ target: { name: "kiallitasi_datum", value: val } } as any)}
-            placeholder="Оберіть дату видачі"
+            onChange={(val) => onDateChange("kiallitasi_datum", val)}
+            placeholder="Дата видачі"
           />
         </div>
 
@@ -123,8 +129,8 @@ export const Step3Document: React.FC<Step3Props> = ({ formData, onChange, onType
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">Дата закінчення терміну дії</label>
           <DatePicker
             value={formData.lejarati_datum}
-            onChange={(val) => onChange({ target: { name: "lejarati_datum", value: val } } as any)}
-            placeholder="Оберіть дату закінчення"
+            onChange={(val) => onDateChange("lejarati_datum", val)}
+            placeholder="Дата закінчення"
           />
         </div>
       </div>

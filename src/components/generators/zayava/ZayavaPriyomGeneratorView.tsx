@@ -12,10 +12,10 @@ import {
   BriefcaseIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, GenerateZayavaPriyomDocxRequest } from "../types/fop";
-import { generateZayavaPriyomDocx, ensureFopDirectory, openFolderInExplorer } from "../services/fopService";
-import { getWorkerGenitiveName, formatUkrainianDate } from "../utils/ukrainianDeclension";
-import { CustomDatePicker } from "./CustomDatePicker";
+import { FopData, Munkas, GenerateZayavaPriyomDocxRequest } from "../../../types/fop";
+import { generateZayavaPriyomDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
+import { getWorkerGenitiveName, formatUkrainianDate } from "../../../utils/ukrainianDeclension";
+import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 
 interface ZayavaPriyomGeneratorViewProps {
   activeFop: FopData | null;
@@ -529,7 +529,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
 
                 {/* Zayava Type Dropdown Menu */}
                 {isZayavaTypeDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-[9999] animate-modalScale p-1.5 flex flex-col gap-1">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-20 animate-modalScale p-1.5 flex flex-col gap-1">
                     <button
                       onClick={() => {
                         setSelectedZayavaType("priyom");
@@ -635,7 +635,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
 
                 {/* WORKERS DROPDOWN POPUP MENU */}
                 {isWorkerDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[24px] border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-[9999] animate-modalScale">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[24px] border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-20 animate-modalScale">
                     <div className="p-3 border-b border-[#e2eceb] bg-[#f8faf9] flex items-center gap-2">
                       <MagnifyingGlassIcon className="w-4.5 h-4.5 text-[#556e75] shrink-0 stroke-[2]" />
                       <input
