@@ -18,7 +18,7 @@ import {
   SparklesIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, InitialNakazData } from "../types/fop";
+import { FopData, Munkas, InitialNakazData, FolderGroup } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer, pickRootFolder, saveRootFolder } from "../services/fopService";
 import { PayrollGeneratorView } from "../components/generators/payroll/PayrollGeneratorView";
 import { TabelGeneratorView } from "../components/generators/tabel/TabelGeneratorView";
@@ -40,6 +40,7 @@ interface DocumentGeneratorViewProps {
   onAddWorker?: (fopId: number) => void;
   onEditFop?: (fop: FopData) => void;
   onUpdateFopList?: (fops: FopData[]) => void;
+  folderGroups?: FolderGroup[];
 }
 
 export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
@@ -55,6 +56,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
   onAddWorker,
   onEditFop,
   onUpdateFopList,
+  folderGroups = [],
 }) => {
   const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik" | "nakaz">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
@@ -118,7 +120,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
       return;
     }
 
-    const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+    const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName, activeFop.folder_path);
     if (targetDir) {
       await openFolderInExplorer(targetDir);
       onShowToast(`Відкрито папку у Провіднику: ${targetDir}`);
@@ -130,8 +132,9 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
     .filter((f) => {
       const name = [f.vezeteknev, f.keresztnev, f.apai_nev].filter(Boolean).join(" ").toLowerCase();
       const code = (f.kod || f.fop_kod || "").toLowerCase();
+      const group = (f.folder_group || "").toLowerCase();
       const q = fopSearchQuery.toLowerCase();
-      return name.includes(q) || code.includes(q);
+      return name.includes(q) || code.includes(q) || group.includes(q);
     })
     .sort((a, b) => {
       const nameA = [a.vezeteknev, a.keresztnev, a.apai_nev].filter(Boolean).join(" ");
@@ -242,6 +245,16 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                       {activeFopCode}
                     </span>
                   )}
+                  {activeFop.folder_group && (
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0 shadow-xs ring-2 ring-white inline-block"
+                      style={{
+                        backgroundColor:
+                          folderGroups.find((g) => g.name === activeFop.folder_group)?.color || "#f8a44c",
+                      }}
+                      title={`Категорія: ${activeFop.folder_group}`}
+                    />
+                  )}
                   <span className="text-xs font-medium text-[#556e75] shrink-0">
                     ({activeFop.munkasok?.length || 0} прац.)
                   </span>
@@ -265,7 +278,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                 <MagnifyingGlassIcon className="w-5 h-5 text-[#556e75] shrink-0 stroke-[2]" />
                 <input
                   type="text"
-                  placeholder="Пошук за прізвищем або кодом ЄДРПОУ..."
+                  placeholder="Пошук за прізвищем, кодом ЄДРПОУ або категорією..."
                   value={fopSearchQuery}
                   onChange={(e) => setFopSearchQuery(e.target.value)}
                   className="w-full text-sm font-semibold text-[#133b47] bg-transparent focus:outline-none"
@@ -317,6 +330,16 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                                 >
                                   {code}
                                 </span>
+                              )}
+                              {f.folder_group && (
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ring-2 ring-white/60 ml-0.5 inline-block"
+                                  style={{
+                                    backgroundColor:
+                                      folderGroups.find((g) => g.name === f.folder_group)?.color || "#f8a44c",
+                                  }}
+                                  title={`Категорія: ${f.folder_group}`}
+                                />
                               )}
                             </div>
                             <span className={`text-xs font-medium ${isSelected ? "text-[#c3d9d6]" : "text-[#556e75]"}`}>

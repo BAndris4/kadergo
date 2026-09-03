@@ -12,6 +12,8 @@ pub struct CreateFopInput {
     pub nem: Option<String>, // 'Чоловік' | 'Жінка'
     pub fop_kod: Option<String>,
     pub fop_kezdete_datum: Option<String>,
+    pub folder_path: Option<String>,
+    pub folder_group: Option<String>,
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
 }
@@ -29,6 +31,8 @@ pub struct UpdateFopInput {
     pub fop_kezdete_datum: Option<String>,
     pub nakaz_szam: Option<String>,
     pub munkas_szam: Option<String>,
+    pub folder_path: Option<String>,
+    pub folder_group: Option<String>,
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
 }
@@ -46,6 +50,8 @@ pub struct FopDto {
     pub fop_kezdete_datum: Option<String>,
     pub nakaz_szam: Option<String>,
     pub munkas_szam: Option<String>,
+    pub folder_path: Option<String>,
+    pub folder_group: Option<String>,
     pub cim: Option<CimInput>,
     pub okmany: Option<OkmanyInput>,
     pub munkasok: Vec<MunkasDto>,
@@ -63,6 +69,7 @@ pub struct ScanFopsResult {
 pub struct DiscoveredFopDto {
     pub folder_name: String,
     pub folder_path: String,
+    pub folder_group: Option<String>,
     pub kod: String,
     pub vezeteknev: String,
     pub keresztnev: String,
@@ -70,4 +77,9 @@ pub struct DiscoveredFopDto {
     pub already_exists: bool,
 }
 
-
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FolderGroupDto {
+    pub id: i64,
+    pub name: String,
+    pub color: String,
+}

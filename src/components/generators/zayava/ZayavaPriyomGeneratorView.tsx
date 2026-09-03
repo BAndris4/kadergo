@@ -345,8 +345,8 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
     setIsGenerating(true);
     try {
       let targetDir: string | undefined = undefined;
-      if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, fopName);
+      if (rootFolder || activeFop.folder_path) {
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, fopName, activeFop.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -380,9 +380,10 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
 
       const resultPath = await generateZayavaPriyomDocx(req);
       setLastGeneratedDocPath(resultPath);
-      onShowToast(`Успішно збережено Заяву: ${resultPath}`);
       if (selectedZayavaType === "priyom" || selectedZayavaType === "zvilnennya") {
         setIsPromptModalOpen(true);
+      } else {
+        onShowToast(`Успішно збережено Заяву: ${resultPath}`);
       }
     } catch (err: any) {
       console.error("Error generating Zayava:", err);
@@ -393,8 +394,8 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
   };
 
   const handleOpenExplorerFolder = async () => {
-    if (!rootFolder || !activeFop) return;
-    const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, fopName);
+    if ((!rootFolder && !activeFop?.folder_path) || !activeFop) return;
+    const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, fopName, activeFop.folder_path);
     if (fopDir) {
       const kadroviDir = `${fopDir}\\кадрові документи`;
       await openFolderInExplorer(kadroviDir);

@@ -405,13 +405,13 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
   // ─── Generate Excel ───────────────────────────────────────────────
 
   const handleGenerateExcel = async () => {
-    if (!activeFop || !rootFolder) {
-      onShowToast("⚠️ Спочатку оберіть ФОП та встановіть папку збереження!");
+    if (!activeFop || (!rootFolder && !activeFop.folder_path)) {
+      onShowToast("⚠️ Спочатку оберіть ФОП та встановіть папку збереження або робочу папку ФОП!");
       return;
     }
     setIsGenerating(true);
     try {
-      const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const targetDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (selectionMode === "month") {
         const filePath = await generateTabelExcel({
           fop_id: activeFop.id,
@@ -451,8 +451,8 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
       await openFolderInExplorer(folder || lastGeneratedPath);
       return;
     }
-    if (rootFolder && activeFop) {
-      const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+    if ((rootFolder || activeFop?.folder_path) && activeFop) {
+      const targetDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (targetDir) await openFolderInExplorer(targetDir);
     }
   };

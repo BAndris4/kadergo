@@ -174,7 +174,7 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
 
     setIsGenerating(true);
     try {
-      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       const targetDir = fopDir ? `${fopDir}\\кадрові документи` : undefined;
 
       const req: GenerateShtatDocxRequest = {
@@ -187,7 +187,6 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
 
       const pathResult = await generateShtatDocx(req);
       setGeneratedFilePath(pathResult);
-      onShowToast("Штатний розпис успішно згенеровано у папку «кадрові документи»!");
       setIsPromptModalOpen(true);
     } catch (err) {
       console.error("Failed to generate Shtat DOCX:", err);
@@ -201,8 +200,8 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
     if (generatedFilePath) {
       const dirPath = generatedFilePath.substring(0, Math.max(generatedFilePath.lastIndexOf('/'), generatedFilePath.lastIndexOf('\\')));
       await openFolderInExplorer(dirPath);
-    } else if (rootFolder && activeFop) {
-      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+    } else if ((rootFolder || activeFop?.folder_path) && activeFop) {
+      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (fopDir) await openFolderInExplorer(`${fopDir}\\кадрові документи`);
     }
   };

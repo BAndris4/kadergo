@@ -52,10 +52,18 @@ export interface FopData {
   fop_kezdete_datum?: string;
   nakaz_szam?: string;
   munkas_szam?: string;
+  folder_path?: string;
+  folder_group?: string;
   deleted_at?: string; // Дата переміщення в кошик
   cim?: Cim;
   okmany?: Okmany;
   munkasok: Munkas[];
+}
+
+export interface FolderGroup {
+  id: number;
+  name: string;
+  color: string;
 }
 
 export interface CreateFopFormState {
@@ -68,6 +76,8 @@ export interface CreateFopFormState {
 
   fop_kod: string;
   fop_kezdete_datum: string;
+  folder_path?: string;
+  folder_group?: string;
 
   iranyitoszam: string;
   megye: string;
@@ -101,6 +111,8 @@ export interface EditFopFormState {
   fop_kezdete_datum: string;
   nakaz_szam: string;
   munkas_szam: string;
+  folder_path?: string;
+  folder_group?: string;
 
   iranyitoszam: string;
   megye: string;
@@ -205,6 +217,7 @@ export interface ScanFopsResult {
 export interface DiscoveredFopDto {
   folder_name: string;
   folder_path: string;
+  folder_group?: string;
   kod: string;
   vezeteknev: string;
   keresztnev: string;

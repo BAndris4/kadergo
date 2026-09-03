@@ -750,7 +750,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     if (!rootFolder || !activeFop) return;
     try {
       setIsScanning(true);
-      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
       if (fopDir) {
         const targetDir = `${fopDir}\\кадрові документи`;
         const files = await scanFopNakazy(targetDir);
@@ -872,7 +872,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -945,7 +945,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -1020,7 +1020,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -1114,7 +1114,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -1201,7 +1201,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -1277,7 +1277,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       setIsGenerating(true);
       let targetDir = "";
       if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -1592,7 +1592,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                   type="button"
                   onClick={async () => {
                     if (rootFolder && activeFop) {
-                      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+                      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
                       if (fopDir) {
                         await openFolderInExplorer(`${fopDir}\\кадрові документи`);
                       }
@@ -2121,7 +2121,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                   type="button"
                   onClick={async () => {
                     if (rootFolder && activeFop) {
-                      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+                      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop?.folder_path);
                       if (fopDir) {
                         await openFolderInExplorer(`${fopDir}\\кадрові документи`);
                       }

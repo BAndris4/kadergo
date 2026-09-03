@@ -331,13 +331,13 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
       onShowToast("⚠️ Спочатку оберіть активного ФОП!");
       return;
     }
-    if (!rootFolder) {
-      onShowToast("⚠️ Спочатку оберіть головну папку збереження в Налаштуваннях!");
+    if (!rootFolder && !activeFop?.folder_path) {
+      onShowToast("⚠️ Спочатку оберіть головну папку збереження в Налаштуваннях або робочу папку ФОП!");
       return;
     }
     setIsGenerating(true);
     try {
-      const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const targetDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (selectionMode === "month") {
         const overridesList = Object.entries(workerOverrides).map(([wId, val]) => ({
           worker_id: Number(wId),
@@ -384,8 +384,8 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
       await openFolderInExplorer(folder || lastGeneratedPath);
       return;
     }
-    if (rootFolder && activeFop) {
-      const targetDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+    if ((rootFolder || activeFop?.folder_path) && activeFop) {
+      const targetDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (targetDir) await openFolderInExplorer(targetDir);
     }
   };

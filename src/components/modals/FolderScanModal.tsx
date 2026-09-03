@@ -27,10 +27,12 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
   onOpenAddModal,
 }) => {
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [batchGroup, setBatchGroup] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setBatchGroup("");
       const newItems = discoveredFops.filter((f) => !f.already_exists);
       if (newItems.length > 0) {
         setSelectedPaths(newItems.map((f) => f.folder_path));
@@ -60,7 +62,12 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
   };
 
   const handleConfirmImport = async () => {
-    const selectedItems = discoveredFops.filter((f) => selectedPaths.includes(f.folder_path));
+    const selectedItems = discoveredFops
+      .filter((f) => selectedPaths.includes(f.folder_path))
+      .map((f) => ({
+        ...f,
+        folder_group: batchGroup.trim() ? batchGroup.trim() : f.folder_group,
+      }));
     if (selectedItems.length === 0) return;
     setIsSubmitting(true);
     try {
@@ -97,8 +104,8 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
         </div>
 
         {/* Sub-header Controls */}
-        <div className="px-8 py-4 bg-[#f0f5f4] border-b-2 border-[#e2eceb] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="px-8 py-4 bg-[#f0f5f4] border-b-2 border-[#e2eceb] flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
               onClick={handleToggleAll}
@@ -117,8 +124,17 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
             </span>
           </div>
 
-          <div className="text-xs font-extrabold text-[#354f57]">
-            Знайдено всього: <span className="font-black text-[#133b47]">{discoveredFops.length}</span> папок
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-black text-[#354f57] shrink-0">
+              Група для імпорту:
+            </label>
+            <input
+              type="text"
+              placeholder="Залишити авто або вказати..."
+              value={batchGroup}
+              onChange={(e) => setBatchGroup(e.target.value)}
+              className="h-9 px-3 rounded-xl bg-white border border-[#bdcdcb] text-xs font-bold text-[#133b47] focus:outline-none focus:border-[#133b47] w-52"
+            />
           </div>
         </div>
 
@@ -158,11 +174,17 @@ export const FolderScanModal: React.FC<FolderScanModalProps> = ({
                     </div>
 
                     <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-black text-[#133b47] truncate">{fullName}</span>
                         {fop.kod && (
                           <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-[#f8a44c] text-[#133b47] shrink-0">
                             {fop.kod}
+                          </span>
+                        )}
+                        {fop.folder_group && (
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-[#133b47]/10 text-[#133b47] border border-[#133b47]/20 shrink-0 flex items-center gap-1">
+                            <FolderIcon className="w-3 h-3 text-[#f8a44c]" />
+                            <span>{fop.folder_group}</span>
                           </span>
                         )}
                       </div>

@@ -4,12 +4,13 @@ pub mod models;
 
 use commands::{
     create_fop, create_worker, delete_fop, delete_worker, dismiss_worker, ensure_fop_directory,
-    get_fops, import_selected_fops, open_folder_in_explorer, open_file_directly, pick_folder, preview_payroll, preview_payroll_period,
+    get_fops, import_selected_fops, open_folder_in_explorer, open_file_directly, pick_folder, pick_fop_folder, update_fop_folder_and_group, preview_payroll, preview_payroll_period,
     generate_payroll_excel, generate_payroll_period_excel, save_worker_kopek, reseed_db, scan_and_import_fop_folders, scan_fop_folders, update_fop, update_worker,
     preview_tabel, preview_tabel_period, generate_tabel_excel, generate_tabel_period_excel, delete_all_fops,
     generate_zayava_priyom_docx, generate_shtat_docx, generate_grafik_docx,
     generate_nakaz_priyom_docx, generate_nakaz_zvilnennya_docx, generate_nakaz_kasa_docx, generate_nakaz_prro_docx, generate_nakaz_shtat_docx, generate_nakaz_grafik_vidpustok_docx, scan_fop_nakazy, scrape_fop_address_from_nakazy,
     run_installer_from_bytes, download_and_run_installer, fetch_github_releases,
+    get_folder_groups, create_folder_group, update_folder_group, delete_folder_group, move_fop_to_group, parse_fop_folder_info,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,6 +24,7 @@ pub fn run() {
             reseed_db,
             create_fop,
             update_fop,
+            update_fop_folder_and_group,
             delete_fop,
             delete_all_fops,
             create_worker,
@@ -30,12 +32,19 @@ pub fn run() {
             dismiss_worker,
             delete_worker,
             pick_folder,
+            pick_fop_folder,
             ensure_fop_directory,
             open_folder_in_explorer,
             open_file_directly,
             scan_and_import_fop_folders,
             scan_fop_folders,
             import_selected_fops,
+            parse_fop_folder_info,
+            get_folder_groups,
+            create_folder_group,
+            update_folder_group,
+            delete_folder_group,
+            move_fop_to_group,
             preview_payroll,
             preview_payroll_period,
             generate_payroll_excel,

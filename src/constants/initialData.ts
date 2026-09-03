@@ -12,6 +12,8 @@ export const INITIAL_FORM_STATE: CreateFopFormState = {
 
   fop_kod: "",
   fop_kezdete_datum: "",
+  folder_path: "",
+  folder_group: "",
 
   iranyitoszam: "",
   megye: "",

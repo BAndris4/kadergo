@@ -1,11 +1,20 @@
 import React, { useState } from "react";
-import { BriefcaseIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { CreateFopFormState } from "../../types/fop";
+import {
+  BriefcaseIcon,
+  XMarkIcon,
+  FolderPlusIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/24/outline";
+import { CreateFopFormState, DiscoveredFopDto } from "../../types/fop";
 import { INITIAL_FORM_STATE } from "../../constants/initialData";
 import { Stepper } from "./Stepper";
 import { Step1PersonalInfo } from "./Step1PersonalInfo";
 import { Step2Address } from "./Step2Address";
 import { Step3Document } from "./Step3Document";
+import { pickFopFolder, parseFopFolderInfo } from "../../services/fopService";
 
 interface AddFopModalProps {
   isOpen: boolean;
@@ -14,9 +23,13 @@ interface AddFopModalProps {
 }
 
 export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [creationMode, setCreationMode] = useState<"quick_folder" | "manual">("quick_folder");
   const [activeStep, setActiveStep] = useState<number>(1);
   const [formData, setFormData] = useState<CreateFopFormState>(INITIAL_FORM_STATE);
   const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string }>({});
+  const [parsedInfo, setParsedInfo] = useState<DiscoveredFopDto | null>(null);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -81,16 +94,47 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
     setActiveStep(step);
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!validateStep1()) {
+      setCreationMode("manual");
       setActiveStep(1);
       return;
     }
     await onSubmit(formData);
     setFormData(INITIAL_FORM_STATE);
+    setParsedInfo(null);
+    setParseError(null);
     setErrors({});
     setActiveStep(1);
+    setCreationMode("quick_folder");
+  };
+
+  const handlePickFolderForQuickAdd = async () => {
+    try {
+      setParseError(null);
+      const chosen = await pickFopFolder();
+      if (!chosen) return;
+
+      setIsParsing(true);
+      const parsed = await parseFopFolderInfo(chosen);
+      setParsedInfo(parsed);
+
+      setFormData((prev) => ({
+        ...prev,
+        vezeteknev: parsed.vezeteknev || prev.vezeteknev,
+        keresztnev: parsed.keresztnev || prev.keresztnev,
+        apai_nev: parsed.apai_nev || prev.apai_nev,
+        kod: parsed.kod || prev.kod,
+        folder_path: parsed.folder_path,
+      }));
+      setErrors({});
+    } catch (err: any) {
+      console.error("Failed to parse folder:", err);
+      setParseError(err?.message || String(err));
+    } finally {
+      setIsParsing(false);
+    }
   };
 
   return (
@@ -118,72 +162,229 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
           </button>
         </div>
 
-        {/* Stepper Progress */}
-        <Stepper activeStep={activeStep} onGoToStep={handleGoToStep} />
+        {/* Mode Selector Tabs */}
+        <div className="px-8 pt-4 pb-2 bg-[#f4f8f7] border-b border-[#e2eceb] flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setCreationMode("quick_folder")}
+            className={`px-5 py-2.5 rounded-2xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer border-2 ${
+              creationMode === "quick_folder"
+                ? "bg-[#133b47] text-[#f8a44c] border-[#133b47] shadow-md shadow-[#133b47]/20"
+                : "bg-white text-[#133b47] border-[#cbd8d6] hover:border-[#133b47]/40"
+            }`}
+          >
+            <FolderPlusIcon className="w-4 h-4 stroke-[2.2]" />
+            <span>Швидко через папку</span>
+          </button>
 
-        {/* Scrollable Form Body */}
-        <form
-          onSubmit={handleFormSubmit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && activeStep < 3) {
-              e.preventDefault();
-              handleNextStep();
-            }
-          }}
-          className="flex flex-col flex-1 min-h-0"
-        >
-          <div className="p-7 overflow-y-auto flex-1 flex flex-col gap-5 custom-scrollbar">
-            {activeStep === 1 && (
-              <Step1PersonalInfo formData={formData} errors={errors} onChange={handleInputChange} />
+          <button
+            type="button"
+            onClick={() => setCreationMode("manual")}
+            className={`px-5 py-2.5 rounded-2xl font-black text-xs transition-all flex items-center gap-2 cursor-pointer border-2 ${
+              creationMode === "manual"
+                ? "bg-[#133b47] text-[#f8a44c] border-[#133b47] shadow-md shadow-[#133b47]/20"
+                : "bg-white text-[#133b47] border-[#cbd8d6] hover:border-[#133b47]/40"
+            }`}
+          >
+            <DocumentTextIcon className="w-4 h-4 stroke-[2.2]" />
+            <span>Вручну покроково</span>
+          </button>
+        </div>
+
+        {creationMode === "quick_folder" ? (
+          <div className="p-8 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
+            {/* Folder Picker Action Box */}
+            <div
+              onClick={handlePickFolderForQuickAdd}
+              className="p-8 rounded-3xl border-3 border-dashed border-[#cbd8d6] hover:border-[#133b47] bg-[#f8faf9] hover:bg-[#f0f6f5] transition-all cursor-pointer flex flex-col items-center text-center gap-3 group"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <FolderPlusIcon className="w-8 h-8 stroke-[2.2]" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-black text-base text-[#133b47] font-heading">
+                  {isParsing ? "Розпізнавання папки..." : "Натисніть, щоб обрати папку ФОП на комп'ютері"}
+                </span>
+                <span className="text-xs font-bold text-[#627f88]">
+                  Система автоматично прочитає код та повне ім'я з назви папки (наприклад: "1234567890 Шевченко Тарас Григорович")
+                </span>
+              </div>
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl bg-[#133b47] text-[#f8a44c] font-extrabold text-xs shadow-sm mt-1"
+              >
+                Обрати папку на диску
+              </button>
+            </div>
+
+            {parseError && (
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
+                <ExclamationCircleIcon className="w-5 h-5 shrink-0" />
+                <span>{parseError}</span>
+              </div>
             )}
 
-            {activeStep === 2 && (
-              <Step2Address formData={formData} onChange={handleInputChange} />
-            )}
+            {/* Parsed Result Display */}
+            {parsedInfo && (
+              <div className="p-6 rounded-3xl bg-[#fdfdfd] border-2 border-[#133b47] shadow-sm flex flex-col gap-4 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-[#e2eceb] pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="w-6 h-6 text-emerald-600 stroke-[2.5]" />
+                    <span className="font-black text-sm text-[#133b47]">Папку успішно розпізнано!</span>
+                  </div>
+                  {parsedInfo.already_exists && (
+                    <span className="text-xs font-black bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-200">
+                      Увага: ФОП з такими даними вже є в базі
+                    </span>
+                  )}
+                </div>
 
-            {activeStep === 3 && (
-              <Step3Document formData={formData} onChange={handleInputChange} onTypeToggle={handleTypeToggle} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
+                  <div className="flex flex-col gap-1 bg-[#f8faf9] p-3 rounded-xl border border-[#e2eceb]">
+                    <span className="text-[#658189] font-black uppercase text-[10px]">Прізвище</span>
+                    <input
+                      type="text"
+                      name="vezeteknev"
+                      value={formData.vezeteknev}
+                      onChange={handleInputChange}
+                      className="font-black text-sm text-[#133b47] bg-transparent border-b border-transparent focus:border-[#133b47] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-[#f8faf9] p-3 rounded-xl border border-[#e2eceb]">
+                    <span className="text-[#658189] font-black uppercase text-[10px]">Ім'я</span>
+                    <input
+                      type="text"
+                      name="keresztnev"
+                      value={formData.keresztnev}
+                      onChange={handleInputChange}
+                      className="font-black text-sm text-[#133b47] bg-transparent border-b border-transparent focus:border-[#133b47] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-[#f8faf9] p-3 rounded-xl border border-[#e2eceb]">
+                    <span className="text-[#658189] font-black uppercase text-[10px]">По батькові</span>
+                    <input
+                      type="text"
+                      name="apai_nev"
+                      value={formData.apai_nev}
+                      onChange={handleInputChange}
+                      className="font-black text-sm text-[#133b47] bg-transparent border-b border-transparent focus:border-[#133b47] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-[#f8faf9] p-3 rounded-xl border border-[#e2eceb]">
+                    <span className="text-[#658189] font-black uppercase text-[10px]">Ідентифікаційний код</span>
+                    <input
+                      type="text"
+                      name="kod"
+                      value={formData.kod}
+                      onChange={handleInputChange}
+                      className="font-black text-sm text-[#133b47] bg-transparent border-b border-transparent focus:border-[#133b47] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-[#f8faf9] p-3 rounded-xl border border-[#e2eceb] sm:col-span-2">
+                    <span className="text-[#658189] font-black uppercase text-[10px]">Прив'язана папка на диску</span>
+                    <span className="font-bold text-xs text-[#133b47] truncate" title={formData.folder_path}>
+                      {formData.folder_path}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreationMode("manual");
+                      setActiveStep(2);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-[#cbd8d6] hover:border-[#133b47] text-[#133b47] font-extrabold text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Додати адресу та паспорт</span>
+                    <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFormSubmit()}
+                    className="px-6 py-2.5 rounded-xl bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] font-black text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    Створити ФОП зараз ✓
+                  </button>
+                </div>
+              </div>
             )}
           </div>
+        ) : (
+          <>
+            {/* Stepper Progress for Manual Mode */}
+            <Stepper activeStep={activeStep} onGoToStep={handleGoToStep} />
 
-          {/* Modal Footer */}
-          <div className="flex items-center justify-between px-8 py-5 border-t-2 border-[#e2eceb] bg-[#f8faf9] gap-4">
-            {activeStep > 1 ? (
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="px-6 py-3 rounded-2xl bg-[#e6eeed] hover:bg-[#d5e2e0] text-[#133b47] font-black text-sm transition-all cursor-pointer"
-              >
-                ← Назад
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 rounded-2xl bg-[#e6eeed] hover:bg-[#d5e2e0] text-[#133b47] font-black text-sm transition-all cursor-pointer"
-              >
-                Скасувати
-              </button>
-            )}
+            {/* Scrollable Form Body */}
+            <form
+              onSubmit={handleFormSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && activeStep < 3) {
+                  e.preventDefault();
+                  handleNextStep();
+                }
+              }}
+              className="flex flex-col flex-1 min-h-0"
+            >
+              <div className="p-7 overflow-y-auto flex-1 flex flex-col gap-5 custom-scrollbar">
+                {activeStep === 1 && (
+                  <Step1PersonalInfo formData={formData} errors={errors} onChange={handleInputChange} />
+                )}
 
-            {activeStep < 3 ? (
-              <button
-                type="button"
-                onClick={handleNextStep}
-                className="px-7 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-white font-black text-sm shadow-md transition-all cursor-pointer"
-              >
-                Далі →
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="px-8 py-3 rounded-2xl bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] font-black text-sm shadow-xl shadow-[#f8a44c]/30 transition-all cursor-pointer"
-              >
-                Створити ФОП ✓
-              </button>
-            )}
-          </div>
-        </form>
+                {activeStep === 2 && (
+                  <Step2Address formData={formData} onChange={handleInputChange} />
+                )}
+
+                {activeStep === 3 && (
+                  <Step3Document formData={formData} onChange={handleInputChange} onTypeToggle={handleTypeToggle} />
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between px-8 py-5 border-t-2 border-[#e2eceb] bg-[#f8faf9] gap-4">
+                {activeStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="px-6 py-3 rounded-2xl bg-[#e6eeed] hover:bg-[#d5e2e0] text-[#133b47] font-black text-sm transition-all cursor-pointer"
+                  >
+                    ← Назад
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-6 py-3 rounded-2xl bg-[#e6eeed] hover:bg-[#d5e2e0] text-[#133b47] font-black text-sm transition-all cursor-pointer"
+                  >
+                    Скасувати
+                  </button>
+                )}
+
+                {activeStep < 3 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="px-7 py-3 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-white font-black text-sm shadow-md transition-all cursor-pointer"
+                  >
+                    Далі →
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="px-8 py-3 rounded-2xl bg-[#f8a44c] hover:bg-[#f59533] text-[#133b47] font-black text-sm shadow-xl shadow-[#f8a44c]/30 transition-all cursor-pointer"
+                  >
+                    Створити ФОП ✓
+                  </button>
+                )}
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

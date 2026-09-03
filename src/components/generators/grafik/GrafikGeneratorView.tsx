@@ -280,8 +280,8 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
     try {
       setIsGenerating(true);
       let targetDir = "";
-      if (rootFolder) {
-        const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      if (rootFolder || activeFop.folder_path) {
+        const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
         if (fopDir) {
           targetDir = `${fopDir}\\кадрові документи`;
         }
@@ -300,7 +300,6 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
       });
 
       setLastGeneratedPath(docPath);
-      onShowToast(`Графік відпусток успішно створено: ${docPath}`);
       setIsPromptModalOpen(true);
     } catch (err: any) {
       console.error("Error generating Grafik docx:", err);
@@ -314,8 +313,8 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
     if (lastGeneratedPath) {
       const folderPath = lastGeneratedPath.substring(0, Math.max(lastGeneratedPath.lastIndexOf("\\"), lastGeneratedPath.lastIndexOf("/")));
       await openFolderInExplorer(folderPath || lastGeneratedPath);
-    } else if (rootFolder && activeFop) {
-      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+    } else if ((rootFolder || activeFop?.folder_path) && activeFop) {
+      const fopDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
       if (fopDir) {
         const kadroviDir = `${fopDir}\\кадрові документи`;
         await openFolderInExplorer(kadroviDir);

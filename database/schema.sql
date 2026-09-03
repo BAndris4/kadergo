@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS fop (
     fop_kezdete_datum TEXT, -- ÉÉÉÉ-HH-NN
     nakaz_szam TEXT,
     munkas_szam TEXT,
+    folder_path TEXT,
+    folder_group TEXT,
     FOREIGN KEY (szemely_id) REFERENCES szemely(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -91,5 +93,13 @@ CREATE TABLE IF NOT EXISTS kopek (
     UNIQUE(munkavallalo_id, fop_id, ev, honap),
     FOREIGN KEY (munkavallalo_id) REFERENCES szemely(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (fop_id) REFERENCES fop(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 7. Folder Group tábla (FOP kategóriák / mappák színekkel)
+CREATE TABLE IF NOT EXISTS folder_group (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    color TEXT NOT NULL,
+    created_at TEXT
 );
 

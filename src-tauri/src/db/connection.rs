@@ -34,6 +34,17 @@ pub fn init_sqlite_db() -> SqlResult<Connection> {
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN fop_kezdete_datum TEXT", []);
     let _ = conn.execute("ALTER TABLE fop ADD COLUMN deleted_at TEXT", []);
     let _ = conn.execute("ALTER TABLE jogviszony ADD COLUMN tabel_nomer TEXT", []);
+    let _ = conn.execute("ALTER TABLE fop ADD COLUMN folder_path TEXT", []);
+    let _ = conn.execute("ALTER TABLE fop ADD COLUMN folder_group TEXT", []);
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS folder_group (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            color TEXT NOT NULL,
+            created_at TEXT
+        )",
+        [],
+    );
 
     Ok(conn)
 }

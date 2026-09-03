@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazZvilnennyaRequest, GenerateNakazKasaRequest, GenerateNakazPrroRequest, GenerateNakazShtatRequest, GenerateNakazGrafikVidpustokRequest, NakazFileItem } from "../types/fop";
+import { FopData, FolderGroup, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazZvilnennyaRequest, GenerateNakazKasaRequest, GenerateNakazPrroRequest, GenerateNakazShtatRequest, GenerateNakazGrafikVidpustokRequest, NakazFileItem } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -40,19 +40,47 @@ export async function pickRootFolder(): Promise<string | null> {
   return null;
 }
 
-export async function ensureFopDirectory(rootDir: string, fopCode: string, fopName: string): Promise<string> {
-  if (!rootDir.trim()) return "";
+export async function pickFopFolder(): Promise<string | null> {
+  try {
+    const chosen = await invoke<string | null>("pick_fop_folder");
+    return chosen;
+  } catch (err) {
+    console.warn("Tauri pick_fop_folder fallback:", err);
+    return null;
+  }
+}
+
+export async function ensureFopDirectory(
+  rootDir: string,
+  fopCode: string,
+  fopName: string,
+  customPath?: string
+): Promise<string> {
+  if (!rootDir.trim() && (!customPath || !customPath.trim())) return "";
   try {
     const createdPath = await invoke<string>("ensure_fop_directory", {
-      rootDir,
+      rootDir: rootDir || "",
       fopCode: fopCode || "",
-      fopName,
+      fopName: fopName || "",
+      customPath: customPath || null,
     });
     return createdPath;
   } catch (err) {
     console.warn("Tauri ensure_fop_directory fallback:", err);
-    return "";
+    return customPath || "";
   }
+}
+
+export async function updateFopFolderAndGroup(
+  fopId: number,
+  folderPath: string | null,
+  folderGroup: string | null
+): Promise<FopData> {
+  return await invoke<FopData>("update_fop_folder_and_group", {
+    fopId,
+    folderPath,
+    folderGroup,
+  });
 }
 
 export async function openFolderInExplorer(folderPath: string): Promise<void> {
@@ -165,6 +193,8 @@ export async function createFop(formData: CreateFopFormState, existingFops: FopD
     nem: formData.nem.trim() || undefined,
     fop_kod: formData.fop_kod.trim() || undefined,
     fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
+    folder_path: formData.folder_path?.trim() || undefined,
+    folder_group: formData.folder_group?.trim() || undefined,
     cim: {
       iranyitoszam: formData.iranyitoszam.trim() || undefined,
       megye: formData.megye.trim() || undefined,
@@ -194,8 +224,8 @@ export async function createFop(formData: CreateFopFormState, existingFops: FopD
 
   // Auto-create directory structure if rootDirectory is set
   const rootFolder = getSavedRootFolder();
-  if (rootFolder) {
-    await ensureFopDirectory(rootFolder, fopCode, fopFullName);
+  if (rootFolder || formData.folder_path) {
+    await ensureFopDirectory(rootFolder || "", fopCode, fopFullName, formData.folder_path);
   }
 
   try {
@@ -243,6 +273,8 @@ export async function updateFop(formData: EditFopFormState, existingFops: FopDat
     fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
     nakaz_szam: formData.nakaz_szam.trim() || undefined,
     munkas_szam: formData.munkas_szam.trim() || undefined,
+    folder_path: formData.folder_path?.trim() || undefined,
+    folder_group: formData.folder_group?.trim() || undefined,
     cim: {
       iranyitoszam: formData.iranyitoszam.trim() || undefined,
       megye: formData.megye.trim() || undefined,
@@ -267,13 +299,13 @@ export async function updateFop(formData: EditFopFormState, existingFops: FopDat
       : undefined,
   };
 
-  const fopFullName = [formData.vezeteknev, formData.keresztnev, formData.apai_nev].filter(Boolean).join(" ");
-  const fopCode = formData.kod.trim() || formData.fop_kod.trim() || "";
+  // Decoupled folder path: keep existing folder path intact, never rename/reconstruct on disk when FOP name changes
+  const existingFop = existingFops.find((f) => f.id === formData.id);
+  const effectiveFolderPath = formData.folder_path?.trim() || existingFop?.folder_path?.trim() || undefined;
+  inputData.folder_path = effectiveFolderPath;
 
-  // Auto-sync directory structure if root folder is set
-  const rootFolder = getSavedRootFolder();
-  if (rootFolder) {
-    await ensureFopDirectory(rootFolder, fopCode, fopFullName);
+  if (effectiveFolderPath) {
+    await ensureFopDirectory("", "", "", effectiveFolderPath);
   }
 
   try {
@@ -297,6 +329,8 @@ export async function updateFop(formData: EditFopFormState, existingFops: FopDat
       fop_kezdete_datum: formData.fop_kezdete_datum || undefined,
       nakaz_szam: formData.nakaz_szam.trim() || "1",
       munkas_szam: formData.munkas_szam.trim() || "1",
+      folder_path: formData.folder_path?.trim() || undefined,
+      folder_group: formData.folder_group?.trim() || undefined,
       cim: inputData.cim,
       okmany: inputData.okmany,
       munkasok: existingWorkers,
@@ -729,6 +763,35 @@ export async function updateFopDirect(fop: FopData, existingFops: FopData[]): Pr
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
     return fop;
   }
+}
+
+export async function fetchFolderGroups(): Promise<FolderGroup[]> {
+  try {
+    return await invoke<FolderGroup[]>("get_folder_groups");
+  } catch (err) {
+    console.warn("Tauri get_folder_groups fallback:", err);
+    return [];
+  }
+}
+
+export async function createFolderGroup(name: string, color: string): Promise<FolderGroup> {
+  return await invoke<FolderGroup>("create_folder_group", { name, color });
+}
+
+export async function updateFolderGroup(id: number, name: string, color: string): Promise<void> {
+  await invoke("update_folder_group", { id, name, color });
+}
+
+export async function deleteFolderGroup(id: number): Promise<void> {
+  await invoke("delete_folder_group", { id });
+}
+
+export async function moveFopToGroup(fopId: number, groupName: string | null): Promise<void> {
+  await invoke("move_fop_to_group", { fopId, groupName });
+}
+
+export async function parseFopFolderInfo(folderPath: string): Promise<DiscoveredFopDto> {
+  return await invoke<DiscoveredFopDto>("parse_fop_folder_info", { folderPath });
 }
 
 

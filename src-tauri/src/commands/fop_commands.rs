@@ -1,6 +1,6 @@
 use rusqlite::{params, OptionalExtension};
 use crate::db::init_sqlite_db;
-use crate::models::{CimInput, CreateFopInput, FopDto, MunkasDto, OkmanyInput, UpdateFopInput};
+use crate::models::{CimInput, CreateFopInput, FopDto, FolderGroupDto, MunkasDto, OkmanyInput, UpdateFopInput};
 
 #[tauri::command]
 pub fn get_fops() -> Result<Vec<FopDto>, String> {
@@ -11,7 +11,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             "SELECT f.id, s.kod, s.vezeteknev, s.keresztnev, s.apai_nev, s.szuletesi_datum, s.nem,
                     f.fop_kod, f.fop_kezdete_datum, f.nakaz_szam, f.munkas_szam,
                     c.iranyitoszam, c.megye, c.jaras, c.kozseg, c.utca, c.hazszam, c.epulet, c.lakas_szoba, c.orszag,
-                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum
+                    o.tipus, o.szeria, o.okmanyszam, o.kiallitott_hatosag, o.hatosagi_kod, o.kiallitasi_datum, o.lejarati_datum,
+                    f.folder_path, f.folder_group
              FROM fop f
              JOIN szemely s ON f.szemely_id = s.id
              LEFT JOIN cim c ON c.szemely_id = s.id
@@ -66,6 +67,9 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                 None
             };
 
+            let folder_path: Option<String> = row.get(27).ok().flatten();
+            let folder_group: Option<String> = row.get(28).ok().flatten();
+
             Ok((
                 fop_id,
                 kod,
@@ -78,6 +82,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
                 fop_kezdete_datum,
                 nakaz_szam,
                 munkas_szam,
+                folder_path,
+                folder_group,
                 cim,
                 okmany,
             ))
@@ -99,6 +105,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             fop_kezdete_datum,
             nakaz_szam,
             munkas_szam,
+            folder_path,
+            folder_group,
             cim,
             okmany,
         ) = match fop_res {
@@ -208,6 +216,8 @@ pub fn get_fops() -> Result<Vec<FopDto>, String> {
             fop_kezdete_datum,
             nakaz_szam,
             munkas_szam,
+            folder_path,
+            folder_group,
             cim,
             okmany,
             munkasok,
@@ -323,8 +333,8 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
     }
 
     tx.execute(
-        "INSERT INTO fop (szemely_id, fop_kod, fop_kezdete_datum, nakaz_szam, munkas_szam) VALUES (?1, ?2, ?3, '1', '1')",
-        params![szemely_id, fop_code, fop_start_date],
+        "INSERT INTO fop (szemely_id, fop_kod, fop_kezdete_datum, nakaz_szam, munkas_szam, folder_path, folder_group) VALUES (?1, ?2, ?3, '1', '1', ?4, ?5)",
+        params![szemely_id, fop_code, fop_start_date, input.folder_path, input.folder_group],
     )
     .map_err(|e| format!("Не вдалося створити ФОП: {}", e))?;
 
@@ -344,6 +354,8 @@ pub fn create_fop(input: CreateFopInput) -> Result<FopDto, String> {
         fop_kezdete_datum: fop_start_date,
         nakaz_szam: Some("1".to_string()),
         munkas_szam: Some("1".to_string()),
+        folder_path: input.folder_path,
+        folder_group: input.folder_group,
         cim: input.cim,
         okmany: input.okmany,
         munkasok: vec![],
@@ -397,8 +409,8 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
     .map_err(|e| format!("Не вдалося оновити особу: {}", e))?;
 
     tx.execute(
-        "UPDATE fop SET fop_kod = ?1, fop_kezdete_datum = ?2, nakaz_szam = ?3, munkas_szam = ?4 WHERE id = ?5",
-        params![fop_code, fop_start_date, input.nakaz_szam, input.munkas_szam, input.id],
+        "UPDATE fop SET fop_kod = ?1, fop_kezdete_datum = ?2, nakaz_szam = ?3, munkas_szam = ?4, folder_path = ?5, folder_group = ?6 WHERE id = ?7",
+        params![fop_code, fop_start_date, input.nakaz_szam, input.munkas_szam, input.folder_path, input.folder_group, input.id],
     )
     .map_err(|e| format!("Не вдалося оновити ФОП: {}", e))?;
 
@@ -600,10 +612,32 @@ pub fn update_fop(input: UpdateFopInput) -> Result<FopDto, String> {
         fop_kezdete_datum: fop_start_date,
         nakaz_szam: input.nakaz_szam,
         munkas_szam: input.munkas_szam,
+        folder_path: input.folder_path,
+        folder_group: input.folder_group,
         cim: input.cim,
         okmany: input.okmany,
         munkasok,
     })
+}
+
+#[tauri::command]
+pub fn update_fop_folder_and_group(
+    fop_id: i64,
+    folder_path: Option<String>,
+    folder_group: Option<String>,
+) -> Result<FopDto, String> {
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE fop SET folder_path = ?1, folder_group = ?2 WHERE id = ?3",
+        params![folder_path, folder_group, fop_id],
+    )
+    .map_err(|e| format!("Не вдалося оновити папку та групу ФОП: {}", e))?;
+
+    let all_fops = get_fops()?;
+    all_fops
+        .into_iter()
+        .find(|f| f.id == fop_id)
+        .ok_or_else(|| "ФОП не знайдено".to_string())
 }
 
 #[tauri::command]
@@ -628,6 +662,118 @@ pub fn delete_fop(fop_id: i64) -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub fn get_folder_groups() -> Result<Vec<FolderGroupDto>, String> {
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT id, name, color FROM folder_group ORDER BY name ASC")
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(FolderGroupDto {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                color: row.get(2)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut groups = Vec::new();
+    for r in rows {
+        if let Ok(grp) = r {
+            groups.push(grp);
+        }
+    }
+    Ok(groups)
+}
+
+#[tauri::command]
+pub fn create_folder_group(name: String, color: String) -> Result<FolderGroupDto, String> {
+    let trimmed_name = name.trim().to_string();
+    if trimmed_name.is_empty() {
+        return Err("Назва папки не може бути порожньою".to_string());
+    }
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO folder_group (name, color, created_at) VALUES (?1, ?2, datetime('now'))",
+        params![trimmed_name, color.trim()],
+    )
+    .map_err(|e| format!("Не вдалося створити папку (можливо, папка з такою назвою вже існує): {}", e))?;
+
+    let id = conn.last_insert_rowid();
+    Ok(FolderGroupDto {
+        id,
+        name: trimmed_name,
+        color: color.trim().to_string(),
+    })
+}
+
+#[tauri::command]
+pub fn update_folder_group(id: i64, name: String, color: String) -> Result<(), String> {
+    let trimmed_name = name.trim().to_string();
+    if trimmed_name.is_empty() {
+        return Err("Назва папки не може бути порожньою".to_string());
+    }
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+
+    let old_name: Option<String> = conn
+        .query_row("SELECT name FROM folder_group WHERE id = ?1", params![id], |r| r.get(0))
+        .ok();
+
+    conn.execute(
+        "UPDATE folder_group SET name = ?1, color = ?2 WHERE id = ?3",
+        params![trimmed_name, color.trim(), id],
+    )
+    .map_err(|e| format!("Не вдалося оновити папку: {}", e))?;
+
+    if let Some(old) = old_name {
+        if old != trimmed_name {
+            let _ = conn.execute(
+                "UPDATE fop SET folder_group = ?1 WHERE folder_group = ?2",
+                params![trimmed_name, old],
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_folder_group(id: i64) -> Result<(), String> {
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+
+    let group_name: Option<String> = conn
+        .query_row("SELECT name FROM folder_group WHERE id = ?1", params![id], |r| r.get(0))
+        .ok();
+
+    conn.execute("DELETE FROM folder_group WHERE id = ?1", params![id])
+        .map_err(|e| format!("Не вдалося видалити папку: {}", e))?;
+
+    if let Some(name) = group_name {
+        let _ = conn.execute(
+            "UPDATE fop SET folder_group = NULL WHERE folder_group = ?1",
+            params![name],
+        );
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn move_fop_to_group(fop_id: i64, group_name: Option<String>) -> Result<(), String> {
+    let conn = init_sqlite_db().map_err(|e| e.to_string())?;
+    let clean_group = group_name.filter(|s| !s.trim().is_empty());
+    conn.execute(
+        "UPDATE fop SET folder_group = ?1 WHERE id = ?2",
+        params![clean_group, fop_id],
+    )
+    .map_err(|e| format!("Не вдалося перемістити ФОП у папку: {}", e))?;
+
+    Ok(())
+}
+
 
 #[tauri::command]
 pub fn delete_all_fops() -> Result<(), String> {

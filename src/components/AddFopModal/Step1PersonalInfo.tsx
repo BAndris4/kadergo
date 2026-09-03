@@ -174,6 +174,35 @@ export const Step1PersonalInfo: React.FC<Step1Props> = ({ formData, errors, onCh
               placeholder="Дата реєстрації"
             />
           </div>
+
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
+              Робоча папка ФОП (за замовчуванням: авто-папка)
+            </label>
+            <div className="flex items-center gap-2.5">
+              <input
+                type="text"
+                name="folder_path"
+                placeholder="Автоматично: {Головна папка}\{Код} {ПІБ}"
+                value={formData.folder_path || ""}
+                onChange={onChange}
+                className="w-full h-13 px-4 rounded-2xl bg-white border-2 border-[#bdcdcb] text-[#133b47] text-sm font-bold focus:outline-none focus:border-[#133b47] focus:ring-4 focus:ring-[#133b47]/10 transition-all"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const { pickFopFolder } = await import("../../services/fopService");
+                  const chosen = await pickFopFolder();
+                  if (chosen) {
+                    onChange({ target: { name: "folder_path", value: chosen } } as any);
+                  }
+                }}
+                className="h-13 px-4 rounded-2xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-all cursor-pointer shrink-0"
+              >
+                Обрати папку
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

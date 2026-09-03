@@ -53,7 +53,36 @@ pub fn pick_folder() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-pub fn ensure_fop_directory(root_dir: String, fop_code: String, fop_name: String) -> Result<String, String> {
+pub fn pick_fop_folder() -> Result<Option<String>, String> {
+    let folder = FileDialog::new()
+        .set_title("Оберіть робочу папку для ФОП")
+        .pick_folder();
+
+    Ok(folder.map(|p| p.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+pub fn ensure_fop_directory(
+    root_dir: String,
+    fop_code: String,
+    fop_name: String,
+    custom_path: Option<String>,
+) -> Result<String, String> {
+    // If a custom folder path is provided, use it directly!
+    if let Some(ref path_str) = custom_path {
+        let trimmed = path_str.trim();
+        if !trimmed.is_empty() {
+            let custom_dir = PathBuf::from(trimmed);
+            let mut doc_sub_dir = custom_dir.clone();
+            doc_sub_dir.push("кадрові документи");
+
+            if !doc_sub_dir.exists() {
+                let _ = fs::create_dir_all(&doc_sub_dir);
+            }
+            return Ok(custom_dir.to_string_lossy().into_owned());
+        }
+    }
+
     if root_dir.trim().is_empty() {
         return Err("Головну папку збереження не вказано".to_string());
     }
@@ -129,6 +158,47 @@ pub fn open_file_directly(file_path: String) -> Result<(), String> {
     Ok(())
 }
 
+fn parse_fop_from_folder_name(folder_name: &str) -> Option<(String, String, String, String)> {
+    let clean_name = clean_whitespace(&folder_name.replace('_', " "));
+    let parts: Vec<&str> = clean_name.split(' ').filter(|s| !s.trim().is_empty()).collect();
+
+    if parts.len() < 2 {
+        return None;
+    }
+
+    let has_code_token = parts[0].chars().any(|c| c.is_ascii_digit()) || parts[0].contains('-');
+
+    let (code, vezeteknev, keresztnev, apai_nev) = if has_code_token && parts.len() >= 3 {
+        let code = parts[0].trim().to_string();
+        let vezeteknev = to_human_readable_name(parts[1]);
+        let keresztnev = to_human_readable_name(parts[2]);
+        let apai_nev = if parts.len() >= 4 {
+            to_human_readable_name(&parts[3..].join(" "))
+        } else {
+            "".to_string()
+        };
+        (code, vezeteknev, keresztnev, apai_nev)
+    } else if parts.len() >= 2 {
+        let vezeteknev = to_human_readable_name(parts[0]);
+        let keresztnev = to_human_readable_name(parts[1]);
+        let apai_nev = if parts.len() >= 3 {
+            to_human_readable_name(&parts[2..].join(" "))
+        } else {
+            "".to_string()
+        };
+
+        ("".to_string(), vezeteknev, keresztnev, apai_nev)
+    } else {
+        return None;
+    };
+
+    if vezeteknev.is_empty() || keresztnev.is_empty() {
+        return None;
+    }
+
+    Some((code, vezeteknev, keresztnev, apai_nev))
+}
+
 #[tauri::command]
 pub fn scan_fop_folders(root_dir: String) -> Result<Vec<DiscoveredFopDto>, String> {
     if root_dir.trim().is_empty() {
@@ -163,44 +233,90 @@ pub fn scan_fop_folders(root_dir: String) -> Result<Vec<DiscoveredFopDto>, Strin
             None => continue,
         };
 
-        let clean_name = clean_whitespace(&folder_name.replace('_', " "));
-        let parts: Vec<&str> = clean_name.split(' ').filter(|s| !s.trim().is_empty()).collect();
+        // Case 1: Direct FOP folder in root_dir
+        if let Some((code, vezeteknev, keresztnev, apai_nev)) = parse_fop_from_folder_name(&folder_name) {
+            let exists: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM fop f JOIN szemely s ON f.szemely_id = s.id WHERE (s.kod IS NOT NULL AND s.kod = ?1 AND ?1 != '') OR (f.fop_kod IS NOT NULL AND f.fop_kod = ?1 AND ?1 != '') OR (s.vezeteknev = ?2 AND s.keresztnev = ?3 AND s.apai_nev = ?4)",
+                    rusqlite::params![code, vezeteknev, keresztnev, apai_nev],
+                    |r| r.get(0),
+                )
+                .unwrap_or(0);
 
-        if parts.len() < 2 {
-            continue;
-        }
-
-        let has_code_token = parts[0].chars().any(|c| c.is_ascii_digit()) || parts[0].contains('-');
-
-        let (code, vezeteknev, keresztnev, apai_nev) = if has_code_token && parts.len() >= 3 {
-            let code = parts[0].trim().to_string();
-            let vezeteknev = to_human_readable_name(parts[1]);
-            let keresztnev = to_human_readable_name(parts[2]);
-            let apai_nev = if parts.len() >= 4 {
-                to_human_readable_name(&parts[3..].join(" "))
-            } else {
-                "".to_string()
-            };
-            (code, vezeteknev, keresztnev, apai_nev)
-        } else if parts.len() >= 2 {
-            let vezeteknev = to_human_readable_name(parts[0]);
-            let keresztnev = to_human_readable_name(parts[1]);
-            let apai_nev = if parts.len() >= 3 {
-                to_human_readable_name(&parts[2..].join(" "))
-            } else {
-                "".to_string()
-            };
-
-            ("".to_string(), vezeteknev, keresztnev, apai_nev)
+            if exists == 0 {
+                discovered.push(DiscoveredFopDto {
+                    folder_name: folder_name.clone(),
+                    folder_path: path.to_string_lossy().to_string(),
+                    folder_group: None,
+                    kod: code,
+                    vezeteknev,
+                    keresztnev,
+                    apai_nev,
+                    already_exists: false,
+                });
+            }
         } else {
-            continue;
-        };
+            // Case 2: Group folder containing subfolders of FOPs!
+            if let Ok(sub_entries) = fs::read_dir(&path) {
+                let group_name = folder_name.clone();
+                for sub_entry in sub_entries {
+                    let sub_entry = match sub_entry {
+                        Ok(e) => e,
+                        Err(_) => continue,
+                    };
+                    let sub_path = sub_entry.path();
+                    if !sub_path.is_dir() {
+                        continue;
+                    }
+                    let sub_folder_name = match sub_path.file_name() {
+                        Some(n) => n.to_string_lossy().to_string(),
+                        None => continue,
+                    };
 
-        if vezeteknev.is_empty() || keresztnev.is_empty() {
-            continue;
+                    if let Some((code, vezeteknev, keresztnev, apai_nev)) = parse_fop_from_folder_name(&sub_folder_name) {
+                        let exists: i64 = conn
+                            .query_row(
+                                "SELECT COUNT(*) FROM fop f JOIN szemely s ON f.szemely_id = s.id WHERE (s.kod IS NOT NULL AND s.kod = ?1 AND ?1 != '') OR (f.fop_kod IS NOT NULL AND f.fop_kod = ?1 AND ?1 != '') OR (s.vezeteknev = ?2 AND s.keresztnev = ?3 AND s.apai_nev = ?4)",
+                                rusqlite::params![code, vezeteknev, keresztnev, apai_nev],
+                                |r| r.get(0),
+                            )
+                            .unwrap_or(0);
+
+                        if exists == 0 {
+                            discovered.push(DiscoveredFopDto {
+                                folder_name: sub_folder_name,
+                                folder_path: sub_path.to_string_lossy().to_string(),
+                                folder_group: Some(group_name.clone()),
+                                kod: code,
+                                vezeteknev,
+                                keresztnev,
+                                apai_nev,
+                                already_exists: false,
+                            });
+                        }
+                    }
+                }
+            }
         }
+    }
 
-        // Check if FOP record already exists in `fop` table
+    Ok(discovered)
+}
+
+#[tauri::command]
+pub fn parse_fop_folder_info(folder_path: String) -> Result<DiscoveredFopDto, String> {
+    let path = std::path::PathBuf::from(&folder_path);
+    if !path.exists() {
+        return Err(format!("Вказана папка не існує: {}", folder_path));
+    }
+
+    let folder_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    if let Some((code, vezeteknev, keresztnev, apai_nev)) = parse_fop_from_folder_name(&folder_name) {
+        let conn = crate::db::init_sqlite_db().map_err(|e| e.to_string())?;
         let exists: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM fop f JOIN szemely s ON f.szemely_id = s.id WHERE (s.kod IS NOT NULL AND s.kod = ?1 AND ?1 != '') OR (f.fop_kod IS NOT NULL AND f.fop_kod = ?1 AND ?1 != '') OR (s.vezeteknev = ?2 AND s.keresztnev = ?3 AND s.apai_nev = ?4)",
@@ -209,22 +325,28 @@ pub fn scan_fop_folders(root_dir: String) -> Result<Vec<DiscoveredFopDto>, Strin
             )
             .unwrap_or(0);
 
-        if exists > 0 {
-            continue;
-        }
-
-        discovered.push(DiscoveredFopDto {
+        Ok(DiscoveredFopDto {
             folder_name: folder_name.clone(),
             folder_path: path.to_string_lossy().to_string(),
+            folder_group: None,
             kod: code,
             vezeteknev,
             keresztnev,
             apai_nev,
+            already_exists: exists > 0,
+        })
+    } else {
+        Ok(DiscoveredFopDto {
+            folder_name: folder_name.clone(),
+            folder_path: path.to_string_lossy().to_string(),
+            folder_group: None,
+            kod: "".to_string(),
+            vezeteknev: to_human_readable_name(&folder_name),
+            keresztnev: "".to_string(),
+            apai_nev: "".to_string(),
             already_exists: false,
-        });
+        })
     }
-
-    Ok(discovered)
 }
 
 #[tauri::command]
@@ -242,6 +364,10 @@ pub fn import_selected_fops(items: Vec<DiscoveredFopDto>) -> Result<Vec<crate::m
             continue;
         }
 
+        let folder_path_val = item.folder_path.trim().to_string();
+        let folder_path_opt = if folder_path_val.is_empty() { None } else { Some(folder_path_val) };
+        let folder_group_opt = item.folder_group.clone().filter(|s| !s.trim().is_empty());
+
         // Check if FOP already exists in `fop` table
         let fop_exists: i64 = conn
             .query_row(
@@ -252,6 +378,12 @@ pub fn import_selected_fops(items: Vec<DiscoveredFopDto>) -> Result<Vec<crate::m
             .unwrap_or(0);
 
         if fop_exists > 0 {
+            // Update existing FOP's folder_path and folder_group if provided
+            let _ = conn.execute(
+                "UPDATE fop SET folder_path = COALESCE(?1, folder_path), folder_group = COALESCE(?2, folder_group)
+                 WHERE szemely_id = (SELECT id FROM szemely WHERE (kod IS NOT NULL AND kod = ?3 AND ?3 != '') OR (vezeteknev = ?4 AND keresztnev = ?5 AND apai_nev = ?6) LIMIT 1)",
+                rusqlite::params![folder_path_opt, folder_group_opt, code, vezeteknev, keresztnev, apai_nev],
+            );
             continue;
         }
 
@@ -281,8 +413,8 @@ pub fn import_selected_fops(items: Vec<DiscoveredFopDto>) -> Result<Vec<crate::m
 
         let tx = conn.transaction().map_err(|e| e.to_string())?;
         tx.execute(
-            "INSERT INTO fop (szemely_id, fop_kod, nakaz_szam, munkas_szam) VALUES (?1, NULL, '1', '1')",
-            rusqlite::params![szemely_id],
+            "INSERT INTO fop (szemely_id, fop_kod, nakaz_szam, munkas_szam, folder_path, folder_group) VALUES (?1, NULL, '1', '1', ?2, ?3)",
+            rusqlite::params![szemely_id, folder_path_opt, folder_group_opt],
         )
         .map_err(|e| format!("Не вдалося створити ФОП з папки: {}", e))?;
         tx.commit().map_err(|e| e.to_string())?;

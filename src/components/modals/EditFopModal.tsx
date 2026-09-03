@@ -14,7 +14,13 @@ interface EditFopModalProps {
   onDeleteClick: (fop: FopData) => void;
 }
 
-export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose, onSubmit, onDeleteClick }) => {
+export const EditFopModal: React.FC<EditFopModalProps> = ({
+  isOpen,
+  fop,
+  onClose,
+  onSubmit,
+  onDeleteClick,
+}) => {
   const [formData, setFormData] = useState<EditFopFormState | null>(null);
   const [errors, setErrors] = useState<{ vezeteknev?: string; keresztnev?: string; apai_nev?: string; kod?: string }>({});
 
@@ -33,6 +39,8 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
         fop_kezdete_datum: fop.fop_kezdete_datum || "",
         nakaz_szam: fop.nakaz_szam || "1",
         munkas_szam: fop.munkas_szam || "1",
+        folder_path: fop.folder_path || "",
+        folder_group: fop.folder_group || "",
 
         iranyitoszam: fop.cim?.iranyitoszam || "",
         megye: fop.cim?.megye || "",
@@ -142,6 +150,7 @@ export const EditFopModal: React.FC<EditFopModalProps> = ({ isOpen, fop, onClose
               formData={formData}
               onChange={handleInputChange}
               onDateChange={(d) => handleFieldChange("fop_kezdete_datum", d)}
+              onFieldChange={handleFieldChange}
             />
 
             <FopAddressTab
