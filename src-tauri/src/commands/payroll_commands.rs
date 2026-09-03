@@ -789,19 +789,33 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         .set_align(FormatAlign::VerticalCenter)
         .set_border(FormatBorder::Thin);
 
+    // Centered total number formatting (both horizontally and vertically centered from Column E onwards)
     let format_total_num = Format::new()
         .set_font_name(font_family)
         .set_font_size(10)
         .set_bold()
-        .set_align(FormatAlign::Right)
+        .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter)
         .set_num_format("#,##0.00;-#,##0.00;\"-\"")
+        .set_border(FormatBorder::Thin);
+
+    let format_total_center = Format::new()
+        .set_font_name(font_family)
+        .set_font_size(10)
+        .set_bold()
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter)
         .set_border(FormatBorder::Thin);
 
     let format_footer_text = Format::new()
         .set_font_name(font_family)
         .set_font_size(10)
         .set_bold();
+
+    // ─── Print Setup: 1-Page Landscape Fit (Ctrl+P landscape & fit on 1 page) ────
+    worksheet.set_landscape();
+    worksheet.set_paper_size(9); // 9 = A4 paper size in OpenXML/Excel
+    worksheet.set_print_fit_to_pages(1, 1); // Fit sheet on 1 page (1 page wide, 1 page tall)
 
     // Column widths matching EXACT template narrow widths
     worksheet.set_column_width(0, 2.71).map_err(|e| e.to_string())?;  // A: №
@@ -1001,7 +1015,7 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         let f_e = format!("=SUM(E{}:E{})", excel_first, excel_last);
         worksheet.write_formula_with_format(total_r, 4, f_e.as_str(), &format_total_num).map_err(|e| e.to_string())?;
 
-        worksheet.write_with_format(total_r, 5, "", &format_total_num).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(total_r, 5, "", &format_total_center).map_err(|e| e.to_string())?;
 
         // G total
         let f_g = format!("=SUM(G{}:G{})", excel_first, excel_last);
@@ -1058,7 +1072,7 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         let f_w = format!("=SUM(W{}:W{})", excel_first, excel_last);
         worksheet.write_formula_with_format(total_r, 22, f_w.as_str(), &format_total_num).map_err(|e| e.to_string())?;
 
-        worksheet.write_with_format(total_r, 23, "", &format_total_label).map_err(|e| e.to_string())?;
+        worksheet.write_with_format(total_r, 23, "", &format_total_center).map_err(|e| e.to_string())?;
     }
 
     // Signature Footer (Row total_r + 4)

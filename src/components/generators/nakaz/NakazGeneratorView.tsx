@@ -25,7 +25,7 @@ import {
   Squares2X2Icon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem, NakazPriyomWorkerItem, NakazZvilnennyaWorkerItem } from "../../../types/fop";
+import { FopData, Munkas, NakazFileItem, Cim, NakazKasaWorkerItem, NakazPrroWorkerItem, NakazPriyomWorkerItem, NakazZvilnennyaWorkerItem, InitialNakazData } from "../../../types/fop";
 import { formatAddressDisplay } from "../../../utils/addressUtils";
 import {
   generateNakazPriyomDocx,
@@ -53,6 +53,7 @@ interface NakazGeneratorViewProps {
   onEditWorker?: (worker: Munkas) => void;
   onUpdateFopList?: (updatedFops: FopData[]) => void;
   onEditFop?: (fop: FopData) => void;
+  initialNakazData?: InitialNakazData | null;
 }
 
 export type NakazTypeKey = "priyom" | "zvilnennya" | "kasa" | "prro" | "shtat" | "grafik_vidpustok";
@@ -544,6 +545,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   onEditWorker: _onEditWorker,
   onUpdateFopList,
   onEditFop,
+  initialNakazData,
 }) => {
   const activeFop = fops.find((f) => f.id === selectedFopId) || null;
   const activeFopName = activeFop
@@ -570,9 +572,30 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
       }`
     : "";
 
-  const [selectedNakazType, setSelectedNakazType] = useState<NakazTypeKey | null>(null);
+  const [selectedNakazType, setSelectedNakazType] = useState<NakazTypeKey | null>(
+    () => initialNakazData?.type || null
+  );
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const typeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Apply pre-filled initial data when navigating from another generator (zayava, shtat, grafik)
+  useEffect(() => {
+    if (initialNakazData) {
+      setSelectedNakazType(initialNakazData.type);
+      if (initialNakazData.date) {
+        setIsoNakazDate(initialNakazData.date);
+      }
+      if (initialNakazData.type === "priyom" && initialNakazData.workerIds) {
+        setSelectedPriyomWorkerIds(initialNakazData.workerIds);
+      }
+      if (initialNakazData.type === "zvilnennya" && initialNakazData.workerIds) {
+        setSelectedZvilnennyaWorkerIds(initialNakazData.workerIds);
+      }
+      if (initialNakazData.type === "grafik_vidpustok" && initialNakazData.periodText) {
+        setVacationPeriodText(initialNakazData.periodText);
+      }
+    }
+  }, [initialNakazData]);
 
 
 
@@ -594,7 +617,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
   const hasCheckedAddressRef = useRef(false);
   const [nakazNum, setNakazNum] = useState<string>("1");
-  const [isoNakazDate, setIsoNakazDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [isoNakazDate, setIsoNakazDate] = useState<string>(
+    () => initialNakazData?.date || new Date().toISOString().split("T")[0]
+  );
   const [isoWorkStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [salaryStr] = useState("8 647,00 грн.");
 
@@ -603,8 +628,12 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   const [kasaWorkerHours, setKasaWorkerHours] = useState<Record<number, { startTime: string; endTime: string }>>({});
 
   // Multi-worker selection states for Priyom & Zvilnennya
-  const [selectedPriyomWorkerIds, setSelectedPriyomWorkerIds] = useState<number[]>([]);
-  const [selectedZvilnennyaWorkerIds, setSelectedZvilnennyaWorkerIds] = useState<number[]>([]);
+  const [selectedPriyomWorkerIds, setSelectedPriyomWorkerIds] = useState<number[]>(
+    () => (initialNakazData?.type === "priyom" && initialNakazData.workerIds ? initialNakazData.workerIds : [])
+  );
+  const [selectedZvilnennyaWorkerIds, setSelectedZvilnennyaWorkerIds] = useState<number[]>(
+    () => (initialNakazData?.type === "zvilnennya" && initialNakazData.workerIds ? initialNakazData.workerIds : [])
+  );
 
   // Calculate target hire date from the first selected worker for priyom
   const priyomTargetDate = React.useMemo(() => {
@@ -663,7 +692,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   const [shtatReasonText, setShtatReasonText] = useState<string>("У зв’язку із збільшенням розмірів оплати праці:");
 
   // Vacation schedule decree state (Наказ про затвердження графіка відпусток)
-  const [vacationPeriodText, setVacationPeriodText] = useState<string>("2026 рік");
+  const [vacationPeriodText, setVacationPeriodText] = useState<string>(
+    () => (initialNakazData?.type === "grafik_vidpustok" && initialNakazData.periodText ? initialNakazData.periodText : "2026 рік")
+  );
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -1367,7 +1398,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
       {/* 2. ERGONOMIC TOOLBAR: LARGE DESIGNER DROPDOWNS & NAKAZ NUMBER (ONLY IN WORKSPACE MODE) */}
       {selectedNakazType !== null && (
-        <div className="bg-white rounded-[24px] p-5 border-2 border-[#cbd8d6] shadow-md flex flex-col lg:flex-row items-center justify-between gap-5 relative z-10 animate-fadeIn">
+        <div className="bg-white rounded-[24px] p-5 border-2 border-[#cbd8d6] shadow-md flex flex-col lg:flex-row items-center justify-between gap-5 relative z-30 animate-fadeIn">
           {/* NAKAZ TYPE PICKER & HUB TOGGLE */}
           <div className="flex items-center gap-3 w-full lg:w-auto">
             {/* ALL DECREES HUB BUTTON */}
@@ -1405,7 +1436,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
               {/* TYPE DROPDOWN POPUP MENU */}
               {isTypeDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full sm:w-96 bg-white/98 backdrop-blur-md rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-20 animate-modalScale p-2 flex flex-col gap-1">
+                <div className="absolute top-full left-0 mt-2 w-full sm:w-96 bg-white/98 backdrop-blur-md rounded-2xl border-2 border-[#cbd8d6] shadow-2xl overflow-hidden z-50 animate-modalScale p-2 flex flex-col gap-1">
                   {NAKAZ_TYPE_OPTIONS.map((opt) => {
                     const Icon = opt.icon;
                     const isSelected = opt.key === selectedNakazType;

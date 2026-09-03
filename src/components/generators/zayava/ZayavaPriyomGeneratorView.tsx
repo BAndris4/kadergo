@@ -12,10 +12,11 @@ import {
   BriefcaseIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, GenerateZayavaPriyomDocxRequest } from "../../../types/fop";
+import { FopData, Munkas, GenerateZayavaPriyomDocxRequest, InitialNakazData } from "../../../types/fop";
 import { generateZayavaPriyomDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
 import { getWorkerGenitiveName, formatUkrainianDate } from "../../../utils/ukrainianDeclension";
 import { CustomDatePicker } from "../../pickers/CustomDatePicker";
+import { CreateNakazPromptModal } from "../../modals/CreateNakazPromptModal";
 
 interface ZayavaPriyomGeneratorViewProps {
   activeFop: FopData | null;
@@ -24,6 +25,7 @@ interface ZayavaPriyomGeneratorViewProps {
   onShowToast: (msg: string) => void;
   onEditWorker?: (worker: Munkas) => void;
   initialType?: ZayavaTypeCategory;
+  onNavigateToNakaz?: (data: InitialNakazData) => void;
 }
 
 export type ZayavaTypeCategory = "priyom" | "zvilnennya" | "vidpustka" | "bez_kopijok" | "perevedennya";
@@ -59,6 +61,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
   onShowToast,
   onEditWorker,
   initialType = "priyom",
+  onNavigateToNakaz,
 }) => {
   const munkasok = activeFop?.munkasok || [];
 
@@ -66,6 +69,8 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
   const [selectedZayavaType, setSelectedZayavaType] = useState<ZayavaTypeCategory>(initialType);
   const [isZayavaTypeDropdownOpen, setIsZayavaTypeDropdownOpen] = useState(false);
   const zayavaTypeRef = useRef<HTMLDivElement>(null);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const [lastGeneratedDocPath, setLastGeneratedDocPath] = useState<string | null>(null);
 
   // Custom Worker Dropdown State
   const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(
@@ -293,7 +298,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
   // Default body text generated dynamically depending on Zayava Type
   const defaultBodyText = useMemo(() => {
     if (selectedZayavaType === "zvilnennya") {
-      const d = formattedDismissalDate || "[дата звільнення]";
+      const d = (formattedDismissalDate || "[дата звільнення]").trim().replace(/\.+$/, "");
       return `Прошу звільнити мене з роботи за згодою сторін з ${d}.`;
     }
     if (selectedZayavaType === "vidpustka") {
@@ -305,7 +310,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
       return `Прошу належну до виплати мені заробітну плату виплачувати готівкою в гривнях, без копійок, починаючи із зарплати за ${monthYear} року. Належні до виплати копійки прошу переносити на майбутні місяці розрахунку до остаточної їх виплати під час звільнення.`;
     }
     const p = position || "[посада]";
-    const d = formattedStartDate || "[дата]";
+    const d = (formattedStartDate || "[дата]").trim().replace(/\.+$/, "");
     if (!selectedWorker) return `Прошу прийняти мене на посаду ${p} з ${d}.`;
     if (!selectedWorker.foallas) {
       return `Прошу прийняти мене на посаду ${p} з ${d} за сумісництвом.`;
@@ -325,7 +330,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
     effectiveStartDate,
   ]);
 
-  const activeBodyText = customBodyText || defaultBodyText;
+  const activeBodyText = (customBodyText || defaultBodyText).replace(/\.{2,}/g, ".");
 
   // ----------------------------------------------------
   // GENERATE WORD ACTION
@@ -374,7 +379,11 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
       };
 
       const resultPath = await generateZayavaPriyomDocx(req);
+      setLastGeneratedDocPath(resultPath);
       onShowToast(`Успішно збережено Заяву: ${resultPath}`);
+      if (selectedZayavaType === "priyom" || selectedZayavaType === "zvilnennya") {
+        setIsPromptModalOpen(true);
+      }
     } catch (err: any) {
       console.error("Error generating Zayava:", err);
       onShowToast(`Помилка під час генерації: ${err.message || String(err)}`);
@@ -825,6 +834,35 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
           </div>
         </div>
       </div>
+
+      {/* MODAL: PROMPT TO CREATE MATCHING NAKAZ */}
+      <CreateNakazPromptModal
+        isOpen={isPromptModalOpen}
+        onClose={() => setIsPromptModalOpen(false)}
+        onConfirm={() => {
+          setIsPromptModalOpen(false);
+          if (onNavigateToNakaz) {
+            if (selectedZayavaType === "priyom") {
+              onNavigateToNakaz({
+                type: "priyom",
+                date: effectiveStartDate,
+                workerIds: selectedWorker ? [selectedWorker.id] : undefined,
+              });
+            } else if (selectedZayavaType === "zvilnennya") {
+              onNavigateToNakaz({
+                type: "zvilnennya",
+                date: effectiveDismissalDate,
+                workerIds: selectedWorker ? [selectedWorker.id] : undefined,
+              });
+            }
+          }
+        }}
+        docTitle={selectedZayavaType === "zvilnennya" ? "Заяву на звільнення" : "Заяву на прийом"}
+        nakazTitle={selectedZayavaType === "zvilnennya" ? "Звільнення з роботи" : "Прийняття на роботу"}
+        dateStr={selectedZayavaType === "zvilnennya" ? formattedDismissalDate : formattedStartDate}
+        workerName={selectedWorkerFullName || undefined}
+        filePath={lastGeneratedDocPath}
+      />
     </div>
   );
 };

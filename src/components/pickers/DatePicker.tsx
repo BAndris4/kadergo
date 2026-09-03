@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, CheckIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  XMarkIcon,
+  CheckIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/outline";
 
 interface DatePickerProps {
   value?: string; // YYYY-MM-DD
@@ -53,6 +60,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   // Тимчасово обрана дата у модальному вікні
   const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(selectedDate);
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef<HTMLDivElement>(null);
+  const activeYearBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (selectedDate) {
@@ -62,6 +72,26 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       setTempSelectedDate(null);
     }
   }, [value, isOpen]);
+
+  // Scroll active year into view when year dropdown opens
+  useEffect(() => {
+    if (isYearDropdownOpen && activeYearBtnRef.current) {
+      activeYearBtnRef.current.scrollIntoView({ block: "center" });
+    }
+  }, [isYearDropdownOpen]);
+
+  // Close year dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(e.target as Node)) {
+        setIsYearDropdownOpen(false);
+      }
+    }
+    if (isYearDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isYearDropdownOpen]);
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth();
@@ -108,11 +138,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleNextMonth = () => {
     setViewDate(new Date(currentYear, currentMonth + 1, 1));
-  };
-
-  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newYear = parseInt(e.target.value, 10);
-    setViewDate(new Date(newYear, currentMonth, 1));
   };
 
   const handleSelectDay = (date: Date) => {
@@ -244,17 +269,48 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   {UKRAINIAN_MONTHS[currentMonth]}
                 </span>
 
-                <select
-                  value={currentYear}
-                  onChange={handleYearChange}
-                  className="bg-[#f0f6f5] border border-[#bdcdcb] text-[#133b47] font-black text-sm rounded-xl px-2.5 py-1 focus:outline-none cursor-pointer"
-                >
-                  {yearsList.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                {/* Custom Year Dropdown */}
+                <div className="relative" ref={yearDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsYearDropdownOpen((prev) => !prev)}
+                    className="bg-[#f0f6f5] hover:bg-[#e2eceb] border border-[#bdcdcb] hover:border-[#133b47] text-[#133b47] font-black text-sm rounded-xl px-2.5 py-1 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs select-none"
+                  >
+                    <span>{currentYear}</span>
+                    <ChevronDownIcon
+                      className={`w-3.5 h-3.5 text-[#133b47] stroke-[2.5] transition-transform duration-200 ${
+                        isYearDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isYearDropdownOpen && (
+                    <div className="absolute top-full right-0 sm:left-1/2 sm:-translate-x-1/2 mt-1.5 bg-white border-2 border-[#133b47] rounded-2xl shadow-2xl p-1.5 max-h-52 overflow-y-auto flex flex-col gap-1 w-28 z-[100] animate-modalScale">
+                      {yearsList.map((y) => {
+                        const isSelected = y === currentYear;
+                        return (
+                          <button
+                            key={y}
+                            ref={isSelected ? activeYearBtnRef : undefined}
+                            type="button"
+                            onClick={() => {
+                              setViewDate(new Date(y, currentMonth, 1));
+                              setIsYearDropdownOpen(false);
+                            }}
+                            className={`py-1.5 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? "bg-[#133b47] text-[#f8a44c] shadow-xs"
+                                : "text-[#133b47] hover:bg-[#f0f6f5]"
+                            }`}
+                          >
+                            <span>{y}</span>
+                            {isSelected && <CheckIcon className="w-3.5 h-3.5 text-[#f8a44c] stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button

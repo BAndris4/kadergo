@@ -11,9 +11,11 @@ import {
   UserGroupIcon,
   BanknotesIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, ShtatPositionItem, GenerateShtatDocxRequest } from "../../../types/fop";
+import { FopData, ShtatPositionItem, GenerateShtatDocxRequest, InitialNakazData } from "../../../types/fop";
 import { generateShtatDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
 import { CustomDatePicker } from "../../pickers/CustomDatePicker";
+import { CreateNakazPromptModal } from "../../modals/CreateNakazPromptModal";
+import { calculateDefaultShtatOrGrafikDate } from "../../../utils/ukrainianDeclension";
 
 interface ShtatGeneratorViewProps {
   fops: FopData[];
@@ -22,6 +24,7 @@ interface ShtatGeneratorViewProps {
   minWage: number;
   onShowToast: (msg: string) => void;
   onBack: () => void;
+  onNavigateToNakaz?: (data: InitialNakazData) => void;
 }
 
 const MONTH_NAMES_GENITIVE = [
@@ -46,6 +49,7 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
   minWage,
   onShowToast,
   onBack,
+  onNavigateToNakaz,
 }) => {
   const activeFop = fops.find((f) => f.id === selectedFopId) || null;
   const activeFopName = activeFop
@@ -54,15 +58,23 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
   const activeFopCode = activeFop ? activeFop.kod || activeFop.fop_kod || "" : "";
 
   // Date selection state: ISO string YYYY-MM-DD
-  const today = new Date();
-  const defaultIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-  const [isoDate, setIsoDate] = useState<string>(defaultIso);
+  // Default: Jan 1 of current year, or latest hire date since then (whichever is later)
+  const [isoDate, setIsoDate] = useState<string>(() =>
+    calculateDefaultShtatOrGrafikDate(activeFop?.munkasok)
+  );
+
+  useEffect(() => {
+    if (activeFop && activeFop.munkasok) {
+      setIsoDate(calculateDefaultShtatOrGrafikDate(activeFop.munkasok));
+    }
+  }, [activeFop?.id]);
 
   const dateStr = formatIsoToUkrDate(isoDate);
 
   const [items, setItems] = useState<ShtatPositionItem[]>([]);
   const [generatedFilePath, setGeneratedFilePath] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (!activeFop || !activeFop.munkasok) {
@@ -162,19 +174,21 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
 
     setIsGenerating(true);
     try {
-      const saveDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      const targetDir = fopDir ? `${fopDir}\\кадрові документи` : undefined;
 
       const req: GenerateShtatDocxRequest = {
         fop_id: activeFop.id,
         fop_name: activeFopName,
         date_str: dateStr.trim(),
         items: items,
-        save_dir: saveDir || undefined,
+        save_dir: targetDir,
       };
 
       const pathResult = await generateShtatDocx(req);
       setGeneratedFilePath(pathResult);
-      onShowToast("Штатний розпис успішно згенеровано у папку ФОП!");
+      onShowToast("Штатний розпис успішно згенеровано у папку «кадрові документи»!");
+      setIsPromptModalOpen(true);
     } catch (err) {
       console.error("Failed to generate Shtat DOCX:", err);
       onShowToast(`Помилка під час генерації: ${err}`);
@@ -188,8 +202,8 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
       const dirPath = generatedFilePath.substring(0, Math.max(generatedFilePath.lastIndexOf('/'), generatedFilePath.lastIndexOf('\\')));
       await openFolderInExplorer(dirPath);
     } else if (rootFolder && activeFop) {
-      const saveDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
-      if (saveDir) await openFolderInExplorer(saveDir);
+      const fopDir = await ensureFopDirectory(rootFolder, activeFopCode, activeFopName);
+      if (fopDir) await openFolderInExplorer(`${fopDir}\\кадрові документи`);
     }
   };
 
@@ -404,6 +418,25 @@ export const ShtatGeneratorView: React.FC<ShtatGeneratorViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* MODAL: PROMPT TO CREATE MATCHING NAKAZ */}
+      <CreateNakazPromptModal
+        isOpen={isPromptModalOpen}
+        onClose={() => setIsPromptModalOpen(false)}
+        onConfirm={() => {
+          setIsPromptModalOpen(false);
+          if (onNavigateToNakaz) {
+            onNavigateToNakaz({
+              type: "shtat",
+              date: isoDate,
+            });
+          }
+        }}
+        docTitle="Штатний розпис"
+        nakazTitle="Затвердження штатного розпису"
+        dateStr={dateStr}
+        filePath={generatedFilePath}
+      />
     </div>
   );
 };

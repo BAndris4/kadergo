@@ -36,44 +36,50 @@ pub fn generate_zayava_priyom_docx(req: GenerateZayavaPriyomDocxRequest) -> Resu
 
     let ztype = req.zayava_type.as_deref().unwrap_or("priyom");
 
-    let body_text = match req.custom_body_text {
+    let raw_body_text = match req.custom_body_text {
         Some(ref text) if !text.trim().is_empty() => text.clone(),
         _ => {
+            let clean_start = req.start_date.trim().trim_end_matches('.');
             if ztype == "zvilnennya" {
                 format!(
                     "Прошу звільнити мене з роботи за згодою сторін з {}.",
-                    req.start_date
+                    clean_start
                 )
             } else if ztype == "vidpustka" {
                 format!(
                     "Прошу надати мені основну щорічну відпустку з {} на 3 календарних днів.",
-                    req.start_date
+                    clean_start
                 )
             } else if ztype == "bez_kopijok" {
                 format!(
                     "Прошу належну до виплати мені заробітну плату виплачувати готівкою в гривнях, без копійок, починаючи із зарплати за {} року. Належні до виплати копійки прошу переносити на майбутні місяці розрахунку до остаточної їх виплати під час звільнення.",
-                    req.start_date
+                    clean_start
                 )
             } else {
                 if !req.foallas {
                     format!(
                         "Прошу прийняти мене на посаду {} з {} за сумісництвом.",
-                        lower_position, req.start_date
+                        lower_position, clean_start
                     )
                 } else if !req.teljes_munkaido {
                     format!(
                         "Прошу прийняти мене на посаду {} з {} на неповний робочий час, а саме 4 год на 5 днів тижня.",
-                        lower_position, req.start_date
+                        lower_position, clean_start
                     )
                 } else {
                     format!(
                         "Прошу прийняти мене на посаду {} з {}.",
-                        lower_position, req.start_date
+                        lower_position, clean_start
                     )
                 }
             }
         }
     };
+
+    let mut body_text = raw_body_text;
+    while body_text.contains("..") {
+        body_text = body_text.replace("..", ".");
+    }
 
     let safe_worker_short_name = req.worker_short_name.replace('/', "_").replace('\\', "_");
     let doc_title_prefix = match ztype {

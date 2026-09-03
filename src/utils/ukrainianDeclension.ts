@@ -234,7 +234,7 @@ export function formatUkrainianDate(
 
   if (day && monthIdx !== null && monthIdx >= 0 && monthIdx < 12 && year) {
     const monthName = ukrMonths[monthIdx];
-    const yearSuffix = suffixMode === "yearWord" ? " року." : suffixMode === "r" ? "р." : "";
+    const yearSuffix = suffixMode === "yearWord" ? " року" : suffixMode === "r" ? "р." : "";
     const dayStr = day < 10 ? `0${day}` : `${day}`;
     return `${dayStr} ${monthName} ${year}${yearSuffix}`;
   }
@@ -321,4 +321,53 @@ export function declinePositionGenitive(position: string): string {
   });
 
   return declinedWords.join(" ");
+}
+
+/**
+ * Calculates default date for Штат or Графік:
+ * Either January 1st of the current year (YYYY-01-01), OR if a worker was hired
+ * since then, the latest hire date. Picks whichever is later.
+ */
+export function calculateDefaultShtatOrGrafikDate(workers: Array<{ munkakezdes_datum?: string }> | undefined): string {
+  const currentYear = new Date().getFullYear();
+  const jan1Str = `${currentYear}-01-01`;
+  const jan1Date = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+
+  if (!workers || workers.length === 0) {
+    return jan1Str;
+  }
+
+  let latestHireDate: Date = jan1Date;
+  let latestHireStr: string = jan1Str;
+
+  for (const w of workers) {
+    if (!w.munkakezdes_datum || !w.munkakezdes_datum.trim()) continue;
+
+    const s = w.munkakezdes_datum.trim();
+    let d: Date | null = null;
+    let isoFormatted = s;
+
+    if (s.includes("-")) {
+      const parts = s.split("-").map((p) => parseInt(p, 10));
+      if (parts.length === 3 && !parts.some(isNaN)) {
+        d = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        isoFormatted = `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
+      }
+    } else if (s.includes(".")) {
+      const parts = s.split(".").map((p) => parseInt(p, 10));
+      if (parts.length === 3 && !parts.some(isNaN)) {
+        d = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        isoFormatted = `${parts[2]}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}`;
+      }
+    }
+
+    if (d && !isNaN(d.getTime())) {
+      if (d.getTime() > latestHireDate.getTime()) {
+        latestHireDate = d;
+        latestHireStr = isoFormatted;
+      }
+    }
+  }
+
+  return latestHireStr;
 }

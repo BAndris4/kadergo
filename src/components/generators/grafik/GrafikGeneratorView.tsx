@@ -7,12 +7,14 @@ import {
   PlusIcon,
   FolderOpenIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas, GrafikWorkerItem } from "../../../types/fop";
+import { FopData, Munkas, GrafikWorkerItem, InitialNakazData } from "../../../types/fop";
 import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 import { CustomMonthYearPicker } from "../../pickers/CustomMonthYearPicker";
 import { CustomPeriodRangePicker } from "../../pickers/CustomPeriodRangePicker";
 import { WorkerCard } from "../../common/WorkerCard";
 import { generateGrafikDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
+import { CreateNakazPromptModal } from "../../modals/CreateNakazPromptModal";
+import { calculateDefaultShtatOrGrafikDate } from "../../../utils/ukrainianDeclension";
 
 interface GrafikGeneratorViewProps {
   fops: FopData[];
@@ -23,6 +25,7 @@ interface GrafikGeneratorViewProps {
   onEditWorker?: (worker: Munkas) => void;
   onDeleteWorker?: (worker: Munkas) => void;
   onAddWorker?: (fopId: number) => void;
+  onNavigateToNakaz?: (data: InitialNakazData) => void;
 }
 
 const MONTH_NAMES_UKR = [
@@ -93,6 +96,34 @@ function calculateWorkerPeriodAndMonth(startDateStr: string | undefined, current
   return { periodStr, vacationMonthStr, vacYear };
 }
 
+function parseToComparableDate(dateStr: string | undefined): Date | null {
+  if (!dateStr || !dateStr.trim()) return null;
+  const s = dateStr.trim();
+  let d: Date | null = null;
+  if (s.includes("-")) {
+    const parts = s.split("-").map((p) => parseInt(p, 10));
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      d = new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  } else if (s.includes(".")) {
+    const parts = s.split(".").map((p) => parseInt(p, 10));
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      d = new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+  }
+  if (!d) {
+    const fallback = new Date(s);
+    if (!isNaN(fallback.getTime())) {
+      d = fallback;
+    }
+  }
+  if (d && !isNaN(d.getTime())) {
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  return null;
+}
+
 export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
   fops,
   selectedFopId,
@@ -102,6 +133,7 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
   onEditWorker,
   onDeleteWorker,
   onAddWorker,
+  onNavigateToNakaz,
 }) => {
   const activeFop = fops.find((f) => f.id === selectedFopId) || null;
   const activeFopName = activeFop
@@ -109,10 +141,20 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
     : "";
   const activeFopCode = activeFop ? activeFop.kod || activeFop.fop_kod || "" : "";
 
-  // Creation Date (default today)
-  const [isoDate, setIsoDate] = useState(() => new Date().toISOString().split("T")[0]);
+  // Creation Date (default Jan 1 of current year, or latest hire date since then)
+  const [isoDate, setIsoDate] = useState<string>(() =>
+    calculateDefaultShtatOrGrafikDate(activeFop?.munkasok)
+  );
+
+  useEffect(() => {
+    if (activeFop && activeFop.munkasok) {
+      setIsoDate(calculateDefaultShtatOrGrafikDate(activeFop.munkasok));
+    }
+  }, [activeFop?.id]);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastGeneratedPath, setLastGeneratedPath] = useState<string>("");
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
   // Worker Schedule Items State
   const [items, setItems] = useState<GrafikWorkerItem[]>([]);
@@ -124,16 +166,28 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
       return;
     }
 
-    const targetDate = new Date(isoDate);
+    const scheduleDate = parseToComparableDate(isoDate);
 
-    // EXCLUDE DISMISSED WORKERS (where munkaviszony_vege exists and <= targetDate)
+    // Filter workers based strictly on the document date (scheduleDate):
+    // 1. Worker must have already started working on or before scheduleDate (munkakezdes_datum <= scheduleDate)
+    // 2. Worker must NOT have been dismissed on or before scheduleDate (no dismissal date, or dismissal date > scheduleDate)
     const activeWorkers = activeFop.munkasok.filter((w: Munkas) => {
-      if (w.munkaviszony_vege) {
-        const endDate = new Date(w.munkaviszony_vege);
-        if (!isNaN(endDate.getTime()) && endDate <= targetDate) {
-          return false; // Dismissed -> exclude from Grafik
+      // Check start date: if worker started after the schedule date, exclude
+      if (w.munkakezdes_datum && w.munkakezdes_datum.trim()) {
+        const startDate = parseToComparableDate(w.munkakezdes_datum);
+        if (startDate && scheduleDate && startDate.getTime() > scheduleDate.getTime()) {
+          return false;
         }
       }
+
+      // Check dismissal date: if worker was dismissed on or before the schedule date, exclude
+      if (w.munkaviszony_vege && w.munkaviszony_vege.trim()) {
+        const endDate = parseToComparableDate(w.munkaviszony_vege);
+        if (endDate && scheduleDate && endDate.getTime() <= scheduleDate.getTime()) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -247,6 +301,7 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
 
       setLastGeneratedPath(docPath);
       onShowToast(`Графік відпусток успішно створено: ${docPath}`);
+      setIsPromptModalOpen(true);
     } catch (err: any) {
       console.error("Error generating Grafik docx:", err);
       onShowToast(`Помилка генерації Графіка відпусток: ${err?.toString() || "Невідома помилка"}`);
@@ -467,6 +522,26 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* MODAL: PROMPT TO CREATE MATCHING NAKAZ */}
+      <CreateNakazPromptModal
+        isOpen={isPromptModalOpen}
+        onClose={() => setIsPromptModalOpen(false)}
+        onConfirm={() => {
+          setIsPromptModalOpen(false);
+          if (onNavigateToNakaz) {
+            onNavigateToNakaz({
+              type: "grafik_vidpustok",
+              date: isoDate,
+              periodText: `${calculateYearSpanStr()} рік`,
+            });
+          }
+        }}
+        docTitle="Графік відпусток"
+        nakazTitle="Затвердження графіку відпусток"
+        dateStr={formatUkrainianDateString(isoDate)}
+        filePath={lastGeneratedPath}
+      />
     </div>
   );
 };

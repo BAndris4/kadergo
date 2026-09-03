@@ -516,3 +516,10 @@ export interface NakazFileItem {
   nakaz_type: string;
   date_modified: string;
 }
+
+export interface InitialNakazData {
+  type: "priyom" | "zvilnennya" | "kasa" | "prro" | "shtat" | "grafik_vidpustok";
+  date?: string; // ISO date YYYY-MM-DD
+  workerIds?: number[];
+  periodText?: string;
+}

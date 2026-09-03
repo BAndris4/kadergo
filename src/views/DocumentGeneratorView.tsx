@@ -18,7 +18,7 @@ import {
   SparklesIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
-import { FopData, Munkas } from "../types/fop";
+import { FopData, Munkas, InitialNakazData } from "../types/fop";
 import { ensureFopDirectory, openFolderInExplorer, pickRootFolder, saveRootFolder } from "../services/fopService";
 import { PayrollGeneratorView } from "../components/generators/payroll/PayrollGeneratorView";
 import { TabelGeneratorView } from "../components/generators/tabel/TabelGeneratorView";
@@ -58,6 +58,13 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
 }) => {
   const [activeDocView, setActiveDocView] = useState<"menu" | "payroll" | "tabel" | "zayava_priyom" | "shtat" | "grafik" | "nakaz">("menu");
   const [initialZayavaType, setInitialZayavaType] = useState<ZayavaTypeCategory>("priyom");
+  const [initialNakazData, setInitialNakazData] = useState<InitialNakazData | null>(null);
+
+  const handleNavigateToNakaz = (data: InitialNakazData) => {
+    setInitialNakazData(data);
+    setActiveDocView("nakaz");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
 
   const hasRootFolder = Boolean(rootFolder && rootFolder.trim().length > 0);
 
@@ -940,6 +947,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           onBackToOptions={() => setActiveDocView("menu")}
           onShowToast={onShowToast}
           onEditWorker={onEditWorker}
+          onNavigateToNakaz={handleNavigateToNakaz}
         />
       )}
 
@@ -952,6 +960,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           minWage={minWage}
           onShowToast={onShowToast}
           onBack={() => setActiveDocView("menu")}
+          onNavigateToNakaz={handleNavigateToNakaz}
         />
       )}
 
@@ -966,6 +975,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           onEditWorker={onEditWorker}
           onDeleteWorker={onDeleteWorker}
           onAddWorker={onAddWorker}
+          onNavigateToNakaz={handleNavigateToNakaz}
         />
       )}
 
@@ -976,10 +986,14 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           selectedFopId={selectedFopId}
           rootFolder={rootFolder}
           onShowToast={onShowToast}
-          onBack={() => setActiveDocView("menu")}
+          onBack={() => {
+            setInitialNakazData(null);
+            setActiveDocView("menu");
+          }}
           onEditFop={onEditFop}
           onUpdateFopList={onUpdateFopList}
           onEditWorker={onEditWorker}
+          initialNakazData={initialNakazData}
         />
       )}
     </div>
