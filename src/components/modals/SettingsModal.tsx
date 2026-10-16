@@ -11,8 +11,11 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   CheckIcon,
+  PuzzlePieceIcon,
+  ArrowDownTrayIcon,
+  FolderArrowDownIcon,
 } from "@heroicons/react/24/outline";
-import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops } from "../../services/fopService";
+import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops, exportChromeExtension } from "../../services/fopService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,10 +43,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   useEffect(() => {
     setLocalMinWage(minWage);
     setIsConfirmingDelete(false);
+    setIsExporting(false);
   }, [minWage, isOpen]);
 
   if (!isOpen) return null;
@@ -78,6 +83,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onShowToast("Помилка під час видалення даних: " + String(err));
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleExportExtension = async (asZip: boolean) => {
+    setIsExporting(true);
+    try {
+      const savedPath = await exportChromeExtension(asZip);
+      if (savedPath) {
+        onShowToast(
+          asZip
+            ? `Архів розширення збережено: "${savedPath}"`
+            : `Папку розширення збережено та відкрито: "${savedPath}"`
+        );
+      }
+    } catch (err) {
+      onShowToast("Помилка під час збереження розширення: " + String(err));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -195,7 +218,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Danger Zone */}
+          {/* Section 3: Chrome Extension for Z-Reports */}
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-[#f0f9f5] to-[#e8f5ef] border-2 border-[#bce2d1] flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#107c41]/15 flex items-center justify-center text-[#107c41]">
+                  <PuzzlePieceIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <span className="text-sm font-black text-[#133b47]">
+                    Розширення Chrome (Z-звіти)
+                  </span>
+                  <span className="ml-2 text-[10px] font-bold bg-[#107c41]/10 text-[#107c41] px-2 py-0.5 rounded-full border border-[#107c41]/20">
+                    cabinet.tax.gov.ua
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs font-bold text-[#426159] leading-relaxed">
+              Браузерне розширення для кабінету платника податків (cabinet.tax.gov.ua). Додає кнопку, яка в один клік генерує та завантажує файл Excel (.xlsx) з ідеальним форматуванням 1:1 (ширина колонок, висота рядків, підсумкові формули).
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => handleExportExtension(false)}
+                disabled={isExporting}
+                className="flex-1 px-4 py-3 rounded-2xl bg-[#107c41] hover:bg-[#0c6233] text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                <FolderArrowDownIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                {isExporting ? "Збереження..." : "Зберегти папку (для Chrome)"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleExportExtension(true)}
+                disabled={isExporting}
+                className="flex-1 px-4 py-3 rounded-2xl bg-white hover:bg-[#f1f5f3] text-[#107c41] border-2 border-[#107c41]/30 font-black text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                <ArrowDownTrayIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                Завантажити .ZIP архів
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/80 border border-[#bce2d1] text-[11px] font-bold text-[#35574f] flex flex-col gap-1">
+              <span className="font-black text-[#107c41] flex items-center gap-1.5">
+                💡 Як встановити в Chrome:
+              </span>
+              <span>1. Натисніть «Зберегти папку» та оберіть місце (наприклад, Завантаження).</span>
+              <span>2. Відкрийте в Chrome сторінку <code className="bg-emerald-100 text-[#0c6233] px-1 py-0.5 rounded font-mono">chrome://extensions</code> та увімкніть «Режим розробника».</span>
+              <span>3. Натисніть «Завантажити розпаковане розширення» (Load unpacked) і вкажіть збережену папку.</span>
+            </div>
+          </div>
+
+          {/* Section 4: Danger Zone */}
           <div className="p-6 rounded-3xl bg-rose-50/80 border-2 border-rose-200 flex flex-col gap-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">

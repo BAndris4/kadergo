@@ -11,6 +11,7 @@ use commands::{
     generate_nakaz_priyom_docx, generate_nakaz_zvilnennya_docx, generate_nakaz_kasa_docx, generate_nakaz_prro_docx, generate_nakaz_shtat_docx, generate_nakaz_grafik_vidpustok_docx, scan_fop_nakazy, scrape_fop_address_from_nakazy,
     run_installer_from_bytes, download_and_run_installer, fetch_github_releases,
     get_folder_groups, create_folder_group, update_folder_group, delete_folder_group, move_fop_to_group, parse_fop_folder_info,
+    export_chrome_extension,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -67,7 +68,8 @@ pub fn run() {
             scrape_fop_address_from_nakazy,
             run_installer_from_bytes,
             download_and_run_installer,
-            fetch_github_releases
+            fetch_github_releases,
+            export_chrome_extension
         ])
 
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KaderGo - Z-Reports</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="logo-area">
+        <div class="kadergo-k-box">K</div>
+        <div>
+          <h1 class="title">KaderGo</h1>
+          <p class="subtitle">Експорт Z-звітів для Excel</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="status-card" id="statusCard">
+      <div class="status-indicator" id="statusDot"></div>
+      <div class="status-text" id="statusText">Пошук таблиці...</div>
+    </div>
+
+    <button id="downloadBtn" class="primary-btn" disabled>
+      <span class="btn-icon">📥</span>
+      <span id="btnLabel">Завантажити Excel (.xlsx)</span>
+    </button>
+
+    <div id="resultMessage" class="result-message"></div>
+
+    <footer class="footer">
+      <span>Формат 1:1 з excel.xlsx</span>
+      <span class="version">v1.1.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
