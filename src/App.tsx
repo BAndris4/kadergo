@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
 import { FopData, FolderGroup, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto } from "./types/fop";
 import {
   fetchFops,
@@ -45,10 +45,13 @@ import { UpdateModal } from "./components/modals/UpdateModal";
 import { FolderScanModal } from "./components/modals/FolderScanModal";
 import { ToastNotice } from "./components/common/ToastNotice";
 import { DocumentGeneratorView } from "./views/DocumentGeneratorView";
+import { SplashScreen } from "./components/common/SplashScreen";
+import { ViewTransition } from "./components/common/ViewTransition";
 import { MagnifyingGlassIcon, PlusIcon, FolderPlusIcon } from "@heroicons/react/24/outline";
 import "./App.css";
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState<"generator" | "management">("generator");
   const [fops, setFops] = useState<FopData[]>([]);
   const [selectedFopId, setSelectedFopId] = useState<number | null>(null);
@@ -473,10 +476,61 @@ export default function App() {
     });
 
   const [docKey, setDocKey] = useState<number>(0);
+  const [transitionState, setTransitionState] = useState<{
+    isActive: boolean;
+    targetTab: "generator" | "management";
+    onMidCallback?: () => void;
+  }>({
+    isActive: false,
+    targetTab: "generator",
+  });
+
+  const triggerViewSwitch = (newTab: "generator" | "management", onMidSwitch?: () => void) => {
+    if (transitionState.isActive) return;
+    if (newTab === activeTab) {
+      if (onMidSwitch) onMidSwitch();
+      return;
+    }
+
+    setTransitionState({
+      isActive: true,
+      targetTab: newTab,
+      onMidCallback: onMidSwitch,
+    });
+  };
+
+  const handleMidSwitch = useCallback(() => {
+    startTransition(() => {
+      setActiveTab(transitionState.targetTab);
+      if (transitionState.onMidCallback) {
+        transitionState.onMidCallback();
+      }
+    });
+  }, [transitionState.targetTab, transitionState.onMidCallback]);
+
+  const handleTransitionComplete = useCallback(() => {
+    setTransitionState({
+      isActive: false,
+      targetTab: "generator",
+      onMidCallback: undefined,
+    });
+  }, []);
 
   const handleGoHome = () => {
-    setActiveTab("generator");
-    setDocKey((prev) => prev + 1);
+    if (transitionState.isActive) return;
+    if (activeTab === "management") {
+      triggerViewSwitch("generator", () => {
+        setSelectedFopId(null);
+        setSearchQuery("");
+        setExpandedFopIds([]);
+        setDocKey((prev) => prev + 1);
+      });
+    } else {
+      setSelectedFopId(null);
+      setSearchQuery("");
+      setExpandedFopIds([]);
+      setDocKey((prev) => prev + 1);
+    }
   };
 
   const osszesMunkasCount = fops.reduce((acc, fop) => acc + fop.munkasok.length, 0);
@@ -494,7 +548,7 @@ export default function App() {
     <div className="w-full max-w-[1600px] mx-auto px-10 py-10 pb-24">
       <Header
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => triggerViewSwitch(tab)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenUpdate={() => setIsUpdateModalOpen(true)}
         onGoHome={handleGoHome}
@@ -837,6 +891,15 @@ export default function App() {
       )}
 
       {toastMessage && <ToastNotice message={toastMessage} />}
+
+      {transitionState.isActive && (
+        <ViewTransition
+          onMidSwitch={handleMidSwitch}
+          onComplete={handleTransitionComplete}
+        />
+      )}
+
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
     </div>
   );
 }

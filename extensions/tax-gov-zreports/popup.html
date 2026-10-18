@@ -3,36 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KaderGo - Z-Reports</title>
+  <title>KaderGo - Завантажити в Excel</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
     <header class="header">
       <div class="logo-area">
-        <div class="kadergo-k-box">K</div>
+        <img src="icons/icon48.png" width="32" height="32" class="kadergo-logo-icon" alt="KaderGo">
         <div>
           <h1 class="title">KaderGo</h1>
-          <p class="subtitle">Експорт Z-звітів для Excel</p>
+          <p class="subtitle">Експорт обороту для Excel</p>
         </div>
       </div>
     </header>
 
     <div class="status-card" id="statusCard">
       <div class="status-indicator" id="statusDot"></div>
-      <div class="status-text" id="statusText">Пошук таблиці...</div>
+      <div class="status-text" id="statusText">Пошук даних...</div>
     </div>
 
     <button id="downloadBtn" class="primary-btn" disabled>
-      <span class="btn-icon">📥</span>
-      <span id="btnLabel">Завантажити Excel (.xlsx)</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+      <span id="btnLabel">Завантажити поточний</span>
+    </button>
+
+    <button id="downloadAllBtn" class="primary-btn all-btn" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+      <span id="btnAllLabel">Всі РРО в один Excel</span>
     </button>
 
     <div id="resultMessage" class="result-message"></div>
 
     <footer class="footer">
-      <span>Формат 1:1 з excel.xlsx</span>
-      <span class="version">v1.1.0</span>
+      <span>Формат 1:1 KaderGo</span>
+      <span class="version">v1.2.0</span>
     </footer>
   </div>
 

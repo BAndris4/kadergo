@@ -12,7 +12,6 @@ import {
   InformationCircleIcon,
   CheckIcon,
   PuzzlePieceIcon,
-  ArrowDownTrayIcon,
   FolderArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops, exportChromeExtension } from "../../services/fopService";
@@ -86,16 +85,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleExportExtension = async (asZip: boolean) => {
+  const handleExportExtension = async () => {
     setIsExporting(true);
     try {
-      const savedPath = await exportChromeExtension(asZip);
+      const savedPath = await exportChromeExtension();
       if (savedPath) {
-        onShowToast(
-          asZip
-            ? `Архів розширення збережено: "${savedPath}"`
-            : `Папку розширення збережено та відкрито: "${savedPath}"`
-        );
+        onShowToast(`Папку розширення збережено та відкрито: "${savedPath}"`);
       }
     } catch (err) {
       onShowToast("Помилка під час збереження розширення: " + String(err));
@@ -218,7 +213,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Chrome Extension for Z-Reports */}
+          {/* Section 3: Chrome Extension */}
           <div className="p-6 rounded-3xl bg-gradient-to-br from-[#f0f9f5] to-[#e8f5ef] border-2 border-[#bce2d1] flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -227,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <div>
                   <span className="text-sm font-black text-[#133b47]">
-                    Розширення Chrome (Z-звіти)
+                    Розширення Chrome (Експорт обороту в Excel)
                   </span>
                   <span className="ml-2 text-[10px] font-bold bg-[#107c41]/10 text-[#107c41] px-2 py-0.5 rounded-full border border-[#107c41]/20">
                     cabinet.tax.gov.ua
@@ -236,39 +231,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            <p className="text-xs font-bold text-[#426159] leading-relaxed">
-              Браузерне розширення для кабінету платника податків (cabinet.tax.gov.ua). Додає кнопку, яка в один клік генерує та завантажує файл Excel (.xlsx) з ідеальним форматуванням 1:1 (ширина колонок, висота рядків, підсумкові формули).
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => handleExportExtension(false)}
+                onClick={handleExportExtension}
                 disabled={isExporting}
-                className="flex-1 px-4 py-3 rounded-2xl bg-[#107c41] hover:bg-[#0c6233] text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50"
+                className="w-full px-5 py-3.5 rounded-2xl bg-[#107c41] hover:bg-[#0c6233] text-white font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-2.5 transform hover:-translate-y-0.5 disabled:opacity-50"
               >
-                <FolderArrowDownIcon className="w-4.5 h-4.5 stroke-[2.2]" />
-                {isExporting ? "Збереження..." : "Зберегти папку (для Chrome)"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleExportExtension(true)}
-                disabled={isExporting}
-                className="flex-1 px-4 py-3 rounded-2xl bg-white hover:bg-[#f1f5f3] text-[#107c41] border-2 border-[#107c41]/30 font-black text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50"
-              >
-                <ArrowDownTrayIcon className="w-4.5 h-4.5 stroke-[2.2]" />
-                Завантажити .ZIP архів
+                <FolderArrowDownIcon className="w-5 h-5 stroke-[2.2]" />
+                {isExporting ? "Збереження розширення..." : "Зберегти розширення у папку (для Chrome)"}
               </button>
             </div>
 
-            <div className="p-3 rounded-2xl bg-white/80 border border-[#bce2d1] text-[11px] font-bold text-[#35574f] flex flex-col gap-1">
-              <span className="font-black text-[#107c41] flex items-center gap-1.5">
-                💡 Як встановити в Chrome:
+            <div className="p-4 rounded-2xl bg-white/90 border border-[#bce2d1] text-xs font-bold text-[#35574f] flex flex-col gap-2 shadow-sm">
+              <span className="font-black text-[#107c41] flex items-center gap-1.5 text-xs">
+                <CheckCircleIcon className="w-4 h-4 stroke-[2.5]" />
+                Інструкція зі встановлення:
               </span>
-              <span>1. Натисніть «Зберегти папку» та оберіть місце (наприклад, Завантаження).</span>
-              <span>2. Відкрийте в Chrome сторінку <code className="bg-emerald-100 text-[#0c6233] px-1 py-0.5 rounded font-mono">chrome://extensions</code> та увімкніть «Режим розробника».</span>
-              <span>3. Натисніть «Завантажити розпаковане розширення» (Load unpacked) і вкажіть збережену папку.</span>
+              <ol className="list-decimal list-inside space-y-1.5 text-[11.5px] text-[#2c4740]">
+                <li>Натисніть кнопку вище та оберіть папку на комп'ютері для розширення.</li>
+                <li>
+                  У браузері перейдіть на{" "}
+                  <code className="bg-emerald-100 text-[#0c6233] px-1.5 py-0.5 rounded font-mono font-bold">
+                    chrome://extensions
+                  </code>
+                </li>
+                <li>
+                  У правому верхньому кутку увімкніть <b>«Режим розробника»</b> (Developer mode).
+                </li>
+                <li>
+                  Натисніть <b>«Завантажити розпаковане»</b> (Load unpacked) та оберіть збережену папку.
+                </li>
+              </ol>
             </div>
           </div>
 

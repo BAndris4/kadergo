@@ -36,18 +36,13 @@ body {
   gap: 10px;
 }
 
-.kadergo-k-box {
+.kadergo-logo-icon {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: #133b47;
-  color: #f8a44c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 16px;
-  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.2);
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 5px rgba(19, 59, 71, 0.22));
 }
 
 .title {
@@ -197,6 +192,16 @@ body {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+.primary-btn.all-btn {
+  border: 1.5px solid #f8a44c;
+}
+
+.primary-btn.all-btn:hover:not(:disabled) {
+  border-color: #f8a44c;
+  background: #0f2e38;
+}
+
 
 .result-message {
   font-size: 11px;

@@ -794,7 +794,7 @@ export async function parseFopFolderInfo(folderPath: string): Promise<Discovered
   return await invoke<DiscoveredFopDto>("parse_fop_folder_info", { folderPath });
 }
 
-export async function exportChromeExtension(asZip: boolean): Promise<string | null> {
+export async function exportChromeExtension(asZip?: boolean): Promise<string | null> {
   return await invoke<string | null>("export_chrome_extension", { asZip });
 }
 

@@ -1,18 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "KaderGo - Експорт Z-звітів для Excel",
-  "version": "1.0.0",
-  "description": "Експорт та завантаження Z-звітів з кабінету платника податків (cabinet.tax.gov.ua) прямо у файл Excel (.xlsx) з ідеальним форматуванням.",
+  "name": "KaderGo - Експорт в Excel",
+  "version": "1.2.0",
+  "description": "Експорт та завантаження даних про оборот з кабінету платника податків у файл Excel (.xlsx) для системи KaderGo.",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "downloads",
+    "downloads.open"
   ],
   "host_permissions": [
-    "https://cabinet.tax.gov.ua/*"
+    "https://cabinet.tax.gov.ua/cashregs/zreports*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "KaderGo Z-Reports",
+    "default_title": "KaderGo - Завантажити в Excel",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -27,7 +32,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://cabinet.tax.gov.ua/*"
+        "https://cabinet.tax.gov.ua/cashregs/zreports*"
       ],
       "js": [
         "content.js"

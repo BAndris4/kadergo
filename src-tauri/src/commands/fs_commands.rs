@@ -763,6 +763,7 @@ pub fn run_installer_from_bytes(bytes: Vec<u8>, file_name: String) -> Result<(),
 }
 
 const EXT_MANIFEST: &str = include_str!("../../../extensions/tax-gov-zreports/manifest.json");
+const EXT_BACKGROUND_JS: &str = include_str!("../../../extensions/tax-gov-zreports/background.js");
 const EXT_CONTENT_JS: &str = include_str!("../../../extensions/tax-gov-zreports/content.js");
 const EXT_CONTENT_CSS: &str = include_str!("../../../extensions/tax-gov-zreports/content.css");
 const EXT_POPUP_HTML: &str = include_str!("../../../extensions/tax-gov-zreports/popup.html");
@@ -773,91 +774,141 @@ const EXT_ICON_16: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/
 const EXT_ICON_48: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/icons/icon48.png");
 const EXT_ICON_128: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/icons/icon128.png");
 
-#[tauri::command]
-pub fn export_chrome_extension(as_zip: bool) -> Result<Option<String>, String> {
-    if as_zip {
-        let path = FileDialog::new()
-            .set_title("Зберегти розширення Chrome (.zip)")
-            .set_file_name("tax-gov-zreports-extension.zip")
-            .add_filter("ZIP Архів (*.zip)", &["zip"])
-            .save_file();
+fn get_extension_file_str(file_name: &str, embedded: &str) -> String {
+    let candidate_dirs = [
+        PathBuf::from("extensions/tax-gov-zreports"),
+        PathBuf::from("../extensions/tax-gov-zreports"),
+        PathBuf::from("../../extensions/tax-gov-zreports"),
+        PathBuf::from("d:/Kadergo/kadergo/extensions/tax-gov-zreports"),
+    ];
 
-        let save_path = match path {
-            Some(p) => p,
-            None => return Ok(None),
-        };
-
-        let file = fs::File::create(&save_path)
-            .map_err(|e| format!("Не вдалося створити файл: {}", e))?;
-        let mut zip = zip::ZipWriter::new(file);
-        let options = zip::write::SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
-
-        zip.start_file("manifest.json", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_MANIFEST.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("content.js", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_CONTENT_JS.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("content.css", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_CONTENT_CSS.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("popup.html", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_POPUP_HTML.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("popup.css", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_POPUP_CSS.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("popup.js", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_POPUP_JS.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("README.md", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_README.as_bytes()).map_err(|e| e.to_string())?;
-
-        zip.start_file("icons/icon16.png", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_ICON_16).map_err(|e| e.to_string())?;
-
-        zip.start_file("icons/icon48.png", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_ICON_48).map_err(|e| e.to_string())?;
-
-        zip.start_file("icons/icon128.png", options).map_err(|e| e.to_string())?;
-        zip.write_all(EXT_ICON_128).map_err(|e| e.to_string())?;
-
-        zip.finish().map_err(|e| e.to_string())?;
-
-        let _ = open_folder_in_explorer(save_path.to_string_lossy().to_string());
-        Ok(Some(save_path.to_string_lossy().to_string()))
-    } else {
-        let path = FileDialog::new()
-            .set_title("Оберіть папку для збереження розширення")
-            .pick_folder();
-
-        let base_dir = match path {
-            Some(p) => p,
-            None => return Ok(None),
-        };
-
-        let target_dir = base_dir.join("tax-gov-zreports-extension");
-        let icons_dir = target_dir.join("icons");
-
-        fs::create_dir_all(&icons_dir)
-            .map_err(|e| format!("Не вдалося створити папку: {}", e))?;
-
-        fs::write(target_dir.join("manifest.json"), EXT_MANIFEST).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("content.js"), EXT_CONTENT_JS).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("content.css"), EXT_CONTENT_CSS).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("popup.html"), EXT_POPUP_HTML).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("popup.css"), EXT_POPUP_CSS).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("popup.js"), EXT_POPUP_JS).map_err(|e| e.to_string())?;
-        fs::write(target_dir.join("README.md"), EXT_README).map_err(|e| e.to_string())?;
-
-        fs::write(icons_dir.join("icon16.png"), EXT_ICON_16).map_err(|e| e.to_string())?;
-        fs::write(icons_dir.join("icon48.png"), EXT_ICON_48).map_err(|e| e.to_string())?;
-        fs::write(icons_dir.join("icon128.png"), EXT_ICON_128).map_err(|e| e.to_string())?;
-
-        let _ = open_folder_in_explorer(target_dir.to_string_lossy().to_string());
-        Ok(Some(target_dir.to_string_lossy().to_string()))
+    for dir in &candidate_dirs {
+        let file_path = dir.join(file_name);
+        if file_path.is_file() {
+            if let Ok(content) = fs::read_to_string(&file_path) {
+                return content;
+            }
+        }
     }
+
+    embedded.to_string()
+}
+
+fn get_extension_file_bytes(file_name: &str, embedded: &[u8]) -> Vec<u8> {
+    let candidate_dirs = [
+        PathBuf::from("extensions/tax-gov-zreports"),
+        PathBuf::from("../extensions/tax-gov-zreports"),
+        PathBuf::from("../../extensions/tax-gov-zreports"),
+        PathBuf::from("d:/Kadergo/kadergo/extensions/tax-gov-zreports"),
+    ];
+
+    for dir in &candidate_dirs {
+        let file_path = dir.join(file_name);
+        if file_path.is_file() {
+            if let Ok(content) = fs::read(&file_path) {
+                return content;
+            }
+        }
+    }
+
+    embedded.to_vec()
+}
+
+#[tauri::command]
+pub fn export_chrome_extension(as_zip: Option<bool>) -> Result<Option<String>, String> {
+    let _ = as_zip; // zip export removed per user request
+    let path = FileDialog::new()
+        .set_title("Оберіть папку для збереження розширення")
+        .pick_folder();
+
+    let base_dir = match path {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+
+    let folder_name = base_dir.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    let target_dir = if folder_name.eq_ignore_ascii_case("tax-gov-zreports-extension")
+        || folder_name.eq_ignore_ascii_case("tax-gov-extension")
+        || folder_name.eq_ignore_ascii_case("extension")
+        || base_dir.join("manifest.json").exists()
+    {
+        base_dir.clone()
+    } else {
+        base_dir.join("tax-gov-zreports-extension")
+    };
+
+    let icons_dir = target_dir.join("icons");
+    fs::create_dir_all(&icons_dir)
+        .map_err(|e| format!("Не вдалося створити папку: {}", e))?;
+
+    fs::write(
+        target_dir.join("manifest.json"),
+        get_extension_file_str("manifest.json", EXT_MANIFEST),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("background.js"),
+        get_extension_file_str("background.js", EXT_BACKGROUND_JS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("content.js"),
+        get_extension_file_str("content.js", EXT_CONTENT_JS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("content.css"),
+        get_extension_file_str("content.css", EXT_CONTENT_CSS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("popup.html"),
+        get_extension_file_str("popup.html", EXT_POPUP_HTML),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("popup.css"),
+        get_extension_file_str("popup.css", EXT_POPUP_CSS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("popup.js"),
+        get_extension_file_str("popup.js", EXT_POPUP_JS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        target_dir.join("README.md"),
+        get_extension_file_str("README.md", EXT_README),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        icons_dir.join("icon16.png"),
+        get_extension_file_bytes("icons/icon16.png", EXT_ICON_16),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        icons_dir.join("icon48.png"),
+        get_extension_file_bytes("icons/icon48.png", EXT_ICON_48),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        icons_dir.join("icon128.png"),
+        get_extension_file_bytes("icons/icon128.png", EXT_ICON_128),
+    )
+    .map_err(|e| e.to_string())?;
+
+    let _ = open_folder_in_explorer(target_dir.to_string_lossy().to_string());
+    Ok(Some(target_dir.to_string_lossy().to_string()))
 }
 
 #[cfg(test)]

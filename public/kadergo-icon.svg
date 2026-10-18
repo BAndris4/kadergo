@@ -1,0 +1,263 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="100%" height="100%">
+  <defs>
+    <style>
+      /* Alapértelmezett transform-box beállítások */
+      .anim-folder, .anim-tab, .anim-doc, .anim-cutout,
+      .anim-swoosh-teal, .anim-swoosh-amber, .anim-arrow,
+      .anim-person, .anim-text-kader, .anim-text-go {
+        transform-box: fill-box;
+      }
+      .anim-folder { transform-origin: bottom center; }
+      .anim-tab { transform-origin: bottom right; }
+      .anim-doc { transform-origin: bottom center; }
+      .anim-cutout, .anim-swoosh-teal, .anim-swoosh-amber, .anim-arrow { transform-origin: bottom left; }
+      .anim-person { transform-origin: center bottom; }
+      .anim-text-kader, .anim-text-go { transform-origin: left center; }
+
+      /* ==========================================
+         1. MEGJELENÉS (INTRO)
+         ========================================== */
+      svg.state-intro .anim-folder {
+        animation: folderRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.0s both;
+      }
+      svg.state-intro .anim-tab {
+        animation: tabTilt 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s both;
+      }
+      svg.state-intro .anim-doc {
+        animation: docSlideOut 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+      }
+      svg.state-intro .anim-line-1 {
+        stroke-dasharray: 24;
+        stroke-dashoffset: 24;
+        animation: drawLine1 0.3s ease-out 0.48s forwards;
+      }
+      svg.state-intro .anim-line-2 {
+        stroke-dasharray: 35;
+        stroke-dashoffset: 35;
+        animation: drawLine2 0.35s ease-out 0.60s forwards;
+      }
+      svg.state-intro .anim-cutout {
+        animation: swooshSweep 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both;
+      }
+      svg.state-intro .anim-swoosh-teal {
+        animation: swooshSweep 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+      }
+      svg.state-intro .anim-swoosh-amber {
+        animation: swooshSweep 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
+      }
+      svg.state-intro .anim-arrow {
+        animation: arrowShoot 0.5s cubic-bezier(0.34, 1.45, 0.64, 1) 0.52s both;
+      }
+      svg.state-intro .anim-person {
+        animation: personPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.68s both;
+      }
+      svg.state-intro .anim-text-kader {
+        animation: textSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.05s both;
+      }
+      svg.state-intro .anim-text-go {
+        animation: textSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.22s both;
+      }
+
+      /* ==========================================
+         2. BETÖLTÉS (LOADING)
+         ========================================== */
+      svg.state-loading .anim-folder {
+        animation: folderBreath 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-tab {
+        animation: tabWave 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-doc {
+        animation: docBob 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-line-1 {
+        stroke-dasharray: 24;
+        animation: lineLoop1 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-line-2 {
+        stroke-dasharray: 35;
+        animation: lineLoop2 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-cutout,
+      svg.state-loading .anim-swoosh-teal {
+        animation: swooshPulse 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-swoosh-amber {
+        animation: swooshPulse 2s ease-in-out 0.18s infinite;
+      }
+      svg.state-loading .anim-arrow {
+        animation: arrowPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      svg.state-loading .anim-person {
+        animation: personBounce 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-text-kader {
+        animation: textPulse 2s ease-in-out infinite;
+      }
+      svg.state-loading .anim-text-go {
+        animation: textPulse 2s ease-in-out 0.2s infinite;
+      }
+
+      /* ==========================================
+         3. ELTŰNÉS (OUTRO)
+         ========================================== */
+      svg.state-outro .anim-text-go {
+        animation: textSlideOut 0.3s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
+      }
+      svg.state-outro .anim-text-kader {
+        animation: textSlideOut 0.3s cubic-bezier(0.55, 0, 1, 0.45) 0.08s forwards;
+      }
+      svg.state-outro .anim-doc {
+        animation: docSlideIn 0.35s cubic-bezier(0.55, 0, 1, 0.45) 0.15s forwards;
+      }
+      svg.state-outro .anim-person {
+        animation: personHide 0.3s cubic-bezier(0.55, 0, 1, 0.45) 0.18s forwards;
+      }
+      svg.state-outro .anim-arrow {
+        animation: arrowLaunchOut 0.38s cubic-bezier(0.55, 0, 1, 0.45) 0.24s forwards;
+      }
+      svg.state-outro .anim-swoosh-amber {
+        animation: swooshRetract 0.38s cubic-bezier(0.55, 0, 1, 0.45) 0.30s forwards;
+      }
+      svg.state-outro .anim-swoosh-teal,
+      svg.state-outro .anim-cutout {
+        animation: swooshRetract 0.4s cubic-bezier(0.55, 0, 1, 0.45) 0.35s forwards;
+      }
+      svg.state-outro .anim-tab {
+        animation: tabFoldIn 0.35s cubic-bezier(0.55, 0, 1, 0.45) 0.42s forwards;
+      }
+      svg.state-outro .anim-folder {
+        animation: folderCollapse 0.4s cubic-bezier(0.55, 0, 1, 0.45) 0.48s forwards;
+      }
+
+      @keyframes folderRise {
+        0% { opacity: 0; transform: translateY(18px) scaleY(0.82); }
+        100% { opacity: 1; transform: translateY(0) scaleY(1); }
+      }
+      @keyframes tabTilt {
+        0% { opacity: 0; transform: translateX(8px) rotate(12deg) scaleY(0.8); }
+        100% { opacity: 1; transform: translateX(0) rotate(0deg) scaleY(1); }
+      }
+      @keyframes docSlideOut {
+        0% { opacity: 0; transform: translateY(28px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes drawLine1 { to { stroke-dashoffset: 0; } }
+      @keyframes drawLine2 { to { stroke-dashoffset: 0; } }
+      @keyframes swooshSweep {
+        0% { opacity: 0; transform: scale(0.72) translate(-16px, 16px); }
+        100% { opacity: 1; transform: scale(1) translate(0, 0); }
+      }
+      @keyframes arrowShoot {
+        0% { opacity: 0; transform: translate(-22px, 22px) scale(0.7); }
+        100% { opacity: 1; transform: translate(0, 0) scale(1); }
+      }
+      @keyframes personPop {
+        0% { opacity: 0; transform: scale(0) translateY(8px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes textSlideIn {
+        0% { opacity: 0; transform: translateX(-18px); }
+        100% { opacity: 1; transform: translateX(0); }
+      }
+
+      @keyframes folderBreath { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.97); } }
+      @keyframes tabWave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-3deg) translateX(-1.5px); } }
+      @keyframes docBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+      @keyframes lineLoop1 { 0%, 15% { stroke-dashoffset: 24; } 45%, 80% { stroke-dashoffset: 0; } 95%, 100% { stroke-dashoffset: 24; } }
+      @keyframes lineLoop2 { 0%, 25% { stroke-dashoffset: 35; } 55%, 80% { stroke-dashoffset: 0; } 95%, 100% { stroke-dashoffset: 35; } }
+      @keyframes swooshPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03) translate(1px, -1px); opacity: 0.88; } }
+      @keyframes arrowPulse { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(6px, -6px) scale(1.04); } }
+      @keyframes personBounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.06); } }
+      @keyframes textPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+
+      @keyframes textSlideOut { 0% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(16px); } }
+      @keyframes docSlideIn { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(28px); } }
+      @keyframes personHide { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0) translateY(8px); } }
+      @keyframes arrowLaunchOut { 0% { opacity: 1; transform: translate(0, 0) scale(1); } 100% { opacity: 0; transform: translate(26px, -26px) scale(0.8); } }
+      @keyframes swooshRetract { 0% { opacity: 1; transform: scale(1) translate(0, 0); } 100% { opacity: 0; transform: scale(0.7) translate(-18px, 18px); } }
+      @keyframes tabFoldIn { 0% { opacity: 1; transform: rotate(0deg); } 100% { opacity: 0; transform: translateX(8px) rotate(12deg) scaleY(0.75); } }
+      @keyframes folderCollapse { 0% { opacity: 1; transform: translateY(0) scaleY(1); } 100% { opacity: 0; transform: translateY(20px) scaleY(0.75); } }
+
+      @media (prefers-reduced-motion: reduce) {
+        svg * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+      }
+
+    </style>
+    <linearGradient id="tealMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e4e5e" />
+      <stop offset="50%" stop-color="#133b47" />
+      <stop offset="100%" stop-color="#0f2e38" />
+    </linearGradient>
+    <linearGradient id="tealBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a5b6c" />
+      <stop offset="100%" stop-color="#0f2e38" />
+    </linearGradient>
+    <linearGradient id="amberMain" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e08e36" />
+      <stop offset="50%" stop-color="#f59533" />
+      <stop offset="100%" stop-color="#f8a44c" />
+    </linearGradient>
+    <linearGradient id="amberShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59533" />
+      <stop offset="100%" stop-color="#d47a22" />
+    </linearGradient>
+
+    <mask id="docCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
+      <rect x="0" y="0" width="220" height="220" fill="white" />
+      <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 L 42 184 Z" fill="black" />
+    </mask>
+
+    <mask id="folderCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
+      <rect x="0" y="0" width="220" height="220" fill="white" />
+      <path class="anim-cutout" d="M 38 194 C 46 136 94 96 148 34 L 194 34 C 142 106 86 138 64 194 Z" fill="black" />
+    </mask>
+  </defs>
+  <!-- Fehér lekerekített háttér a sötét témákhoz / tálcához -->
+  <rect x="0" y="0" width="220" height="220" rx="46" ry="46" fill="#ffffff" />
+  <g transform="translate(13, 13) scale(0.88)">
+
+    <!-- Dokumentum a mappában -->
+    <g mask="url(#docCutout)">
+      <g class="anim-doc">
+        <path d="M 48 34 L 84 34 L 98 48 L 98 62 L 48 62 Z" fill="none" stroke="#133b47" stroke-width="4.5" stroke-linejoin="round" />
+        <path d="M 84 34 L 84 48 L 98 48" fill="none" stroke="#133b47" stroke-width="4" stroke-linejoin="round" />
+        <line class="anim-line-1" x1="57" y1="44" x2="77" y2="44" stroke="#133b47" stroke-width="3.8" stroke-linecap="round" />
+        <line class="anim-line-2" x1="57" y1="52" x2="88" y2="52" stroke="#133b47" stroke-width="3.8" stroke-linecap="round" />
+      </g>
+    </g>
+
+    <!-- Mappa elemek (tökéletesen sima ív-kivágással) -->
+    <g mask="url(#folderCutout)">
+      <path class="anim-tab" d="M 30 62 C 23 63 19 69 20 76 L 38 190 L 46 190 L 34 61 Z" fill="url(#tealBack)" />
+      <g class="anim-folder">
+        <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 C 106 190 102 194 96 194 L 62 194 C 66 172 78 154 96 139 L 42 184 Z" fill="url(#tealMain)" />
+        <path d="M 65 194 L 96 194 C 102 194 106 190 106 184 L 106 144 C 86 158 72 175 65 194 Z" fill="#0f2e38" />
+      </g>
+    </g>
+
+    <!-- Felső sötét pávakék (Teal) K-szalagok (kíméletesen simított kontrollpontok) -->
+    <g class="anim-swoosh-teal">
+      <path d="M 42 180 C 52 130 96 92 150 34 L 170 34 C 120 92 76 128 42 180 Z" fill="url(#tealMain)" />
+      <path d="M 42 188 C 58 136 110 98 175 34 L 191 34 C 140 94 102 124 60 146 C 49 157 44 172 42 188 Z" fill="url(#tealMain)" />
+    </g>
+
+    <!-- Jobb alsó K-szár és felfelé mutató nyíl (Amber) -->
+    <g class="anim-arrow">
+      <path d="M 104 142 L 128 122 L 154 148 L 178 124 L 169 115 L 204 106 L 197 142 L 189 134 L 156 168 L 194 194 L 150 194 C 142 194 136 190 130 183 L 104 142 Z" fill="url(#amberMain)" />
+      <path d="M 154 148 L 189 134 L 156 168 L 130 144 Z" fill="url(#amberShadow)" opacity="0.45" />
+    </g>
+
+    <!-- Alsó borostyánsárga (Amber) ív (kerekített, sima indulással) -->
+    <g class="anim-swoosh-amber">
+      <path d="M 42 188 C 48 152 78 128 134 114 C 106 138 70 156 42 188 Z" fill="url(#amberMain)" />
+      <path d="M 48 194 C 56 160 84 134 142 112 C 122 130 80 152 56 194 Z" fill="#f8a44c" opacity="0.85" />
+    </g>
+
+    <!-- HR / Személy sziluett -->
+    <g class="anim-person">
+      <circle cx="151" cy="113" r="7.5" fill="#133b47" />
+      <path d="M 139 131 C 139 124 144 122 151 122 C 158 122 163 124 163 131 L 151 143 Z" fill="#133b47" />
+    </g>
+  </g>
+</svg>

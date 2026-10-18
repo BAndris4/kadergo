@@ -33,6 +33,58 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes viewSwitchBackdropIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes viewSwitchBackdropOut {
+  from { opacity: 1; backdrop-filter: blur(8px); }
+  to { opacity: 0; backdrop-filter: blur(0px); }
+}
+
+@keyframes viewSwitchCardIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(16px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes viewSwitchCardOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12) translateY(-14px);
+  }
+}
+
+.animate-viewSwitchBackdropIn {
+  animation: viewSwitchBackdropIn 0.17s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-viewSwitchBackdropOut {
+  animation: viewSwitchBackdropOut 0.18s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.animate-viewSwitchCardIn {
+  animation: viewSwitchCardIn 0.18s cubic-bezier(0.2, 1.1, 0.3, 1) forwards;
+}
+
+.animate-viewSwitchCardOut {
+  animation: viewSwitchCardOut 0.18s cubic-bezier(0.5, 0, 0.9, 0.5) forwards;
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
