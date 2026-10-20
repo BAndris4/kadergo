@@ -38,14 +38,18 @@
             fromInput ? fromInput.value : '',
             toInput ? toInput.value : ''
           );
-          if (period) monthName = period.monthName;
+          let defaultName = 'оборот.xlsx';
+          if (period) {
+            monthName = period.monthName;
+            defaultName = period.defaultFileName || `${monthName}.xlsx`;
+          }
         }
 
         sendResponse({
           found: count > 0 && validPeriod,
           hasPeriod: validPeriod,
           count,
-          defaultName: `${monthName}.xlsx`
+          defaultName: (data && data.defaultFileName) || (monthName !== 'оборот' ? `${monthName}.xlsx` : 'оборот.xlsx')
         });
         return true;
       }

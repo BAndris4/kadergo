@@ -11,9 +11,6 @@ window.KaderGo = window.KaderGo || {};
   let btnEl = null;
   let spinnerEl = null;
   let labelEl = null;
-  let btnAllEl = null;
-  let spinnerAllEl = null;
-  let labelAllEl = null;
   let pollInterval = null;
 
   function isTargetPage() {
@@ -66,16 +63,15 @@ window.KaderGo = window.KaderGo || {};
 
     // Heroicons SVG
     const downloadIconSvg = '<svg class="kadergo-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>';
-    const allIconSvg = '<svg class="kadergo-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>';
     const spinnerSvg = '<svg class="kadergo-loading-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8a44c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>';
 
-    // 1. Кнопка "Завантажити в Excel" (поточний РРО помісячно)
+    // Єдина уніфікована кнопка експорту KaderGo
     btnEl = document.createElement('button');
     btnEl.id = 'tax-gov-download-excel-btn';
     btnEl.className = 'kadergo-app-btn';
     btnEl.type = 'button';
-    btnEl.disabled = true;
-    btnEl.setAttribute('title', 'Виконайте пошук в кабінеті, щоб відобразити дані');
+    btnEl.disabled = false;
+    btnEl.setAttribute('title', 'Експорт звітів в Excel або формування Книги доходів');
 
     const iconSpan = document.createElement('span');
     iconSpan.className = 'kadergo-icon-wrapper';
@@ -93,168 +89,136 @@ window.KaderGo = window.KaderGo || {};
     btnEl.appendChild(spinnerEl);
     btnEl.appendChild(labelEl);
 
-    // 2. Кнопка "Всі РРО в Excel" (автоматичний збір по всіх 400..)
-    btnAllEl = document.createElement('button');
-    btnAllEl.id = 'tax-gov-download-all-btn';
-    btnAllEl.className = 'kadergo-app-btn kadergo-all-btn';
-    btnAllEl.type = 'button';
-    btnAllEl.disabled = true;
-    btnAllEl.setAttribute('title', 'Завантажити весь оборот по всіх РРО в один файл Excel');
-
-    const iconAllSpan = document.createElement('span');
-    iconAllSpan.className = 'kadergo-icon-wrapper';
-    iconAllSpan.innerHTML = allIconSvg;
-
-    spinnerAllEl = document.createElement('span');
-    spinnerAllEl.className = 'kadergo-spinner-wrapper';
-    spinnerAllEl.style.display = 'none';
-
-    labelAllEl = document.createElement('span');
-    labelAllEl.className = 'kadergo-app-label';
-    labelAllEl.textContent = 'Всі РРО в Excel';
-
-    btnAllEl.appendChild(iconAllSpan);
-    btnAllEl.appendChild(spinnerAllEl);
-    btnAllEl.appendChild(labelAllEl);
-
+    // Click Handler: Відкриває єдине уніфіковане модальне вікно з 3 режимами
     btnEl.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (!window.KaderGo.Cabinet.hasValidPeriod()) {
-        alert('Будь ласка, вкажіть період (дати «з» та «по») перед завантаженням.');
+      // If downloading and minimized to background, clicking the button restores the modal!
+      if (window.KaderGo.Exporter && window.KaderGo.Exporter.isDownloading()) {
+        if (window.KaderGo.Modal && typeof window.KaderGo.Modal.restoreModal === 'function') {
+          window.KaderGo.Modal.restoreModal();
+        }
         return;
       }
 
-      const { fromInput, toInput } = window.KaderGo.Cabinet.getPeriodInputs();
-      const origFrom = (fromInput.value || '').trim();
-      const origTo = (toInput.value || '').trim();
-      const intervals = window.KaderGo.DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo);
-      const targetFn = window.KaderGo.Cabinet.getCurrentlySelectedFiscalNumber();
-
-      // 1. Відкриваємо кастомне вікно вибору папки та підтвердження (українською мовою)
-      let dirHandle = null;
-      let modalRes = null;
-      if (window.KaderGo.Modal && typeof window.KaderGo.Modal.openExportModal === 'function') {
-        modalRes = await window.KaderGo.Modal.openExportModal({
-          periodFrom: origFrom,
-          periodTo: origTo,
-          intervals,
-          isAllRro: false,
-          targetFn
-        });
-
-        if (!modalRes || !modalRes.proceed) {
-          console.log('[KaderGo] Експорт скасовано користувачем.');
-          return;
-        }
-
-        dirHandle = modalRes.dirHandle;
+      if (!window.KaderGo.Modal || typeof window.KaderGo.Modal.openUnifiedExportModal !== 'function') {
+        return;
       }
 
-      // 2. Запускаємо вивантаження у вказану папку
-      const res = await window.KaderGo.Exporter.downloadSingleFiscalReports({
-        dirHandle,
-        exportFormat: modalRes?.format || 'xlsx',
-        onStart: () => {
+      const modalRes = await window.KaderGo.Modal.openUnifiedExportModal();
+      if (!modalRes || !modalRes.proceed) {
+        console.log('[KaderGo] Експорт скасовано користувачем.');
+        return;
+      }
+
+      const setLoadingState = (loading, initialStatus) => {
+        if (loading) {
           btnEl.disabled = true;
-          btnAllEl.disabled = true;
           btnEl.classList.add('loading');
           spinnerEl.innerHTML = spinnerSvg;
           spinnerEl.style.display = 'inline-flex';
-          labelEl.textContent = 'Підготовка...';
-        },
-        onProgress: ({ statusText }) => {
-          if (statusText) labelEl.textContent = statusText;
-        },
-        onEnd: () => {
+          labelEl.textContent = initialStatus || 'Підготовка...';
+        } else {
           btnEl.classList.remove('loading');
           spinnerEl.innerHTML = '';
           spinnerEl.style.display = 'none';
           labelEl.textContent = 'Завантажити в Excel';
           updateUI();
         }
-      });
+      };
 
-      if (res && res.success && !res.cancelled) {
-        labelEl.textContent = res.empty ? 'Немає даних' : 'Збережено!';
-        setTimeout(() => {
-          if (!window.KaderGo.Exporter.isDownloading()) {
-            labelEl.textContent = 'Завантажити в Excel';
-          }
-        }, 2200);
-      }
-    });
+      const flow = modalRes.flow;
 
-    btnAllEl.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      const progressCallback = ({ statusText, detailText, progressPercent, ...info }) => {
+        if (flow) {
+          const rawMonth = info.monthName || (info.interval ? info.interval.monthName : null);
+          const capMonth = rawMonth ? (rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1)) : null;
+          flow.setProgress({
+            title: statusText || 'Обробка даних...',
+            subtitle: detailText || (capMonth ? `${capMonth} ${info.year || ''}` : ''),
+            progressPercent,
+            monthName: capMonth,
+            year: info.year || (info.interval ? info.interval.year : null),
+            monthStep: info.monthStep || info.step || null,
+            monthTotal: info.monthTotal || info.total || null,
+            stepText: info.stepText || null,
+            rroStep: info.rroStep || null,
+            rroTotal: info.rroTotal || null,
+            fn: info.fn || null
+          });
+        }
+        if (statusText) labelEl.textContent = statusText;
+      };
 
-      if (!window.KaderGo.Cabinet.hasValidPeriod()) {
-        alert('Будь ласка, вкажіть період (дати «з» та «по») перед завантаженням.');
-        return;
-      }
+      const filesGeneratedCallback = async ({ title, subtitle } = {}) => {
+        if (flow) {
+          await flow.setSuccess({ title, subtitle });
+        }
+      };
 
-      const { fromInput, toInput } = window.KaderGo.Cabinet.getPeriodInputs();
-      const origFrom = (fromInput.value || '').trim();
-      const origTo = (toInput.value || '').trim();
-      const intervals = window.KaderGo.DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo);
+      const endCallback = async () => {
+        if (flow) {
+          await flow.closeWithOutro();
+        }
+        setLoadingState(false);
+      };
 
-      // 1. Відкриваємо кастомне вікно вибору папки та підтвердження (українською мовою)
-      let dirHandle = null;
-      let modalRes = null;
-      if (window.KaderGo.Modal && typeof window.KaderGo.Modal.openExportModal === 'function') {
-        modalRes = await window.KaderGo.Modal.openExportModal({
-          periodFrom: origFrom,
-          periodTo: origTo,
-          intervals,
-          isAllRro: true
+      const handleDone = (res) => {
+        if (res && res.success && !res.cancelled) {
+          labelEl.textContent = res.empty ? 'Немає даних' : 'Збережено!';
+          setTimeout(() => {
+            if (!window.KaderGo.Exporter.isDownloading()) {
+              labelEl.textContent = 'Завантажити в Excel';
+            }
+          }, 2200);
+        }
+      };
+
+      // 1. Обраний РРО
+      if (modalRes.mode === 'single') {
+        const res = await window.KaderGo.Exporter.downloadSingleFiscalReports({
+          exportFormat: modalRes.format || 'xlsx',
+          targetFn: modalRes.targetFn,
+          intervals: modalRes.intervals,
+          flow: modalRes.flow,
+          onStart: () => setLoadingState(true, 'Підготовка...'),
+          onProgress: progressCallback,
+          onFilesGenerated: filesGeneratedCallback,
+          onEnd: endCallback
         });
+        handleDone(res);
 
-        if (!modalRes || !modalRes.proceed) {
-          console.log('[KaderGo] Експорт скасовано користувачем.');
-          return;
-        }
+      // 2. Всі РРО
+      } else if (modalRes.mode === 'all') {
+        const res = await window.KaderGo.Exporter.downloadAllFiscalReports({
+          exportFormat: modalRes.format || 'xlsx',
+          intervals: modalRes.intervals,
+          flow: modalRes.flow,
+          onStart: () => setLoadingState(true, 'Пошук РРО...'),
+          onProgress: progressCallback,
+          onFilesGenerated: filesGeneratedCallback,
+          onEnd: endCallback
+        });
+        handleDone(res);
 
-        dirHandle = modalRes.dirHandle;
-      }
-
-      // 2. Запускаємо пакетне вивантаження всіх РРО
-      const res = await window.KaderGo.Exporter.downloadAllFiscalReports({
-        dirHandle,
-        exportFormat: modalRes?.format || 'xlsx',
-        onStart: () => {
-          btnEl.disabled = true;
-          btnAllEl.disabled = true;
-          btnAllEl.classList.add('loading');
-          spinnerAllEl.innerHTML = spinnerSvg;
-          spinnerAllEl.style.display = 'inline-flex';
-          labelAllEl.textContent = 'Пошук РРО...';
-        },
-        onProgress: ({ statusText }) => {
-          if (statusText) labelAllEl.textContent = statusText;
-        },
-        onEnd: () => {
-          btnAllEl.classList.remove('loading');
-          spinnerAllEl.innerHTML = '';
-          spinnerAllEl.style.display = 'none';
-          labelAllEl.textContent = 'Всі РРО в Excel';
-          updateUI();
-        }
-      });
-
-      if (res && res.success && !res.cancelled) {
-        labelAllEl.textContent = res.empty ? 'Немає даних' : 'Збережено!';
-        setTimeout(() => {
-          if (!window.KaderGo.Exporter.isDownloading()) {
-            labelAllEl.textContent = 'Всі РРО в Excel';
-          }
-        }, 2200);
+      // 3. Книга обліку доходів за рік
+      } else if (modalRes.mode === 'income_book') {
+        const currentYear = new Date().getFullYear();
+        const res = await window.KaderGo.Exporter.downloadYearIncomeBookAndReports({
+          year: modalRes.year || currentYear,
+          exportFormat: modalRes.format || 'book',
+          flow: modalRes.flow,
+          onStart: () => setLoadingState(true, 'Підготовка...'),
+          onProgress: progressCallback,
+          onFilesGenerated: filesGeneratedCallback,
+          onEnd: endCallback
+        });
+        handleDone(res);
       }
     });
 
     wrapperEl.appendChild(btnEl);
-    wrapperEl.appendChild(btnAllEl);
   }
 
   function updateUI() {
@@ -282,29 +246,8 @@ window.KaderGo = window.KaderGo || {};
       return;
     }
 
-    const validPeriod = window.KaderGo.Cabinet.hasValidPeriod();
-
-    // Стан кнопки одного РРО
-    if (!validPeriod) {
-      btnEl.disabled = true;
-      btnEl.setAttribute('title', 'Вкажіть період (дати «з» та «по»)');
-    } else {
-      btnEl.disabled = false;
-      btnEl.setAttribute('title', 'Завантажити оборот по обраному РРО помісячно в окремі файли Excel');
-    }
-
-    // Стан кнопки всіх РРО
-    const auto = window.KaderGo.Cabinet.findAutocompleteElements();
-    if (!validPeriod) {
-      btnAllEl.disabled = true;
-      btnAllEl.setAttribute('title', 'Вкажіть період (дати «з» та «по»)');
-    } else if (auto && auto.input) {
-      btnAllEl.disabled = false;
-      btnAllEl.setAttribute('title', 'Завантажити оборот по всіх РРО помісячно в окремі файли Excel');
-    } else {
-      btnAllEl.disabled = true;
-      btnAllEl.setAttribute('title', 'Поле вибору РРО не знайдено');
-    }
+    btnEl.disabled = false;
+    btnEl.setAttribute('title', 'Експорт звітів в Excel або формування Книги доходів');
   }
 
   function startObserverAndPolling() {

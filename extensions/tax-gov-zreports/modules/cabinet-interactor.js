@@ -489,10 +489,64 @@ window.KaderGo = window.KaderGo || {};
     return false;
   }
 
+  function isTableAlreadyLoadedFor(targetFn, interval) {
+    if (!interval) return false;
+    const { fromInput, toInput } = getPeriodInputs();
+    const curFrom = (fromInput?.value || '').trim();
+    const curTo = (toInput?.value || '').trim();
+
+    // 1. Перевіряємо відповідність дат у формі
+    if (curFrom !== interval.startStr || curTo !== interval.endStr) {
+      return false;
+    }
+
+    // 2. Перевіряємо обраний РРО
+    const curFn = getCurrentlySelectedFiscalNumber();
+    if (targetFn && curFn && !curFn.includes(targetFn) && !targetFn.includes(curFn)) {
+      return false;
+    }
+
+    // 3. Перевіряємо повідомлення про відсутність даних
+    if (hasEmptyStateMessage()) {
+      return false;
+    }
+
+    // 4. Перевіряємо індикатор завантаження
+    const mask = document.querySelector('.p-datatable-mask, .p-datatable-loading-overlay, .p-datatable-loading-icon, .pi-spin');
+    if (mask && window.getComputedStyle(mask).display !== 'none') {
+      return false;
+    }
+
+    // 5. Перевіряємо таблицю та наявність валідних рядків
+    const Scraper = window.KaderGo.Scraper;
+    const table = Scraper ? Scraper.findTable() : document.querySelector('table');
+    if (!table) return false;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return false;
+
+    if (tbody.querySelector('.p-datatable-emptymessage')) {
+      return false;
+    }
+
+    const rows = tbody.querySelectorAll('tr');
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.cells && row.cells.length > 3 && !row.classList.contains('p-datatable-emptymessage')) {
+        if (!targetFn || (row.textContent || '').includes(targetFn)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   async function waitForTableReady(targetFn, oldFingerprint, maxWaitMs) {
     const timeout = maxWaitMs || (window.KaderGo.Config && window.KaderGo.Config.MAX_TABLE_WAIT_MS) || 30000;
     const Scraper = window.KaderGo.Scraper;
     const start = Date.now();
+    let sawLoading = false;
     await delay(300);
 
     while (Date.now() - start < timeout) {
@@ -503,9 +557,10 @@ window.KaderGo = window.KaderGo || {};
         return { ready: true, hasData: false };
       }
 
-      // 2. Якщо спінер/маска завантаження активні — сайт обробляє запит, терпляче чекаємо
+      // 2. Якщо спінер/маска завантаження активні — сайт обробляє запит, фіксуємо завантаження
       const mask = document.querySelector('.p-datatable-mask, .p-datatable-loading-overlay, .p-datatable-loading-icon, .pi-spin');
       if (mask && window.getComputedStyle(mask).display !== 'none') {
+        sawLoading = true;
         await delay(150);
         continue;
       }
@@ -520,11 +575,32 @@ window.KaderGo = window.KaderGo || {};
           }
 
           const currentFingerprint = tbody.innerText || '';
+
+          // Якщо була активна маска завантаження і вона щойно зникла з даними — запит завершено
+          if (sawLoading && currentFingerprint.length > 0) {
+            await delay(200);
+            return { ready: true, hasData: true };
+          }
+
           if (oldFingerprint) {
             // Якщо таблиця містила попередні дані — чекаємо оновлення вмісту
             if (currentFingerprint !== oldFingerprint && currentFingerprint.length > 0) {
               await delay(200);
               return { ready: true, hasData: true };
+            }
+
+            // Якщо минуло понад 1.8с без спінера, і рядки відповідають targetFn (дані вже були або повернулися ідентичні)
+            if (Date.now() - start > 1800) {
+              const rows = tbody.querySelectorAll('tr');
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.cells && row.cells.length > 3 && !row.classList.contains('p-datatable-emptymessage')) {
+                  if (!targetFn || (row.textContent || '').includes(targetFn)) {
+                    await delay(150);
+                    return { ready: true, hasData: true };
+                  }
+                }
+              }
             }
           } else {
             // Якщо таблиця спочатку була порожньою — шукаємо появу рядків
@@ -565,6 +641,7 @@ window.KaderGo = window.KaderGo || {};
     findSearchButton,
     triggerSearch,
     hasEmptyStateMessage,
+    isTableAlreadyLoadedFor,
     waitForTableReady
   };
 })();

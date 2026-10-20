@@ -221,6 +221,10 @@ svg.kadergo-btn-icon {
   animation: kadergoOverlayIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+.kadergo-modal-overlay.minimized {
+  display: none !important;
+}
+
 @keyframes kadergoOverlayIn {
   0% { opacity: 0; }
   100% { opacity: 1; }
@@ -336,6 +340,76 @@ svg.kadergo-btn-icon {
   flex-direction: column !important;
   gap: 12px !important;
   box-sizing: border-box !important;
+}
+
+/* Segmented Mode Tabs (3 Options) */
+.kadergo-mode-tabs {
+  display: flex !important;
+  background: #f1f5f4 !important;
+  border: 1.5px solid #e2eceb !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-mode-tab {
+  flex: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 6px !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: #556e75 !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+  user-select: none !important;
+  outline: none !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-mode-tab .kadergo-heroicon {
+  width: 15px !important;
+  height: 15px !important;
+  stroke-width: 2.2 !important;
+  color: currentColor !important;
+}
+
+.kadergo-mode-tab:hover:not(.active):not(.disabled) {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #133b47 !important;
+}
+
+.kadergo-mode-tab.active {
+  background: #ffffff !important;
+  border-color: #cbd8d6 !important;
+  color: #133b47 !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.08) !important;
+}
+
+.kadergo-mode-tab.active .kadergo-heroicon {
+  color: #f8a44c !important;
+}
+
+.kadergo-mode-tab.disabled {
+  opacity: 0.42 !important;
+  cursor: not-allowed !important;
+  color: #94a3b8 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.kadergo-mode-tab.disabled:hover {
+  background: transparent !important;
+  color: #94a3b8 !important;
 }
 
 /* Visual Hero Banner (Signature KaderGo Card) */
@@ -566,13 +640,15 @@ svg.kadergo-btn-icon {
   align-items: center !important;
   gap: 6px !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-  transition: all 0.16s ease !important;
+  transition: background-color 0.16s ease, border-color 0.16s ease !important;
+  cursor: default !important;
+  user-select: none !important;
 }
 
 .kadergo-file-chip:hover {
-  border-color: #133b47 !important;
-  background: #f0f5f4 !important;
-  transform: translateY(-1px) !important;
+  border-color: #cbd8d6 !important;
+  background: #f8faf9 !important;
+  transform: none !important;
 }
 
 .kadergo-file-chip .kadergo-heroicon {
@@ -676,14 +752,29 @@ svg.kadergo-btn-icon {
   outline: none !important;
 }
 
-.kadergo-modal-btn-confirm:hover {
+.kadergo-modal-btn-confirm:hover:not(:disabled) {
   background: #f59533 !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 18px rgba(248, 164, 76, 0.45) !important;
 }
 
-.kadergo-modal-btn-confirm:active {
+.kadergo-modal-btn-confirm:active:not(:disabled) {
   transform: scale(0.97) !important;
+}
+
+.kadergo-modal-btn-confirm:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  background: #cbd8d6 !important;
+  color: #556e75 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.kadergo-modal-btn-confirm:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  background: #cbd8d6 !important;
 }
 
 .kadergo-modal-btn-confirm .kadergo-heroicon {
@@ -691,6 +782,654 @@ svg.kadergo-btn-icon {
   height: 15px !important;
 }
 
+/* Кнопка "Книга доходів за рік" */
+.kadergo-book-btn {
+  background: #1a4a58 !important;
+  border-color: #1a4a58 !important;
+  color: #fbd38d !important;
+}
+
+.kadergo-book-btn:hover:not(:disabled) {
+  background: #133b47 !important;
+  border-color: #f8a44c !important;
+  color: #f8a44c !important;
+}
+
+/* Секція вибору звітного року в модальному вікні */
+.kadergo-year-section {
+  background: #ffffff !important;
+  border: 1.5px solid #e2eceb !important;
+  border-radius: 16px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.kadergo-year-section.hidden,
+.kadergo-year-section[style*="display: none"],
+.kadergo-year-section[style*="display:none"] {
+  display: none !important;
+}
+
+.kadergo-year-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  letter-spacing: -0.1px !important;
+}
+
+.kadergo-year-section-title .kadergo-heroicon,
+.kadergo-year-title-icon .kadergo-heroicon {
+  width: 16px !important;
+  height: 16px !important;
+  color: #f8a44c !important;
+}
+
+.kadergo-year-chips-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.kadergo-year-chip {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd8d6 !important;
+  border-radius: 12px !important;
+  padding: 6px 18px !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  cursor: pointer !important;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease !important;
+  outline: none !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
+  line-height: 1.2 !important;
+}
+
+.kadergo-year-chip:hover:not(.disabled):not(.active) {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+  color: #133b47 !important;
+}
+
+.kadergo-year-chip.active {
+  background: #133b47 !important;
+  border-color: #133b47 !important;
+  color: #f8a44c !important;
+  box-shadow: 0 3px 10px rgba(19, 59, 71, 0.25) !important;
+}
+
+.kadergo-year-chip.disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+/* Підказка у картці періоду / режиму */
+.kadergo-grid-hint {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #556e75 !important;
+  line-height: 1.35 !important;
+  margin-top: 3px !important;
+}
+
+/* Золотий чіп для Книги доходів */
+.kadergo-file-chip-gold {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15) !important;
+}
+
+.kadergo-file-chip-gold .kadergo-heroicon {
+  color: #d97706 !important;
+}
+
+.kadergo-file-chip-zip {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+  font-weight: 800 !important;
+}
+
+/* Modal Flow & Animation View */
+.kadergo-modal-card:not(.flow-active) .kadergo-modal-flow-wrap {
+  display: none !important;
+}
+
+.kadergo-modal-card.flow-active .kadergo-modal-body,
+.kadergo-modal-card.flow-active .kadergo-modal-footer {
+  display: none !important;
+}
+
+.kadergo-modal-card.flow-active .kadergo-modal-flow-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px 20px 20px 20px !important;
+  animation: kgFlowFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+@keyframes kgFlowFadeIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.kadergo-flow-svg-box {
+  width: 156px !important;
+  height: 156px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 12px !important;
+  filter: drop-shadow(0 12px 26px rgba(19, 59, 71, 0.14)) !important;
+  transition: transform 0.3s ease !important;
+}
+
+.kadergo-flow-svg-box svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.kadergo-flow-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  max-width: 440px !important;
+  width: 100% !important;
+}
+
+/* Premium Stage Card Panel */
+.kadergo-flow-stage-card {
+  width: 100% !important;
+  background: linear-gradient(180deg, #f9fbfa 0%, #f1f6f5 100%) !important;
+  border: 1.5px solid #d4e2df !important;
+  border-radius: 20px !important;
+  padding: 15px 18px 13px 18px !important;
+  box-shadow: 
+    0 10px 28px -6px rgba(19, 59, 71, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+  transition: all 0.35s ease !important;
+}
+
+.kadergo-flow-stage-card.state-success {
+  background: linear-gradient(180deg, #f0fdf4 0%, #e6f7ef 100%) !important;
+  border-color: #a7f3d0 !important;
+  box-shadow: 0 10px 28px -6px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Top Row: Live status pill + percentage badge */
+.kadergo-flow-top-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 9px !important;
+}
+
+.kadergo-flow-live-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(248, 164, 76, 0.12) !important;
+  border: 1px solid rgba(248, 164, 76, 0.35) !important;
+  border-radius: 999px !important;
+  padding: 3.5px 9px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  color: #b86915 !important;
+  text-transform: uppercase !important;
+  transition: all 0.3s ease !important;
+}
+
+.kadergo-flow-live-pill.state-done {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #047857 !important;
+}
+
+.kadergo-flow-pulse-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #f8a44c !important;
+  box-shadow: 0 0 0 0 rgba(248, 164, 76, 0.7) !important;
+  animation: kgPulse 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1) !important;
+  flex-shrink: 0 !important;
+}
+
+.kadergo-flow-live-pill.state-done .kadergo-flow-pulse-dot {
+  background: #10b981 !important;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7) !important;
+  animation: none !important;
+}
+
+@keyframes kgPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(248, 164, 76, 0.7); }
+  70% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(248, 164, 76, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(248, 164, 76, 0); }
+}
+
+.kadergo-flow-percent-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #133b47 !important;
+  color: #f8a44c !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em !important;
+  padding: 3px 11px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.18) !important;
+  font-variant-numeric: tabular-nums !important;
+  min-width: 48px !important;
+  text-align: center !important;
+}
+
+.kadergo-flow-stage-card.state-success .kadergo-flow-percent-badge {
+  background: #047857 !important;
+  color: #ffffff !important;
+}
+
+/* Month & Step Banner (Designos hónap és lépésjelző, szögletes zárójelek nélkül) */
+.kadergo-flow-month-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #d4e2df !important;
+  border-radius: 14px !important;
+  padding: 9px 12px !important;
+  margin-bottom: 9px !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.04) !important;
+}
+
+.kadergo-flow-month-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.kadergo-flow-calendar-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #f8a44c !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+.kadergo-flow-month-name {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  letter-spacing: -0.015em !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.kadergo-flow-step-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #eaf1f0 !important;
+  color: #1a4955 !important;
+  border: 1px solid #cddcd9 !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  padding: 3px 9px !important;
+  border-radius: 8px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Sub-card with RRO and activity detail */
+.kadergo-flow-sub-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1px dashed #cbdad6 !important;
+  border-radius: 10px !important;
+  padding: 6px 10px !important;
+  margin-bottom: 11px !important;
+}
+
+.kadergo-flow-sub-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  color: #f8a44c !important;
+  flex-shrink: 0 !important;
+  animation: kgSpinSubtle 3s linear infinite !important;
+}
+
+@keyframes kgSpinSubtle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.kadergo-flow-subtitle {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #3f5d66 !important;
+  line-height: 1.35 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+}
+
+/* Modern Glowing Shimmer Progress Bar */
+.kadergo-flow-progress-bar-wrap {
+  width: 100% !important;
+  height: 10px !important;
+  background: #dfe9e7 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.1) !important;
+  position: relative !important;
+  margin-bottom: 9px !important;
+}
+
+.kadergo-flow-progress-bar {
+  height: 100% !important;
+  width: 0%;
+  min-width: 0;
+  background: linear-gradient(90deg, #133b47 0%, #1e5464 40%, #f8a44c 95%, #ffb35c 100%) !important;
+  border-radius: 999px !important;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 10px rgba(248, 164, 76, 0.35) !important;
+}
+
+.kadergo-flow-bar-shimmer {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: kgBarShimmer 1.8s infinite linear !important;
+}
+
+@keyframes kgBarShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Card Micro Footer */
+.kadergo-flow-card-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 11px !important;
+  color: #718d94 !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+.kadergo-flow-footer-text {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 320px !important;
+}
+
+.kadergo-flow-footer-brand {
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  opacity: 0.6 !important;
+  letter-spacing: -0.01em !important;
+}
 
 
+.kadergo-modal-card.flow-active .kadergo-modal-close-btn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 0.85 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  transition: all 0.16s ease !important;
+}
 
+.kadergo-modal-card.flow-active .kadergo-modal-close-btn:hover {
+  opacity: 1 !important;
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Header Actions (Minimize + Close) */
+.kadergo-modal-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.kadergo-modal-minimize-btn {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #5c777f !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.16s ease !important;
+}
+
+.kadergo-modal-minimize-btn:hover {
+  background: #e6eeed !important;
+  color: #133b47 !important;
+  transform: scale(1.05) !important;
+}
+
+.kadergo-modal-card.flow-active .kadergo-modal-minimize-btn {
+  display: inline-flex !important;
+}
+
+/* =====================================================
+   KaderGo Floating Mini-Dock (Background Extraction)
+   ===================================================== */
+.kadergo-floating-dock {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 9999999 !important;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  user-select: none !important;
+}
+
+.kadergo-floating-dock.state-show {
+  animation: kgDockIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+.kadergo-floating-dock.state-hide {
+  animation: kgDockOut 0.25s cubic-bezier(0.4, 0, 1, 1) both !important;
+}
+
+@keyframes kgDockIn {
+  0% { opacity: 0; transform: translateY(20px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes kgDockOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(16px) scale(0.92); }
+}
+
+.kadergo-dock-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: #ffffff !important;
+  border: 2px solid #cbd8d6 !important;
+  border-radius: 20px !important;
+  padding: 10px 14px !important;
+  box-shadow: 
+    0 16px 36px -6px rgba(19, 59, 71, 0.22),
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  cursor: pointer !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  min-width: 250px !important;
+  max-width: 360px !important;
+}
+
+.kadergo-dock-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: #133b47 !important;
+  box-shadow: 
+    0 20px 40px -6px rgba(19, 59, 71, 0.28),
+    0 6px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+.kadergo-dock-card.state-success {
+  background: #f0fdf4 !important;
+  border-color: #10b981 !important;
+}
+
+/* Center info */
+.kadergo-dock-center {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.kadergo-dock-meta-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  margin-bottom: 3px !important;
+}
+
+.kadergo-dock-month {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.kadergo-dock-percent {
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  color: #f8a44c !important;
+  background: #133b47 !important;
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+  letter-spacing: -0.02em !important;
+}
+
+.kadergo-dock-card.state-success .kadergo-dock-percent {
+  background: #047857 !important;
+  color: #ffffff !important;
+}
+
+.kadergo-dock-meta-sub {
+  font-size: 11px !important;
+  color: #53717a !important;
+  font-weight: 500 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  margin-bottom: 5px !important;
+}
+
+.kadergo-dock-bar-wrap {
+  width: 100% !important;
+  height: 5px !important;
+  background: #e2ecea !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+}
+
+.kadergo-dock-bar {
+  height: 100% !important;
+  width: 0%;
+  background: linear-gradient(90deg, #133b47 0%, #f8a44c 100%) !important;
+  border-radius: 999px !important;
+  transition: width 0.35s ease !important;
+}
+
+/* Right buttons */
+.kadergo-dock-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex-shrink: 0 !important;
+}
+
+.kadergo-dock-btn {
+  height: 30px !important;
+  border-radius: 9px !important;
+  border: none !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.16s ease !important;
+}
+
+.kadergo-dock-btn-restore {
+  background: #133b47 !important;
+  color: #ffffff !important;
+  padding: 0 10px !important;
+  gap: 5px !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+}
+
+.kadergo-dock-btn-restore:hover {
+  background: #1e4e5e !important;
+  transform: scale(1.03) !important;
+}
+
+.kadergo-dock-btn-abort {
+  width: 30px !important;
+  background: #f1f5f4 !important;
+  color: #718d94 !important;
+  padding: 0 !important;
+}
+
+.kadergo-dock-btn-abort:hover {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  transform: scale(1.05) !important;
+}

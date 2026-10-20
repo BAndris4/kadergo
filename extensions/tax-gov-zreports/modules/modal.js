@@ -1,5 +1,6 @@
 // ==============================================================================
-// KaderGo - Custom Export Modal (Authentic KaderGo App Vibe & Heroicons)
+// KaderGo - Unified Export Modal Controller
+// Sub-components: ModalAssets (vectors & icons), ModalDock (background extraction mini-dock)
 // ==============================================================================
 
 window.KaderGo = window.KaderGo || {};
@@ -8,490 +9,732 @@ window.KaderGo = window.KaderGo || {};
   'use strict';
 
   let currentModalEl = null;
+  let currentRestoreFn = null;
 
-  // Animated Official KaderGo Logo SVG (with natural idle micro-animations)
-  const animatedKaderGoLogoSvg = `
-    <svg class="kadergo-animated-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 220" width="100%" height="100%" aria-label="KaderGo Logo">
-      <defs>
-        <style>
-          .kg-anim-doc {
-            animation: kgDocIdle 3.2s ease-in-out infinite;
-            transform-origin: bottom center;
-            transform-box: fill-box;
-          }
-          .kg-anim-arrow {
-            animation: kgArrowIdle 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            transform-origin: bottom left;
-            transform-box: fill-box;
-          }
-          .kg-anim-tab {
-            animation: kgTabIdle 3.6s ease-in-out infinite;
-            transform-origin: bottom right;
-            transform-box: fill-box;
-          }
-          .kg-anim-folder {
-            animation: kgFolderIdle 3.8s ease-in-out infinite;
-            transform-origin: bottom center;
-            transform-box: fill-box;
-          }
-          .kg-anim-swoosh-amber {
-            animation: kgSwooshIdle 3.2s ease-in-out 0.2s infinite;
-            transform-origin: bottom left;
-            transform-box: fill-box;
-          }
-          .kg-anim-person {
-            animation: kgPersonIdle 3.2s ease-in-out infinite;
-            transform-origin: center bottom;
-            transform-box: fill-box;
-          }
+  const { animatedKaderGoLogoSvg, kadergoFlowSvg, icons } = window.KaderGo.ModalAssets || {};
+  const ModalDock = window.KaderGo.ModalDock;
 
-          @keyframes kgDocIdle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4.5px); }
-          }
-          @keyframes kgArrowIdle {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(3.5px, -3.5px) scale(1.04); }
-          }
-          @keyframes kgTabIdle {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-2.8deg); }
-          }
-          @keyframes kgFolderIdle {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(0.98); }
-          }
-          @keyframes kgSwooshIdle {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.03) translate(1px, -1px); opacity: 0.92; }
-          }
-          @keyframes kgPersonIdle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            .kadergo-animated-logo-svg * { animation: none !important; }
-          }
-        </style>
-
-        <linearGradient id="kg-logo-tealMain" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1e4e5e" />
-          <stop offset="50%" stop-color="#133b47" />
-          <stop offset="100%" stop-color="#0f2e38" />
-        </linearGradient>
-        <linearGradient id="kg-logo-tealBack" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#2a5b6c" />
-          <stop offset="100%" stop-color="#0f2e38" />
-        </linearGradient>
-        <linearGradient id="kg-logo-amberMain" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#e08e36" />
-          <stop offset="50%" stop-color="#f59533" />
-          <stop offset="100%" stop-color="#f8a44c" />
-        </linearGradient>
-        <linearGradient id="kg-logo-amberShadow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f59533" />
-          <stop offset="100%" stop-color="#d47a22" />
-        </linearGradient>
-
-        <mask id="kg-logo-docCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
-          <rect x="0" y="0" width="220" height="220" fill="white" />
-          <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 L 42 184 Z" fill="black" />
-        </mask>
-
-        <mask id="kg-logo-folderCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
-          <rect x="0" y="0" width="220" height="220" fill="white" />
-          <path d="M 38 194 C 46 136 94 96 148 34 L 194 34 C 142 106 86 138 64 194 Z" fill="black" />
-        </mask>
-      </defs>
-
-      <!-- Білий squircle значок KaderGo -->
-      <rect x="0" y="0" width="220" height="220" rx="46" ry="46" fill="#ffffff" stroke="#cbd8d6" stroke-width="4" />
-
-      <g transform="translate(13, 13) scale(0.88)">
-        <!-- Документ у папці -->
-        <g mask="url(#kg-logo-docCutout)">
-          <g class="kg-anim-doc">
-            <path d="M 48 34 L 84 34 L 98 48 L 98 62 L 48 62 Z" fill="none" stroke="#133b47" stroke-width="4.5" stroke-linejoin="round" />
-            <path d="M 84 34 L 84 48 L 98 48" fill="none" stroke="#133b47" stroke-width="4" stroke-linejoin="round" />
-            <line x1="57" y1="44" x2="77" y2="44" stroke="#133b47" stroke-width="3.8" stroke-linecap="round" />
-            <line x1="57" y1="52" x2="88" y2="52" stroke="#133b47" stroke-width="3.8" stroke-linecap="round" />
-          </g>
-        </g>
-
-        <!-- Елементи папки -->
-        <g mask="url(#kg-logo-folderCutout)">
-          <path class="kg-anim-tab" d="M 30 62 C 23 63 19 69 20 76 L 38 190 L 46 190 L 34 61 Z" fill="url(#kg-logo-tealBack)" />
-          <g class="kg-anim-folder">
-            <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 C 106 190 102 194 96 194 L 62 194 C 66 172 78 154 96 139 L 42 184 Z" fill="url(#kg-logo-tealMain)" />
-            <path d="M 65 194 L 96 194 C 102 194 106 190 106 184 L 106 144 C 86 158 72 175 65 194 Z" fill="#0f2e38" />
-          </g>
-        </g>
-
-        <!-- Верхні темні петролеві K-стрічки -->
-        <g>
-          <path d="M 42 180 C 52 130 96 92 150 34 L 170 34 C 120 92 76 128 42 180 Z" fill="url(#kg-logo-tealMain)" />
-          <path d="M 42 188 C 58 136 110 98 175 34 L 191 34 C 140 94 102 124 60 146 C 49 157 44 172 42 188 Z" fill="url(#kg-logo-tealMain)" />
-        </g>
-
-        <!-- Нижня бурштинова стрілка вгору -->
-        <g class="kg-anim-arrow">
-          <path d="M 104 142 L 128 122 L 154 148 L 178 124 L 169 115 L 204 106 L 197 142 L 189 134 L 156 168 L 194 194 L 150 194 C 142 194 136 190 130 183 L 104 142 Z" fill="url(#kg-logo-amberMain)" />
-          <path d="M 154 148 L 189 134 L 156 168 L 130 144 Z" fill="url(#kg-logo-amberShadow)" opacity="0.45" />
-        </g>
-
-        <!-- Нижня дуга -->
-        <g class="kg-anim-swoosh-amber">
-          <path d="M 42 188 C 48 152 78 128 134 114 C 106 138 70 156 42 188 Z" fill="url(#kg-logo-amberMain)" />
-          <path d="M 48 194 C 56 160 84 134 142 112 C 122 130 80 152 56 194 Z" fill="#f8a44c" opacity="0.85" />
-        </g>
-
-        <!-- Силует -->
-        <g class="kg-anim-person">
-          <circle cx="151" cy="113" r="7.5" fill="#133b47" />
-          <path d="M 139 131 C 139 124 144 122 151 122 C 158 122 163 124 163 131 L 151 143 Z" fill="#133b47" />
-        </g>
-      </g>
-
-      <!-- Фірмовий текст KaderGo: темний петроль (#133b47) + теплий бурштин (#f8a44c) -->
-      <text x="248" y="152" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-weight="900" font-size="100px" letter-spacing="-0.03em">
-        <tspan fill="#133b47">Kader</tspan><tspan fill="#f8a44c">Go</tspan>
-      </text>
-    </svg>
-  `;
-
-  // Heroicons (Outline 24x24, stroke 2.2 / 2.5)
-  const icons = {
-    calendar: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="16" y1="2" x2="16" y2="6"></line>
-        <line x1="8" y1="2" x2="8" y2="6"></line>
-        <line x1="3" y1="10" x2="21" y2="10"></line>
-      </svg>
-    `,
-    layers: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-        <polyline points="2 17 12 22 22 17"></polyline>
-        <polyline points="2 12 12 17 22 12"></polyline>
-      </svg>
-    `,
-    fileSpreadsheet: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="8" y1="13" x2="16" y2="13"></line>
-        <line x1="8" y1="17" x2="16" y2="17"></line>
-      </svg>
-    `,
-    documentText: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="16" y1="13" x2="8" y2="13"></line>
-        <line x1="16" y1="17" x2="8" y2="17"></line>
-        <polyline points="10 9 9 9 8 9"></polyline>
-      </svg>
-    `,
-    download: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-    `,
-    checkBadge: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-      </svg>
-    `,
-    check: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-    `,
-    archive: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="21 8 21 21 3 21 3 8"></polyline>
-        <rect x="1" y="3" width="22" height="5"></rect>
-        <line x1="10" y1="12" x2="14" y2="12"></line>
-      </svg>
-    `,
-    close: `
-      <svg viewBox="0 0 24 24" class="kadergo-heroicon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    `
-  };
-
-  /**
-   * Opens the custom KaderGo export modal before extraction.
-   * Styled 1:1 like native KaderGo app dialogs.
-   * Returns Promise<{ proceed: boolean, format: 'xlsx' | 'zip' }>
-   */
-  function openExportModal({ periodFrom, periodTo, intervals, isAllRro, targetFn }) {
+  function openUnifiedExportModal(initialOptions = {}) {
     return new Promise((resolve) => {
       closeModal();
 
-      let selectedFormat = 'xlsx';
+      const { DateUtils, Cabinet } = window.KaderGo || {};
+      const now = new Date();
+      const currentYear = now.getFullYear();
 
-      const overlay = document.createElement('div');
-      overlay.id = 'tax-gov-kadergo-modal-overlay';
-      overlay.className = 'kadergo-modal-overlay';
+      // Read current cabinet state
+      const { fromInput, toInput } = (Cabinet && typeof Cabinet.getPeriodInputs === 'function')
+        ? Cabinet.getPeriodInputs()
+        : { fromInput: null, toInput: null };
 
-      const card = document.createElement('div');
-      card.className = 'kadergo-modal-card';
-      card.setAttribute('role', 'dialog');
-      card.setAttribute('aria-modal', 'true');
+      const origFrom = (fromInput?.value || '').trim();
+      const origTo = (toInput?.value || '').trim();
+      const hasValidCabinetPeriod = (Cabinet && typeof Cabinet.hasValidPeriod === 'function')
+        ? Cabinet.hasValidPeriod()
+        : false;
+      const targetFn = (Cabinet && typeof Cabinet.getCurrentlySelectedFiscalNumber === 'function')
+        ? Cabinet.getCurrentlySelectedFiscalNumber()
+        : null;
 
-      // 1. Header (KaderGo clean light header: bg-[#f8faf9], border-b-2 border-[#e2eceb])
-      const header = document.createElement('div');
-      header.className = 'kadergo-modal-header';
+      // Intervals from cabinet period (if valid)
+      let cabinetIntervals = [];
+      if (hasValidCabinetPeriod && DateUtils && typeof DateUtils.splitDateRangeIntoMonthlyIntervals === 'function') {
+        cabinetIntervals = DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo);
+      }
 
-      const headerBrandWrap = document.createElement('div');
-      headerBrandWrap.className = 'kadergo-modal-brand-wrap';
+      // Disabled state checks per requirement:
+      // - "Всі РРО": disabled if date is not specified
+      // - "Обраний РРО": disabled if date is not specified OR fiscal number is not specified
+      const isSingleDisabled = !hasValidCabinetPeriod || !targetFn;
+      const isAllDisabled = !hasValidCabinetPeriod;
 
-      const logoWrap = document.createElement('div');
-      logoWrap.className = 'kadergo-modal-logo-wrap';
-      logoWrap.innerHTML = animatedKaderGoLogoSvg;
+      let singleTitle = 'Обраний РРО';
+      if (!hasValidCabinetPeriod && !targetFn) {
+        singleTitle = 'Вкажіть період та оберіть РРО у кабінеті';
+      } else if (!hasValidCabinetPeriod) {
+        singleTitle = 'Вкажіть період (дати «з» та «по») у кабінеті';
+      } else if (!targetFn) {
+        singleTitle = 'Оберіть фіскальний номер РРО у кабінеті';
+      }
 
-      const headerSep = document.createElement('div');
-      headerSep.className = 'kadergo-modal-header-divider';
+      let allTitle = 'Всі РРО';
+      if (!hasValidCabinetPeriod) {
+        allTitle = 'Вкажіть період (дати «з» та «по») у кабінеті';
+      }
 
-      const titleWrap = document.createElement('div');
-      titleWrap.className = 'kadergo-modal-main-title';
-      titleWrap.innerHTML = `<span>Експорт в Excel</span>`;
+      // Default active mode: choose the first non-disabled mode
+      let activeMode = initialOptions.defaultMode;
+      if (activeMode === 'single' && isSingleDisabled) activeMode = null;
+      if (activeMode === 'all' && isAllDisabled) activeMode = null;
 
-      headerBrandWrap.appendChild(logoWrap);
-      headerBrandWrap.appendChild(headerSep);
-      headerBrandWrap.appendChild(titleWrap);
+      if (!activeMode) {
+        if (!isSingleDisabled) {
+          activeMode = 'single';
+        } else if (!isAllDisabled) {
+          activeMode = 'all';
+        } else {
+          activeMode = 'income_book';
+        }
+      }
 
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'kadergo-modal-close-btn';
-      closeBtn.type = 'button';
-      closeBtn.title = 'Закрити';
-      closeBtn.innerHTML = icons.close;
+      // State per mode
+      let singleFormat = 'xlsx'; // 'xlsx' | 'zip'
+      let allFormat = 'zip';     // 'zip' | 'xlsx'
+      let selectedYear = initialOptions.initialYear ? parseInt(initialOptions.initialYear, 10) : currentYear;
+      let bookFormat = 'book';   // 'book' | 'zip'
 
-      header.appendChild(headerBrandWrap);
-      header.appendChild(closeBtn);
+      const availableYears = [
+        currentYear - 2,
+        currentYear - 1,
+        currentYear,
+        currentYear + 1,
+        currentYear + 2
+      ];
 
-      // 2. Body (KaderGo White & Slate/Mint Card styling)
-      const body = document.createElement('div');
-      body.className = 'kadergo-modal-body';
+      // Construct modal DOM elements via ModalTemplates sub-component
+      const {
+        overlay,
+        card,
+        titleWrap,
+        minimizeBtn,
+        closeBtn,
+        body,
+        tabsWrap,
+        yearSection,
+        formatSection,
+        formatOptionsWrap,
+        fileSection,
+        fileChipsWrap,
+        footer,
+        cancelBtn,
+        confirmBtn,
+        flowWrap
+      } = window.KaderGo.ModalTemplates.createModalDom({
+        activeMode,
+        isSingleDisabled,
+        isAllDisabled,
+        singleTitle,
+        allTitle,
+        availableYears,
+        selectedYear,
+        currentYear,
+        DateUtils,
+        onYearSelect: (yr) => {
+          selectedYear = yr;
+          updateView();
+        }
+      });
 
-      const modeTitle = isAllRro
-        ? 'Всі РРО'
-        : (targetFn ? `РРО ${targetFn}` : 'Обраний РРО');
+      function updateView() {
+        const heroIconBox = card.querySelector('#kg-hero-icon-box');
+        const heroTag = card.querySelector('#kg-hero-tag');
+        const heroTitle = card.querySelector('#kg-hero-title');
+        const heroBadge = card.querySelector('#kg-hero-badge');
+        const periodVal = card.querySelector('#kg-grid-period-val');
+        const modeVal = card.querySelector('#kg-grid-mode-val');
 
-      const fileCountText = intervals && intervals.length > 1
-        ? `${intervals.length} файли`
-        : '1 файл';
+        // Tabs active and disabled states
+        tabsWrap.querySelectorAll('.kadergo-mode-tab').forEach((t) => {
+          const mode = t.getAttribute('data-mode');
+          if (mode === 'single') {
+            if (isSingleDisabled) t.classList.add('disabled');
+            else t.classList.remove('disabled');
+          } else if (mode === 'all') {
+            if (isAllDisabled) t.classList.add('disabled');
+            else t.classList.remove('disabled');
+          }
 
-      // Visual Hero Card (Signature KaderGo Dark Petrol Card with Amber Accent)
-      const heroCard = document.createElement('div');
-      heroCard.className = 'kadergo-hero-card';
-      heroCard.innerHTML = `
-        <div class="kadergo-hero-left">
-          <div class="kadergo-hero-icon-box">
-            ${icons.documentText}
-          </div>
-          <div class="kadergo-hero-meta">
-            <span class="kadergo-hero-tag">Експорт обороту</span>
-            <span class="kadergo-hero-title">${modeTitle}</span>
-          </div>
-        </div>
-        <div class="kadergo-hero-badge" id="kadergo-hero-badge-el">
-          ${fileCountText}
-        </div>
-      `;
+          if (mode === activeMode) {
+            t.classList.add('active');
+          } else {
+            t.classList.remove('active');
+          }
+        });
 
-      // Details Grid (2 Cards: Period & Mode)
-      const grid = document.createElement('div');
-      grid.className = 'kadergo-modal-grid';
-      grid.innerHTML = `
-        <div class="kadergo-grid-card">
-          <div class="kadergo-grid-header">
-            <span class="kadergo-grid-icon">${icons.calendar}</span>
-            <span class="kadergo-grid-label">Період</span>
-          </div>
-          <div class="kadergo-grid-value">${periodFrom} &mdash; ${periodTo}</div>
-        </div>
-        <div class="kadergo-grid-card">
-          <div class="kadergo-grid-header">
-            <span class="kadergo-grid-icon">${icons.layers}</span>
-            <span class="kadergo-grid-label">Режим</span>
-          </div>
-          <div class="kadergo-grid-value">${modeTitle}</div>
-        </div>
-      `;
+        if (activeMode === 'single') {
+          // Hide year selector completely
+          yearSection.classList.add('hidden');
+          yearSection.style.setProperty('display', 'none', 'important');
 
-      // Optional Format Switcher (shown when multi-month export)
-      let formatSection = null;
-      if (intervals && intervals.length > 1) {
-        formatSection = document.createElement('div');
-        formatSection.className = 'kadergo-format-section';
-        formatSection.innerHTML = `
-          <div class="kadergo-format-title">Формат завантаження:</div>
-          <div class="kadergo-format-options">
-            <button type="button" class="kadergo-format-btn active" data-format="xlsx">
+          const fnText = targetFn ? `РРО ${targetFn}` : 'Обраний РРО';
+          heroIconBox.innerHTML = icons.fileSpreadsheet;
+          heroTag.textContent = targetFn ? `ФН: ${targetFn}` : 'Окремий РРО';
+          heroTitle.textContent = 'Оборот обраного РРО';
+
+          if (hasValidCabinetPeriod && targetFn) {
+            periodVal.textContent = `${origFrom} — ${origTo}`;
+            periodVal.style.color = '';
+            modeVal.textContent = fnText;
+
+            const fileCountText = cabinetIntervals.length > 1
+              ? (singleFormat === 'zip' ? 'Архів ZIP' : `${cabinetIntervals.length} файли`)
+              : '1 файл';
+            heroBadge.textContent = fileCountText;
+
+            // Format section
+            if (cabinetIntervals.length > 1) {
+              formatSection.style.display = 'block';
+              formatOptionsWrap.innerHTML = `
+                <button type="button" class="kadergo-format-btn ${singleFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
+                  <span class="kadergo-format-btn-icon">${icons.archive}</span>
+                  <span>Архів ZIP</span>
+                </button>
+                <button type="button" class="kadergo-format-btn ${singleFormat === 'xlsx' ? 'active' : ''}" data-fmt="xlsx">
+                  <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
+                  <span>Окремі файли Excel</span>
+                </button>
+              `;
+            } else {
+              formatSection.style.display = 'none';
+            }
+
+            // File chips (Standard clean filename)
+            fileChipsWrap.innerHTML = '';
+            if (singleFormat === 'zip') {
+              const zipChip = document.createElement('span');
+              zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
+              const cleanZipName = `оборот_${origFrom}_${origTo}.zip`
+                .replace(/\./g, '_')
+                .replace(/_+/g, '_')
+                .replace(/_zip$/, '.zip');
+              zipChip.innerHTML = `${icons.archive}<span>${cleanZipName}</span>`;
+              fileChipsWrap.appendChild(zipChip);
+            } else {
+              cabinetIntervals.forEach((it, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'kadergo-file-chip';
+                chip.style.animationDelay = `${0.03 * (idx + 1)}s`;
+                chip.innerHTML = `${icons.fileSpreadsheet}<span>${it.defaultFileName}</span>`;
+                fileChipsWrap.appendChild(chip);
+              });
+            }
+
+            confirmBtn.disabled = false;
+            const actionText = singleFormat === 'zip'
+              ? 'Завантажити ZIP'
+              : (cabinetIntervals.length > 1 ? `Завантажити (${cabinetIntervals.length} файли)` : 'Завантажити в Excel');
+            confirmBtn.innerHTML = `
+              ${icons.check}
+              <span>${actionText}</span>
+            `;
+          } else {
+            periodVal.textContent = !hasValidCabinetPeriod ? 'Вкажіть період в кабінеті' : `${origFrom} — ${origTo}`;
+            periodVal.style.color = !hasValidCabinetPeriod ? '#e08e36' : '';
+            modeVal.textContent = !targetFn ? 'Оберіть РРО в кабінеті' : fnText;
+            modeVal.style.color = !targetFn ? '#e08e36' : '';
+            heroBadge.textContent = 'Немає даних';
+            formatSection.style.display = 'none';
+            fileChipsWrap.innerHTML = `
+              <span class="kadergo-file-chip" style="opacity: 0.7;">
+                ${icons.calendar}<span>${singleTitle}</span>
+              </span>
+            `;
+
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `<span>${singleTitle}</span>`;
+          }
+
+        } else if (activeMode === 'all') {
+          // Hide year selector completely
+          yearSection.classList.add('hidden');
+          yearSection.style.setProperty('display', 'none', 'important');
+
+          heroIconBox.innerHTML = icons.layers;
+          heroTag.textContent = 'Автоматичний збір';
+          heroTitle.textContent = 'Оборот по всіх РРО';
+
+          if (hasValidCabinetPeriod) {
+            periodVal.textContent = `${origFrom} — ${origTo}`;
+            periodVal.style.color = '';
+            modeVal.textContent = 'Всі РРО';
+
+            const badgeText = allFormat === 'zip' ? 'Архів ZIP' : 'Окремі файли';
+            heroBadge.textContent = badgeText;
+
+            formatSection.style.display = 'block';
+            formatOptionsWrap.innerHTML = `
+              <button type="button" class="kadergo-format-btn ${allFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
+                <span class="kadergo-format-btn-icon">${icons.archive}</span>
+                <span>Архів ZIP</span>
+              </button>
+              <button type="button" class="kadergo-format-btn ${allFormat === 'xlsx' ? 'active' : ''}" data-fmt="xlsx">
+                <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
+                <span>Окремі файли Excel</span>
+              </button>
+            `;
+
+            fileChipsWrap.innerHTML = '';
+            if (allFormat === 'zip') {
+              const zipChip = document.createElement('span');
+              zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
+              const cleanZipName = `оборот_${origFrom}_${origTo}.zip`
+                .replace(/\./g, '_')
+                .replace(/_+/g, '_')
+                .replace(/_zip$/, '.zip');
+              zipChip.innerHTML = `${icons.archive}<span>${cleanZipName}</span>`;
+              fileChipsWrap.appendChild(zipChip);
+            } else {
+              cabinetIntervals.forEach((it, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'kadergo-file-chip';
+                chip.style.animationDelay = `${0.03 * (idx + 1)}s`;
+                chip.innerHTML = `${icons.fileSpreadsheet}<span>${it.defaultFileName}</span>`;
+                fileChipsWrap.appendChild(chip);
+              });
+            }
+
+            confirmBtn.disabled = false;
+            const actionText = allFormat === 'zip'
+              ? 'Завантажити всі РРО (ZIP)'
+              : 'Завантажити всі РРО (Excel)';
+            confirmBtn.innerHTML = `
+              ${icons.check}
+              <span>${actionText}</span>
+            `;
+          } else {
+            periodVal.textContent = 'Вкажіть період в кабінеті';
+            periodVal.style.color = '#e08e36';
+            modeVal.textContent = 'Всі РРО';
+            heroBadge.textContent = 'Період не вказано';
+            formatSection.style.display = 'none';
+            fileChipsWrap.innerHTML = `
+              <span class="kadergo-file-chip" style="opacity: 0.7;">
+                ${icons.calendar}<span>Вкажіть період (дати «з» та «по») у кабінеті</span>
+              </span>
+            `;
+
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `<span>Вкажіть період в кабінеті</span>`;
+          }
+
+        } else if (activeMode === 'income_book') {
+          // Show year selector for Income Book mode
+          yearSection.classList.remove('hidden');
+          yearSection.style.setProperty('display', 'flex', 'important');
+
+          heroIconBox.innerHTML = icons.bookOpen;
+          heroTag.textContent = 'Єдиний податок';
+          heroTitle.textContent = 'Книга обліку доходів';
+          heroBadge.textContent = `${selectedYear} рік`;
+
+          const yearInfo = DateUtils ? DateUtils.getYearExportInfo(selectedYear) : {};
+          periodVal.textContent = `${yearInfo.startStr || ''} — ${yearInfo.endStr || ''}`;
+          periodVal.style.color = '';
+          modeVal.textContent = 'Всі РРО';
+
+          formatSection.style.display = 'block';
+          formatOptionsWrap.innerHTML = `
+            <button type="button" class="kadergo-format-btn ${bookFormat === 'book' ? 'active' : ''}" data-fmt="book">
               <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
-              <span>Окремі Excel (.xlsx)</span>
+              <span>Тільки Книга (.xlsx)</span>
             </button>
-            <button type="button" class="kadergo-format-btn" data-format="zip">
+            <button type="button" class="kadergo-format-btn ${bookFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
               <span class="kadergo-format-btn-icon">${icons.archive}</span>
-              <span>Архів ZIP (.zip)</span>
+              <span>Книга + щомісячні (ZIP)</span>
             </button>
-          </div>
-        `;
-      }
-
-      // File Chips Container
-      const fileSection = document.createElement('div');
-      fileSection.className = 'kadergo-file-section';
-
-      const fileSectionTitle = document.createElement('div');
-      fileSectionTitle.className = 'kadergo-file-section-title';
-      fileSectionTitle.innerHTML = `${icons.fileSpreadsheet}<span>Файли для завантаження:</span>`;
-
-      const fileChipsWrap = document.createElement('div');
-      fileChipsWrap.className = 'kadergo-file-chips-wrap';
-
-      function renderFileChips(format) {
-        fileChipsWrap.innerHTML = '';
-        if (format === 'zip') {
-          const zipName = `оборот_${periodFrom}_${periodTo}.zip`.replace(/\./g, '_').replace(/_+/g, '_').replace(/_zip$/, '.zip');
-          const chip = document.createElement('span');
-          chip.className = 'kadergo-file-chip';
-          chip.innerHTML = `${icons.archive}<span>${zipName}</span>`;
-          fileChipsWrap.appendChild(chip);
-        } else if (intervals && intervals.length > 0) {
-          intervals.forEach((it, idx) => {
-            const chip = document.createElement('span');
-            chip.className = 'kadergo-file-chip';
-            chip.style.animationDelay = `${0.04 * (idx + 1)}s`;
-            chip.innerHTML = `${icons.fileSpreadsheet}<span>${it.defaultFileName}</span>`;
-            fileChipsWrap.appendChild(chip);
-          });
-        } else {
-          const chip = document.createElement('span');
-          chip.className = 'kadergo-file-chip';
-          chip.innerHTML = `${icons.fileSpreadsheet}<span>оборот.xlsx</span>`;
-          fileChipsWrap.appendChild(chip);
-        }
-      }
-
-      renderFileChips('xlsx');
-
-      fileSection.appendChild(fileSectionTitle);
-      fileSection.appendChild(fileChipsWrap);
-
-      body.appendChild(heroCard);
-      body.appendChild(grid);
-      if (formatSection) body.appendChild(formatSection);
-      body.appendChild(fileSection);
-
-      // 3. Footer (KaderGo Clean Light Footer with Signature Amber Action Button)
-      const footer = document.createElement('div');
-      footer.className = 'kadergo-modal-footer';
-
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'kadergo-modal-btn-cancel';
-      cancelBtn.type = 'button';
-      cancelBtn.textContent = 'Скасувати';
-
-      const confirmBtn = document.createElement('button');
-      confirmBtn.className = 'kadergo-modal-btn-confirm';
-      confirmBtn.type = 'button';
-
-      function updateConfirmBtn(format) {
-        if (format === 'zip') {
-          confirmBtn.innerHTML = `
-            ${icons.check}
-            <span>Завантажити ZIP архів</span>
           `;
-          const badge = card.querySelector('#kadergo-hero-badge-el');
-          if (badge) badge.textContent = '1 архів ZIP';
-        } else {
-          const countLabel = intervals && intervals.length > 1 ? ` (${intervals.length} файли)` : '';
-          confirmBtn.innerHTML = `
-            ${icons.check}
-            <span>Завантажити в Excel${countLabel}</span>
-          `;
-          const badge = card.querySelector('#kadergo-hero-badge-el');
-          if (badge) badge.textContent = fileCountText;
+
+          fileChipsWrap.innerHTML = '';
+          if (bookFormat === 'zip') {
+            const zipChip = document.createElement('span');
+            zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
+            zipChip.innerHTML = `${icons.archive}<span>Книга_обліку_доходів_${selectedYear}_рік.zip</span>`;
+            fileChipsWrap.appendChild(zipChip);
+          } else {
+            const bookChip = document.createElement('span');
+            bookChip.className = 'kadergo-file-chip kadergo-file-chip-gold';
+            bookChip.innerHTML = `${icons.bookOpen}<span>Книга обліку доходів єдиний за ${selectedYear} рік.xlsx</span>`;
+            fileChipsWrap.appendChild(bookChip);
+          }
+
+          if (!yearInfo.hasCompletedMonths) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `<span>Немає завершених місяців</span>`;
+          } else {
+            confirmBtn.disabled = false;
+            const actionText = bookFormat === 'zip'
+              ? `Сформувати ZIP (${selectedYear})`
+              : `Сформувати Книгу (${selectedYear})`;
+            confirmBtn.innerHTML = `
+              ${icons.check}
+              <span>${actionText}</span>
+            `;
+          }
         }
-      }
 
-      updateConfirmBtn('xlsx');
-
-      if (formatSection) {
-        const formatBtns = formatSection.querySelectorAll('.kadergo-format-btn');
-        formatBtns.forEach((btn) => {
+        // Bind format button clicks
+        formatOptionsWrap.querySelectorAll('.kadergo-format-btn').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
-            formatBtns.forEach((b) => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedFormat = btn.getAttribute('data-format') || 'xlsx';
-            renderFileChips(selectedFormat);
-            updateConfirmBtn(selectedFormat);
+            const fmt = btn.getAttribute('data-fmt');
+            if (activeMode === 'single') singleFormat = fmt;
+            else if (activeMode === 'all') allFormat = fmt;
+            else if (activeMode === 'income_book') bookFormat = fmt;
+            updateView();
           });
         });
       }
 
-      footer.appendChild(cancelBtn);
-      footer.appendChild(confirmBtn);
+      // Tab switcher clicks
+      tabsWrap.querySelectorAll('.kadergo-mode-tab').forEach((tab) => {
+        tab.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (tab.classList.contains('disabled')) return;
+          const mode = tab.getAttribute('data-mode');
+          if (mode === activeMode) return;
+          activeMode = mode;
+          updateView();
+        });
+      });
 
-      card.appendChild(header);
-      card.appendChild(body);
-      card.appendChild(footer);
-      overlay.appendChild(card);
+      updateView();
 
       document.body.appendChild(overlay);
       currentModalEl = overlay;
 
-      // Event: Confirm Download
-      confirmBtn.addEventListener('click', (e) => {
+      let isFlowActive = false;
+      let isSuccessActive = false;
+      let isAborted = false;
+
+      const flow = {
+        isAborted() {
+          return isAborted;
+        },
+        abort() {
+          isAborted = true;
+        },
+        setProgress(opts = {}) {
+          if (isAborted) return;
+          const { title, subtitle, progressPercent, monthName, year, monthStep, monthTotal, stepText } = opts;
+          const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
+          const barEl = card.querySelector('#kg-flow-progress-bar');
+          const pctEl = card.querySelector('#kg-flow-percent');
+          const footerTextEl = card.querySelector('#kg-flow-footer-text');
+          const monthNameEl = card.querySelector('#kg-flow-month-name');
+          const stepTagEl = card.querySelector('#kg-flow-step-tag');
+
+          if (monthNameEl) {
+            if (monthName) {
+              monthNameEl.textContent = `${monthName} ${year || ''}`.trim();
+            } else if (title) {
+              monthNameEl.textContent = title;
+            }
+          }
+
+          if (stepTagEl) {
+            if (stepText) {
+              stepTagEl.textContent = stepText;
+            } else if (monthStep && monthTotal) {
+              stepTagEl.textContent = monthTotal > 1 ? `${monthStep} з ${monthTotal} міс.` : 'Звітний період';
+            }
+          }
+
+          if (subtitle !== undefined && flowSubtitleEl) flowSubtitleEl.textContent = subtitle;
+
+          if (ModalDock && ModalDock.getIsVisible()) {
+            ModalDock.update({
+              monthName: opts.monthName,
+              year: opts.year,
+              subtitle: opts.subtitle,
+              progressPercent: opts.progressPercent
+            });
+          }
+          if (typeof progressPercent === 'number') {
+            const clamped = Math.min(100, Math.max(0, Math.round(progressPercent)));
+            if (barEl) {
+              barEl.style.setProperty('width', clamped + '%', 'important');
+            }
+            if (pctEl) {
+              pctEl.textContent = clamped + '%';
+            }
+            if (footerTextEl) {
+              if (clamped >= 90) {
+                footerTextEl.textContent = 'Фіналізація та підготовка файлів Excel...';
+              } else if (clamped >= 50) {
+                footerTextEl.textContent = 'Зчитування та обробка даних кабінету...';
+              } else {
+                footerTextEl.textContent = 'Синхронізація з кабінетом платника податків...';
+              }
+            }
+          }
+        },
+        async setSuccess({ title, subtitle } = {}) {
+          if (isAborted) return;
+          isSuccessActive = true;
+          const stageCard = card.querySelector('#kg-stage-card');
+          const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
+          const barEl = card.querySelector('#kg-flow-progress-bar');
+          const pctEl = card.querySelector('#kg-flow-percent');
+          const livePill = card.querySelector('#kg-flow-live-pill');
+          const liveLabel = card.querySelector('#kg-flow-live-label');
+          const footerTextEl = card.querySelector('#kg-flow-footer-text');
+          const monthNameEl = card.querySelector('#kg-flow-month-name');
+          const stepTagEl = card.querySelector('#kg-flow-step-tag');
+
+          if (monthNameEl) monthNameEl.textContent = 'Звітність сформовано';
+          if (stepTagEl) stepTagEl.textContent = '100% Готово';
+
+          if (stageCard) stageCard.classList.add('state-success');
+          if (livePill) livePill.classList.add('state-done');
+          if (liveLabel) liveLabel.textContent = 'ГОТОВО ДО ЗБЕРЕЖЕННЯ';
+          if (title && monthNameEl) monthNameEl.textContent = title;
+          if (subtitle !== undefined && flowSubtitleEl) flowSubtitleEl.textContent = subtitle;
+          if (barEl) barEl.style.setProperty('width', '100%', 'important');
+          if (pctEl) pctEl.textContent = '100%';
+          if (footerTextEl) footerTextEl.textContent = 'Генерацію успішно завершено!';
+
+          if (ModalDock && ModalDock.getIsVisible()) {
+            ModalDock.setSuccess({
+              title: title || 'Файли успішно згенеровано!',
+              subtitle: subtitle || 'Оберіть місце для збереження'
+            });
+          }
+
+          const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
+          if (svgEl) {
+            svgEl.setAttribute('class', 'kadergo-flow-svg state-success');
+          }
+          // Показ та малювання успішної пипи (~850мс)
+          await new Promise((r) => setTimeout(r, 850));
+        },
+        async closeWithOutro() {
+          if (isAborted) {
+            closeModal();
+            return;
+          }
+          if (isSuccessActive) {
+            const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
+            if (svgEl) {
+              svgEl.setAttribute('class', 'kadergo-flow-svg state-check-outro');
+            }
+            // Анімація згортання та відлуння пипи (~480мс)
+            await new Promise((r) => setTimeout(r, 480));
+          }
+          closeModal();
+        },
+        close() {
+          closeModal();
+        }
+      };
+
+      function minimizeModal() {
+        if (!isFlowActive) return;
+        overlay.classList.add('minimized');
+        overlay.style.setProperty('display', 'none', 'important');
+
+        const monthName = card.querySelector('#kg-flow-month-name')?.textContent || '';
+        const subtitle = card.querySelector('#kg-flow-subtitle')?.textContent || '';
+        const pctText = card.querySelector('#kg-flow-percent')?.textContent || '0%';
+        const progressPercent = parseInt(pctText, 10) || 0;
+
+        if (ModalDock && typeof ModalDock.show === 'function') {
+          ModalDock.show({
+            initialData: { monthName, subtitle, progressPercent },
+            onRestore: restoreModal,
+            onAbort: handleAbortOrCancel
+          });
+        }
+      }
+
+      function restoreModal() {
+        if (ModalDock && typeof ModalDock.hide === 'function') {
+          ModalDock.hide();
+        }
+        overlay.classList.remove('minimized');
+        overlay.style.setProperty('display', 'flex', 'important');
+      }
+
+      currentRestoreFn = restoreModal;
+
+      minimizeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeModal();
-        resolve({ proceed: true, format: selectedFormat });
+        minimizeModal();
       });
 
-      function handleCancel() {
+      confirmBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        isFlowActive = true;
+        card.classList.add('flow-active');
+        if (minimizeBtn) {
+          minimizeBtn.style.display = 'inline-flex';
+        }
+        if (closeBtn) {
+          closeBtn.style.visibility = 'visible';
+          closeBtn.title = 'Скасувати та повернутися';
+        }
+
+        if (titleWrap) {
+          titleWrap.innerHTML = '<span>Вивантаження звітів KaderGo</span>';
+        }
+
+        const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
+        const barEl = card.querySelector('#kg-flow-progress-bar');
+        const pctEl = card.querySelector('#kg-flow-percent');
+        const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
+
+        // 1. FÁZIS: LOGÓ MEGJELENÉS (STATE-INTRO)
+        if (svgEl) {
+          svgEl.setAttribute('class', 'kadergo-flow-svg state-intro');
+        }
+        const monthNameEl = card.querySelector('#kg-flow-month-name');
+        const stepTagEl = card.querySelector('#kg-flow-step-tag');
+        if (monthNameEl) monthNameEl.textContent = 'Ініціалізація KaderGo...';
+        if (stepTagEl) stepTagEl.textContent = 'Підготовка';
+        if (flowSubtitleEl) flowSubtitleEl.textContent = 'Зв\'язок з кабінетом платника...';
+        if (barEl) barEl.style.setProperty('width', '5%', 'important');
+        if (pctEl) pctEl.textContent = '5%';
+
+        // Megvárjuk, amíg a logó animációja kirajzolódik és összeáll (~1000ms)
+        await new Promise((r) => setTimeout(r, 1000));
+        if (isAborted) {
+          resolve({ proceed: false, cancelled: true });
+          return;
+        }
+
+        // 2. FÁZIS: MORPH LOADING SPINNERRE (STATE-SPINNER)
+        if (svgEl) {
+          svgEl.setAttribute('class', 'kadergo-flow-svg state-spinner');
+        }
+        if (monthNameEl) monthNameEl.textContent = 'Завантаження та обробка даних...';
+        if (stepTagEl) stepTagEl.textContent = 'Синхронізація';
+        if (flowSubtitleEl) flowSubtitleEl.textContent = 'Зчитування параметрів звітності...';
+        if (barEl) barEl.style.setProperty('width', '12%', 'important');
+        if (pctEl) pctEl.textContent = '12%';
+
+        if (activeMode === 'single') {
+          resolve({
+            proceed: true,
+            mode: 'single',
+            format: singleFormat,
+            targetFn,
+            intervals: cabinetIntervals,
+            flow
+          });
+        } else if (activeMode === 'all') {
+          resolve({
+            proceed: true,
+            mode: 'all',
+            format: allFormat,
+            intervals: cabinetIntervals,
+            flow
+          });
+        } else if (activeMode === 'income_book') {
+          resolve({
+            proceed: true,
+            mode: 'income_book',
+            format: bookFormat,
+            year: selectedYear,
+            flow
+          });
+        }
+      });
+
+      function handleAbortOrCancel() {
+        if (isFlowActive) {
+          // Ha kiszedés közben rákattint az X-re: leállítjuk a folyamatot és bezárjuk
+          isAborted = true;
+          flow.abort();
+
+          const monthNameEl = card.querySelector('#kg-flow-month-name');
+          const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
+          if (monthNameEl) monthNameEl.textContent = 'Скасування вивантаження...';
+          if (flowSubtitleEl) flowSubtitleEl.textContent = 'Зупинка процесу та повернення...';
+
+          resolve({ proceed: false, cancelled: true });
+          setTimeout(() => {
+            closeModal();
+          }, 350);
+          return;
+        }
+
         closeModal();
         resolve({ proceed: false });
       }
 
-      closeBtn.addEventListener('click', handleCancel);
-      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAbortOrCancel();
+      });
+
+      cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isFlowActive) return; // Nem szakítjuk meg véletlenül, ha a footer már rejtve van
+        closeModal();
+        resolve({ proceed: false });
+      });
 
       overlay.addEventListener('click', (e) => {
+        // FONTOS: Folyamat közben a háttérre kattintás NEM lőheti le a letöltést!
+        if (isFlowActive) return;
         if (e.target === overlay) {
-          handleCancel();
+          closeModal();
+          resolve({ proceed: false });
         }
       });
 
       function onKeyDown(e) {
+        // KRITIKUS: CSAK VALÓDI FELHASZNÁLÓI GOMBNYOMÁSRA (e.isTrusted === true) REAGÁLUNK!
+        // A PrimeNG datepicker és autocomplete komponensek belsőleg szintetikus Escape KeyboardEvent-et küldenek
+        // bubbles: true-val a naptár popup bezárására, ami azonnal ledroppolta volna a letöltést!
+        if (!e.isTrusted) return;
+
         if (e.key === 'Escape') {
           window.removeEventListener('keydown', onKeyDown);
-          handleCancel();
+          handleAbortOrCancel();
         }
       }
       window.addEventListener('keydown', onKeyDown);
     });
   }
 
+  /**
+   * Backward compatibility alias for single/all export modal
+   */
+  function openExportModal(options = {}) {
+    return openUnifiedExportModal({
+      defaultMode: options.isAllRro ? 'all' : 'single',
+      ...options
+    });
+  }
+
+  /**
+   * Backward compatibility alias for annual income book modal
+   */
+  function openYearExportModal(options = {}) {
+    return openUnifiedExportModal({
+      defaultMode: 'income_book',
+      ...options
+    });
+  }
+
   function closeModal() {
+    if (window.KaderGo.ModalDock) {
+      window.KaderGo.ModalDock.remove();
+    }
     if (currentModalEl && currentModalEl.parentNode) {
       currentModalEl.remove();
       currentModalEl = null;
     }
+    currentRestoreFn = null;
   }
 
   window.KaderGo.Modal = {
+    openUnifiedExportModal,
     openExportModal,
-    closeModal
+    openYearExportModal,
+    closeModal,
+    restoreModal: function () {
+      if (typeof currentRestoreFn === 'function') {
+        currentRestoreFn();
+        return true;
+      }
+      return false;
+    }
   };
 })();
+
