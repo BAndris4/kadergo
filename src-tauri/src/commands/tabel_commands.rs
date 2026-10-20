@@ -1,6 +1,6 @@
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use rust_xlsxwriter::*;
@@ -976,8 +976,8 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, sig_r + 5, 36, sig_r + 5, 37, "(підпис)", &fmt_footer_small);
     merge_cell(worksheet, sig_r + 5, 39, sig_r + 5, 41, "(ПІБ)", &fmt_footer_small);
 
-    // Notes 1 & 2 (Rows 50, 51, 52 from ТАБЕЛЬ березень.xlsx)
-    let note_r = sig_r + 7; // Row 50
+    // Notes 1 & 2 (Rows starting at note_r)
+    let note_r = sig_r + 7;
     let _ = worksheet.write_string_with_format(note_r, 1, "Примітка. ", &fmt_footer);
     let note_1 = "1. На безперервно діючих підприємствах, в установах, організаціях, а також в окремих виробництвах, цехах, дільницях, відділеннях і на деяких видах робіт, де за умовами виробництва (роботи) не може бути додержана встановлена для даної категорії працівників щоденна або щотижнева тривалість робочого часу, допускається за погодженням з виборним органом первинної профспілкової організації (профспілковим представником) розрахунок підсумованого фонду робочого часу за місяць, по кожному працівнику. При цьому фонд робочого часу не повинен перевищувати нормальної його тривалості. ";
     let note_2 = "2. Форма носить рекомендаційний характер і складається із мінімальної кількості показників, необхідних для заповнення форм державних статистичних спостережень. При необхідності форма може бути доповнена іншими показниками, необхідними для обліку на підприємстві.";
@@ -985,22 +985,34 @@ pub fn generate_tabel_excel(req: GenerateTabelRequest) -> Result<String, String>
     merge_cell(worksheet, note_r + 1, 1, note_r + 1, 41, note_1, &fmt_subtitle);
     merge_cell(worksheet, note_r + 2, 1, note_r + 2, 41, note_2, &fmt_subtitle);
 
-    // Excel Row 51 height = 37.5pt (50px / 0-indexed row 50)
-    let _ = worksheet.set_row_height(50, 37.5);
-    let _ = worksheet.set_row_height(54, 37.5);
+    // Dynamic row height = 37.5pt (50px) for the row containing Note 1 ("1. На безперервно діючих підприємствах...")
+    let _ = worksheet.set_row_height(note_r + 1, 37.5);
 
     // ─── Save ───────────────────────────────────────────────────────
 
-    let filename = format!("ТАБЕЛЬ {} {}.xlsx", preview.month_name_ukr, preview.year);
-    let output_path = if let Some(ref dir) = req.save_dir {
-        let p = Path::new(dir);
-        if !p.exists() {
-            let _ = fs::create_dir_all(p);
+    // Format: ТАБЕЛЬ 1_січень 2026.xlsx
+    let filename = format!("ТАБЕЛЬ {}_{} {}.xlsx", req.month, preview.month_name_ukr, preview.year);
+    let target_dir = if let Some(ref dir) = req.save_dir {
+        let base = Path::new(dir);
+        let base_str = base.to_string_lossy();
+        let year_str = preview.year.to_string();
+
+        if base_str.contains("табелі і відомості") && base.ends_with(&year_str) {
+            base.to_path_buf()
+        } else if base_str.contains("табелі і відомості") {
+            base.join(&year_str)
+        } else {
+            base.join("табелі і відомості").join(&year_str)
         }
-        p.join(&filename).to_string_lossy().to_string()
     } else {
-        filename
+        PathBuf::from("табелі і відомості").join(preview.year.to_string())
     };
+
+    if !target_dir.exists() {
+        let _ = fs::create_dir_all(&target_dir);
+    }
+
+    let output_path = target_dir.join(&filename).to_string_lossy().to_string();
 
     workbook.save(&output_path).map_err(|e| format!("Failed to save Tabel Excel: {}", e))?;
     Ok(output_path)

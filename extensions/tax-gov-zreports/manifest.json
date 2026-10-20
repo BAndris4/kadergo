@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KaderGo - Експорт в Excel",
-  "version": "1.2.0",
+  "version": "1.5.8",
   "description": "Експорт та завантаження даних про оборот з кабінету платника податків у файл Excel (.xlsx) для системи KaderGo.",
   "permissions": [
     "activeTab",
@@ -35,6 +35,16 @@
         "https://cabinet.tax.gov.ua/cashregs/zreports*"
       ],
       "js": [
+        "modules/config.js",
+        "modules/zip.js",
+        "modules/excel.js",
+        "modules/downloader.js",
+        "modules/date-utils.js",
+        "modules/cabinet-interactor.js",
+        "modules/table-scraper.js",
+        "modules/exporter.js",
+        "modules/modal.js",
+        "modules/ui.js",
         "content.js"
       ],
       "css": [

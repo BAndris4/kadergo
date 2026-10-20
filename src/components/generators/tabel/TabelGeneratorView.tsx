@@ -88,10 +88,10 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
   const [selectionMode, setSelectionMode] = useState<"month" | "period">("month");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
-  const [startMonth, setStartMonth] = useState<number>(1);
-  const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
-  const [endMonth, setEndMonth] = useState<number>(new Date().getMonth() + 1);
+  const [startYear, setStartYear] = useState<number | null>(null);
+  const [startMonth, setStartMonth] = useState<number | null>(null);
+  const [endYear, setEndYear] = useState<number | null>(null);
+  const [endMonth, setEndMonth] = useState<number | null>(null);
 
   const [previewData, setPreviewData] = useState<TabelPreviewDto | null>(null);
   const [dayOverrides, setDayOverrides] = useState<WorkerDayOverride[]>([]);
@@ -142,12 +142,29 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const handleModeChange = (mode: "month" | "period") => {
+    setSelectionMode(mode);
+    if (mode === "period") {
+      setStartYear(null);
+      setStartMonth(null);
+      setEndYear(null);
+      setEndMonth(null);
+      setPreviewData(null);
+    }
+  };
+
   // ─── Load preview ───────────────────────────────────────────────
 
   const loadPreview = useCallback(async () => {
     if (!activeFop) {
       setPreviewData(null);
       setLoadError(null);
+      return;
+    }
+    if (selectionMode === "period" && (!startYear || !startMonth || !endYear || !endMonth)) {
+      setPreviewData(null);
+      setLoadError(null);
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);
@@ -164,10 +181,10 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
       } else {
         const data = (await previewTabelPeriod(
           activeFop.id,
-          startYear,
-          startMonth,
-          endYear,
-          endMonth,
+          startYear!,
+          startMonth!,
+          endYear!,
+          endMonth!,
           dayOverrides
         )) as TabelPreviewDto;
         setPreviewData(data);
@@ -422,8 +439,12 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
         });
         setLastGeneratedPath(filePath);
         const monthObj = MONTH_NAMES_UKR.find((m) => m.id === selectedMonth);
-        onShowToast(`✅ Табель за ${monthObj?.name || ""} ${selectedYear}р. успішно згенеровано!`);
+        onShowToast(`✅ Табель за ${monthObj?.name || ""} ${selectedYear}р. успішно згенеровано у папку «табелі і відомості/${selectedYear}»!`);
       } else {
+        if (!startYear || !startMonth || !endYear || !endMonth) {
+          onShowToast("⚠️ Будь ласка, оберіть період (початок і кінець)!");
+          return;
+        }
         const filePath = await generateTabelPeriodExcel({
           fop_id: activeFop.id,
           start_year: startYear,
@@ -436,7 +457,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
         setLastGeneratedPath(filePath);
         const startM = MONTH_NAMES_UKR.find((m) => m.id === startMonth)?.name || "";
         const endM = MONTH_NAMES_UKR.find((m) => m.id === endMonth)?.name || "";
-        onShowToast(`✅ Табелі за період (${startM} ${startYear} — ${endM} ${endYear}) успішно згенеровано!`);
+        onShowToast(`✅ Табелі за період (${startM} ${startYear} — ${endM} ${endYear}) успішно згенеровано у папку «табелі і відомості»!`);
       }
     } catch (err) {
       onShowToast(`❌ Помилка генерації табеля: ${err}`);
@@ -447,8 +468,9 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
 
   const handleOpenExplorerFolder = async () => {
     if (lastGeneratedPath) {
-      const folder = lastGeneratedPath.substring(0, lastGeneratedPath.lastIndexOf("\\"));
-      await openFolderInExplorer(folder || lastGeneratedPath);
+      const lastSep = Math.max(lastGeneratedPath.lastIndexOf("\\"), lastGeneratedPath.lastIndexOf("/"));
+      const folder = lastSep !== -1 ? lastGeneratedPath.substring(0, lastSep) : lastGeneratedPath;
+      await openFolderInExplorer(folder);
       return;
     }
     if ((rootFolder || activeFop?.folder_path) && activeFop) {
@@ -458,6 +480,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
   };
 
   const calculateMonthCount = () => {
+    if (!startYear || !startMonth || !endYear || !endMonth) return 0;
     return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
   };
 
@@ -510,7 +533,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           {/* Custom Date Selector */}
           <CustomDateSelector
             mode={selectionMode}
-            onModeChange={setSelectionMode}
+            onModeChange={handleModeChange}
             selectedYear={selectedYear}
             selectedMonth={selectedMonth}
             onSingleDateChange={(y: number, m: number) => {
@@ -521,7 +544,7 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
             startMonth={startMonth}
             endYear={endYear}
             endMonth={endMonth}
-            onPeriodChange={(sy: number, sm: number, ey: number, em: number) => {
+            onPeriodChange={(sy: number | null, sm: number | null, ey: number | null, em: number | null) => {
               setStartYear(sy);
               setStartMonth(sm);
               setEndYear(ey);
@@ -546,20 +569,27 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
           </button>
 
           {/* Generate Excel Button */}
-          <button
-            onClick={handleGenerateExcel}
-            disabled={isGenerating || !activeFop || !previewData || previewData.rows.length === 0}
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#f8a44c] to-[#e08e36] text-[#133b47] font-black text-xs hover:brightness-110 active:scale-95 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 border border-amber-300/30"
-          >
-            <DocumentArrowDownIcon className="w-4.5 h-4.5 stroke-[2.5]" />
-            <span>
-              {isGenerating
-                ? "Формування..."
-                : selectionMode === "month"
-                ? "Згенерувати Excel (.xlsx)"
-                : `Згенерувати ${calculateMonthCount()} табелів (.xlsx)`}
-            </span>
-          </button>
+          {(() => {
+            const isPeriodReady = selectionMode === "month" || Boolean(startYear && startMonth && endYear && endMonth);
+            return (
+              <button
+                onClick={handleGenerateExcel}
+                disabled={isGenerating || !activeFop || !isPeriodReady || !previewData || previewData.rows.length === 0}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#f8a44c] to-[#e08e36] text-[#133b47] font-black text-xs hover:brightness-110 active:scale-95 transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0 border border-amber-300/30"
+              >
+                <DocumentArrowDownIcon className="w-4.5 h-4.5 stroke-[2.5]" />
+                <span>
+                  {isGenerating
+                    ? "Формування..."
+                    : selectionMode === "month"
+                    ? "Згенерувати Excel (.xlsx)"
+                    : isPeriodReady
+                    ? `Згенерувати ${calculateMonthCount()} табелів (.xlsx)`
+                    : "Оберіть період"}
+                </span>
+              </button>
+            );
+          })()}
 
           {lastGeneratedPath && (
             <button
@@ -581,7 +611,11 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
             <UserIcon className="w-4 h-4 stroke-[2.2]" />
           </div>
           <h3 className="text-sm font-black text-[#133b47]">
-            {selectionMode === "month" ? "Табель за місяць" : `Період (${groupedMonthSections.length} місяців)`}
+            {selectionMode === "month"
+              ? "Табель за місяць"
+              : startYear && startMonth && endYear && endMonth
+              ? `Період (${groupedMonthSections.length} місяців)`
+              : "Період (не обрано)"}
           </h3>
           {isLoading && (
             <span className="text-xs font-black text-[#556e75] animate-pulse">
@@ -737,6 +771,16 @@ export const TabelGeneratorView: React.FC<TabelGeneratorViewProps> = ({
       ) : !activeFop ? (
         <div className="p-12 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-2xl border border-[#cbd8d6]">
           Будь ласка, оберіть активного ФОП з працівниками для відображення табеля.
+        </div>
+      ) : selectionMode === "period" && (!startYear || !startMonth || !endYear || !endMonth) ? (
+        <div className="p-16 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-3xl border-2 border-dashed border-[#cbd8d6] flex flex-col items-center justify-center gap-3 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-[#133b47]/5 text-[#133b47] flex items-center justify-center">
+            <CalendarDaysIcon className="w-8 h-8 text-[#133b47]/60" />
+          </div>
+          <span className="text-sm font-black text-[#133b47]">Період не обрано</span>
+          <p className="max-w-md text-[#556e75] font-medium text-xs leading-relaxed">
+            Будь ласка, оберіть початковий та кінцевий місяць і рік у випадаючому селекторі зверху, щоб сформувати табель за період.
+          </p>
         </div>
       ) : !previewData || previewData.rows.length === 0 ? (
         <div className="p-12 text-center text-xs font-extrabold text-[#556e75] bg-white rounded-2xl border border-[#cbd8d6]">

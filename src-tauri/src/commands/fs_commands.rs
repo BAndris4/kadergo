@@ -1,6 +1,5 @@
 use rfd::FileDialog;
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use crate::models::{DiscoveredFopDto, ScanFopsResult};
@@ -774,6 +773,16 @@ const EXT_ICON_16: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/
 const EXT_ICON_48: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/icons/icon48.png");
 const EXT_ICON_128: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports/icons/icon128.png");
 
+const EXT_MOD_CONFIG: &str = include_str!("../../../extensions/tax-gov-zreports/modules/config.js");
+const EXT_MOD_ZIP: &str = include_str!("../../../extensions/tax-gov-zreports/modules/zip.js");
+const EXT_MOD_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/excel.js");
+const EXT_MOD_DOWNLOADER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/downloader.js");
+const EXT_MOD_DATE_UTILS: &str = include_str!("../../../extensions/tax-gov-zreports/modules/date-utils.js");
+const EXT_MOD_CABINET: &str = include_str!("../../../extensions/tax-gov-zreports/modules/cabinet-interactor.js");
+const EXT_MOD_SCRAPER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/table-scraper.js");
+const EXT_MOD_EXPORTER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/exporter.js");
+const EXT_MOD_UI: &str = include_str!("../../../extensions/tax-gov-zreports/modules/ui.js");
+
 fn get_extension_file_str(file_name: &str, embedded: &str) -> String {
     let candidate_dirs = [
         PathBuf::from("extensions/tax-gov-zreports"),
@@ -904,6 +913,64 @@ pub fn export_chrome_extension(as_zip: Option<bool>) -> Result<Option<String>, S
     fs::write(
         icons_dir.join("icon128.png"),
         get_extension_file_bytes("icons/icon128.png", EXT_ICON_128),
+    )
+    .map_err(|e| e.to_string())?;
+
+    let modules_dir = target_dir.join("modules");
+    fs::create_dir_all(&modules_dir)
+        .map_err(|e| format!("Не вдалося створити папку modules: {}", e))?;
+
+    fs::write(
+        modules_dir.join("config.js"),
+        get_extension_file_str("modules/config.js", EXT_MOD_CONFIG),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("zip.js"),
+        get_extension_file_str("modules/zip.js", EXT_MOD_ZIP),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("excel.js"),
+        get_extension_file_str("modules/excel.js", EXT_MOD_EXCEL),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("downloader.js"),
+        get_extension_file_str("modules/downloader.js", EXT_MOD_DOWNLOADER),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("date-utils.js"),
+        get_extension_file_str("modules/date-utils.js", EXT_MOD_DATE_UTILS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("cabinet-interactor.js"),
+        get_extension_file_str("modules/cabinet-interactor.js", EXT_MOD_CABINET),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("table-scraper.js"),
+        get_extension_file_str("modules/table-scraper.js", EXT_MOD_SCRAPER),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("exporter.js"),
+        get_extension_file_str("modules/exporter.js", EXT_MOD_EXPORTER),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("ui.js"),
+        get_extension_file_str("modules/ui.js", EXT_MOD_UI),
     )
     .map_err(|e| e.to_string())?;
 

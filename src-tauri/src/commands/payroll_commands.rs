@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use rust_xlsxwriter::*;
@@ -819,8 +819,8 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
 
     // Column widths matching EXACT template narrow widths
     worksheet.set_column_width(0, 2.71).map_err(|e| e.to_string())?;  // A: №
-    worksheet.set_column_width(1, 10.28).map_err(|e| e.to_string())?; // B: П.І.Б.
-    worksheet.set_column_width(2, 11.57).map_err(|e| e.to_string())?; // C: Посада
+    worksheet.set_column_width(1, 17.86).map_err(|e| e.to_string())?; // B: П.І.Б. (130px)
+    worksheet.set_column_width(2, 15.00).map_err(|e| e.to_string())?; // C: Посада (110px)
     worksheet.set_column_width(3, 12.86).map_err(|e| e.to_string())?; // D: Днів/годин (95px)
     worksheet.set_column_width(4, 10.71).map_err(|e| e.to_string())?; // E: Залишок (85px)
     worksheet.set_column_width(5, 8.28).map_err(|e| e.to_string())?;  // F: Ставка
@@ -1088,17 +1088,30 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
     worksheet.merge_range(footer_r, 3, footer_r, 6, "__________________________", &format_footer_text).map_err(|e| e.to_string())?;
 
     // Determine target save path
-    let filename = format!("ВІДОМІСТЬ {} {}.xlsx", preview.month_name_ukr, preview.year);
+    // Format: ВІДОМІСТЬ 1_січень 2026.xlsx
+    let filename = format!("ВІДОМІСТЬ {}_{} {}.xlsx", req.month, preview.month_name_ukr, preview.year);
 
-    let output_path = if let Some(ref dir) = req.save_dir {
-        let p = Path::new(dir);
-        if !p.exists() {
-            let _ = fs::create_dir_all(p);
+    let target_dir = if let Some(ref dir) = req.save_dir {
+        let base = Path::new(dir);
+        let base_str = base.to_string_lossy();
+        let year_str = preview.year.to_string();
+
+        if base_str.contains("табелі і відомості") && base.ends_with(&year_str) {
+            base.to_path_buf()
+        } else if base_str.contains("табелі і відомості") {
+            base.join(&year_str)
+        } else {
+            base.join("табелі і відомості").join(&year_str)
         }
-        p.join(&filename).to_string_lossy().to_string()
     } else {
-        filename
+        PathBuf::from("табелі і відомості").join(preview.year.to_string())
     };
+
+    if !target_dir.exists() {
+        let _ = fs::create_dir_all(&target_dir);
+    }
+
+    let output_path = target_dir.join(&filename).to_string_lossy().to_string();
 
     workbook.save(&output_path).map_err(|e| format!("Failed to save Excel file: {}", e))?;
 

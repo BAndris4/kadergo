@@ -5,6 +5,7 @@ import {
   AdjustmentsHorizontalIcon,
   CheckIcon,
   ArrowRightIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
 export const MONTH_NAMES_UKR = [
@@ -22,7 +23,14 @@ export const MONTH_NAMES_UKR = [
   { id: 12, name: "Грудень" },
 ];
 
-const AVAILABLE_YEARS = [2024, 2025, 2026, 2027];
+const CURRENT_YEAR = new Date().getFullYear();
+export const AVAILABLE_YEARS = [
+  CURRENT_YEAR - 2,
+  CURRENT_YEAR - 1,
+  CURRENT_YEAR,
+  CURRENT_YEAR + 1,
+  CURRENT_YEAR + 2,
+];
 
 interface CustomDateSelectorProps {
   mode: "month" | "period";
@@ -30,11 +38,11 @@ interface CustomDateSelectorProps {
   selectedYear: number;
   selectedMonth: number;
   onSingleDateChange: (year: number, month: number) => void;
-  startYear: number;
-  startMonth: number;
-  endYear: number;
-  endMonth: number;
-  onPeriodChange: (sYear: number, sMonth: number, eYear: number, eMonth: number) => void;
+  startYear: number | null;
+  startMonth: number | null;
+  endYear: number | null;
+  endMonth: number | null;
+  onPeriodChange: (sYear: number | null, sMonth: number | null, eYear: number | null, eMonth: number | null) => void;
 }
 
 export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
@@ -64,7 +72,10 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isPeriodComplete = Boolean(startYear && startMonth && endYear && endMonth);
+
   const calculateMonthCount = () => {
+    if (!startYear || !startMonth || !endYear || !endMonth) return 0;
     return (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
   };
 
@@ -85,15 +96,53 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
     setIsOpen(false);
   };
 
-  const handleSelectStartMonth = (year: number, monthId: number) => {
-    onPeriodChange(year, monthId, endYear, endMonth);
+  const handleSelectStartMonth = (monthId: number) => {
+    const chosenYear = startYear || new Date().getFullYear();
+    let newEndYear = endYear;
+    let newEndMonth = endMonth;
+
+    // If end date was set and is now earlier or equal to start, clear end so user selects a valid end
+    if (newEndYear && newEndMonth) {
+      if (newEndYear < chosenYear || (newEndYear === chosenYear && newEndMonth <= monthId)) {
+        newEndYear = null;
+        newEndMonth = null;
+      }
+    }
+
+    onPeriodChange(chosenYear, monthId, newEndYear, newEndMonth);
     setActiveTab("end");
   };
 
-  const handleSelectEndMonth = (year: number, monthId: number) => {
-    onPeriodChange(startYear, startMonth, year, monthId);
+  const handleSelectEndMonth = (monthId: number) => {
+    const targetEndYear =
+      endYear ||
+      (startYear
+        ? startMonth === 12
+          ? startYear + 1
+          : startYear
+        : new Date().getFullYear());
+
+    onPeriodChange(startYear, startMonth, targetEndYear, monthId);
     setIsOpen(false);
   };
+
+  const handleSelectEndYear = (y: number) => {
+    let newEndMonth = endMonth;
+    if (startYear !== null && startMonth !== null) {
+      if (y < startYear || (y === startYear && newEndMonth !== null && newEndMonth <= startMonth)) {
+        newEndMonth = null;
+      }
+    }
+    onPeriodChange(startYear, startMonth, y, newEndMonth);
+  };
+
+  const effectiveEndYear =
+    endYear ||
+    (startYear
+      ? startMonth === 12
+        ? startYear + 1
+        : startYear
+      : new Date().getFullYear());
 
   return (
     <div className="relative z-50" ref={dropdownRef}>
@@ -114,6 +163,19 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
               {getSingleMonthName()}
             </span>
             <span className="text-white font-black">{selectedYear}р.</span>
+          </div>
+        ) : !isPeriodComplete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[#f8a44c] font-black">
+              {startYear && startMonth ? `${getStartMonthName()} ${startYear}` : "Початок"}
+            </span>
+            <ArrowRightIcon className="w-3.5 h-3.5 text-[#c3d9d6] stroke-[3]" />
+            <span className="text-[#f8a44c] font-black">
+              {endYear && endMonth ? `${getEndMonthName()} ${endYear}` : "Кінець"}
+            </span>
+            <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-white/10 text-[#c3d9d6] border border-white/10">
+              Оберіть період
+            </span>
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -158,7 +220,12 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onModeChange("period")}
+              onClick={() => {
+                if (mode !== "period") {
+                  onModeChange("period");
+                  setActiveTab("start");
+                }
+              }}
               className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 mode === "period"
                   ? "bg-[#133b47] text-[#f8a44c] shadow-md"
@@ -172,104 +239,113 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
 
           {/* MODE 1: SINGLE MONTH SELECTOR */}
           {mode === "month" && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {/* Year Selector */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-black uppercase text-[#556e75] tracking-wider">
-                  Оберіть рік:
-                </span>
-                <div className="grid grid-cols-4 gap-2">
-                  {AVAILABLE_YEARS.map((y) => (
-                    <button
-                      type="button"
-                      key={y}
-                      onClick={() => onSingleDateChange(y, selectedMonth)}
-                      className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                        selectedYear === y
-                          ? "bg-[#133b47] text-[#f8a44c] shadow-sm"
-                          : "bg-slate-100 hover:bg-slate-200 text-[#133b47]"
-                      }`}
-                    >
-                      {y}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-5 gap-1.5 p-1 bg-[#f4f9f8] rounded-2xl border border-[#cbd8d6]/60">
+                {AVAILABLE_YEARS.map((y) => (
+                  <button
+                    type="button"
+                    key={y}
+                    onClick={() => onSingleDateChange(y, selectedMonth)}
+                    className={`py-2 rounded-xl text-xs font-black transition-colors cursor-pointer text-center ${
+                      selectedYear === y
+                        ? "bg-[#133b47] text-[#f8a44c] shadow-sm ring-1 ring-[#133b47]"
+                        : "text-[#133b47] hover:bg-white hover:shadow-xs"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
               </div>
 
               {/* Month Selector Grid */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-black uppercase text-[#556e75] tracking-wider">
-                  Оберіть місяць:
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {MONTH_NAMES_UKR.map((m) => {
-                    const isSelected = selectedMonth === m.id;
-                    return (
-                      <button
-                        type="button"
-                        key={m.id}
-                        onClick={() => handleSelectSingleMonth(selectedYear, m.id)}
-                        className={`p-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
-                          isSelected
-                            ? "bg-[#f8a44c] text-[#133b47] shadow-md scale-105"
-                            : "bg-[#f4f9f8] hover:bg-[#e2eceb] text-[#133b47]"
-                        }`}
-                      >
-                        <span>{m.name}</span>
-                        {isSelected && <CheckIcon className="w-4 h-4 stroke-[3]" />}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                {MONTH_NAMES_UKR.map((m) => {
+                  const isSelected = selectedMonth === m.id;
+                  return (
+                    <button
+                      type="button"
+                      key={m.id}
+                      onClick={() => handleSelectSingleMonth(selectedYear, m.id)}
+                      className={`h-11 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? "bg-[#f8a44c] text-[#133b47] font-black shadow-sm ring-2 ring-[#f8a44c]/30"
+                          : "bg-[#f4f9f8] hover:bg-[#e2eceb] text-[#133b47]"
+                      }`}
+                    >
+                      <span>{m.name}</span>
+                      {isSelected && <CheckIcon className="w-4 h-4 stroke-[3] shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* MODE 2: PERIOD RANGE SELECTOR */}
           {mode === "period" && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3.5">
               {/* Tab selector for Start vs End month */}
-              <div className="flex items-center gap-2 border-b border-[#cbd8d6] pb-2">
+              <div className="flex items-center p-1 bg-[#f4f9f8] rounded-2xl border border-[#cbd8d6]">
                 <button
                   type="button"
                   onClick={() => setActiveTab("start")}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeTab === "start"
                       ? "bg-[#133b47] text-[#f8a44c] shadow-md"
-                      : "bg-slate-100 text-[#556e75] hover:text-[#133b47]"
+                      : "text-[#556e75] hover:text-[#133b47] hover:bg-white/60"
                   }`}
                 >
-                  Від: {getStartMonthName()} {startYear}
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">Від:</span>
+                  <span className="truncate">
+                    {startYear && startMonth ? `${getStartMonthName()} ${startYear}` : "—"}
+                  </span>
                 </button>
+
+                <ArrowRightIcon className="w-3.5 h-3.5 text-[#556e75]/40 mx-1 shrink-0 stroke-[2.5]" />
+
                 <button
                   type="button"
                   onClick={() => setActiveTab("end")}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeTab === "end"
                       ? "bg-[#133b47] text-[#f8a44c] shadow-md"
-                      : "bg-slate-100 text-[#556e75] hover:text-[#133b47]"
+                      : "text-[#556e75] hover:text-[#133b47] hover:bg-white/60"
                   }`}
                 >
-                  До: {getEndMonthName()} {endYear}
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">До:</span>
+                  <span className="truncate">
+                    {endYear && endMonth ? `${getEndMonthName()} ${endYear}` : "—"}
+                  </span>
                 </button>
               </div>
 
               {/* Selection for Active Tab */}
               {activeTab === "start" ? (
                 <div className="flex flex-col gap-3">
-                  <span className="text-[11px] font-black uppercase text-[#556e75]">
-                    Початок періоду (Місяць та рік):
-                  </span>
-                  <div className="grid grid-cols-4 gap-2">
+                  {/* Start Year Selector */}
+                  <div className="grid grid-cols-5 gap-1.5 p-1 bg-[#f4f9f8] rounded-2xl border border-[#cbd8d6]/60">
                     {AVAILABLE_YEARS.map((y) => (
                       <button
                         type="button"
                         key={y}
-                        onClick={() => onPeriodChange(y, startMonth, endYear, endMonth)}
-                        className={`py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        onClick={() => {
+                          let newEndYear = endYear;
+                          let newEndMonth = endMonth;
+                          if (
+                            newEndYear &&
+                            (newEndYear < y ||
+                              (newEndYear === y && newEndMonth && startMonth && newEndMonth <= startMonth))
+                          ) {
+                            newEndYear = null;
+                            newEndMonth = null;
+                          }
+                          onPeriodChange(y, startMonth, newEndYear, newEndMonth);
+                        }}
+                        className={`py-2 rounded-xl text-xs font-black transition-colors cursor-pointer text-center ${
                           startYear === y
-                            ? "bg-[#133b47] text-[#f8a44c]"
-                            : "bg-slate-100 text-[#133b47]"
+                            ? "bg-[#133b47] text-[#f8a44c] shadow-sm ring-1 ring-[#133b47]"
+                            : "text-[#133b47] hover:bg-white hover:shadow-xs"
                         }`}
                       >
                         {y}
@@ -277,25 +353,23 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
+                  {/* Start Month Grid */}
+                  <div className="grid grid-cols-3 gap-2">
                     {MONTH_NAMES_UKR.map((m) => {
                       const isSelected = startMonth === m.id;
-                      const isInRange = startYear === endYear && m.id >= startMonth && m.id <= endMonth;
                       return (
                         <button
                           type="button"
                           key={m.id}
-                          onClick={() => handleSelectStartMonth(startYear, m.id)}
-                          className={`p-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-between ${
+                          onClick={() => handleSelectStartMonth(m.id)}
+                          className={`h-11 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
                             isSelected
-                              ? "bg-[#f8a44c] text-[#133b47] shadow-md scale-105"
-                              : isInRange
-                              ? "bg-[#f8a44c]/20 text-[#133b47] border border-[#f8a44c]/40"
+                              ? "bg-[#f8a44c] text-[#133b47] font-black shadow-sm ring-2 ring-[#f8a44c]/30"
                               : "bg-[#f4f9f8] hover:bg-[#e2eceb] text-[#133b47]"
                           }`}
                         >
                           <span>{m.name}</span>
-                          {isSelected && <CheckIcon className="w-3.5 h-3.5 stroke-[3]" />}
+                          {isSelected && <CheckIcon className="w-4 h-4 stroke-[3] shrink-0" />}
                         </button>
                       );
                     })}
@@ -303,51 +377,115 @@ export const CustomDateSelector: React.FC<CustomDateSelectorProps> = ({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <span className="text-[11px] font-black uppercase text-[#556e75]">
-                    Кінець періоду (Місяць та рік):
-                  </span>
-                  <div className="grid grid-cols-4 gap-2">
-                    {AVAILABLE_YEARS.map((y) => (
-                      <button
-                        type="button"
-                        key={y}
-                        onClick={() => onPeriodChange(startYear, startMonth, y, endMonth)}
-                        className={`py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                          endYear === y
-                            ? "bg-[#133b47] text-[#f8a44c]"
-                            : "bg-slate-100 text-[#133b47]"
-                        }`}
-                      >
-                        {y}
-                      </button>
-                    ))}
+                  {/* End Year Selector */}
+                  <div className="grid grid-cols-5 gap-1.5 p-1 bg-[#f4f9f8] rounded-2xl border border-[#cbd8d6]/60">
+                    {AVAILABLE_YEARS.map((y) => {
+                      const isYearDisabled = Boolean(
+                        startYear !== null &&
+                          (y < startYear || (y === startYear && startMonth === 12))
+                      );
+                      const isSelected = effectiveEndYear === y;
+                      return (
+                        <button
+                          type="button"
+                          key={y}
+                          disabled={isYearDisabled}
+                          onClick={() => handleSelectEndYear(y)}
+                          className={`py-2 rounded-xl text-xs font-black transition-colors cursor-pointer text-center ${
+                            isYearDisabled
+                              ? "opacity-30 cursor-not-allowed bg-transparent text-slate-400 select-none pointer-events-none"
+                              : isSelected
+                              ? "bg-[#133b47] text-[#f8a44c] shadow-sm ring-1 ring-[#133b47]"
+                              : "text-[#133b47] hover:bg-white hover:shadow-xs"
+                          }`}
+                        >
+                          {y}
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
+                  {/* End Month Grid */}
+                  <div className="grid grid-cols-3 gap-2">
                     {MONTH_NAMES_UKR.map((m) => {
-                      const isSelected = endMonth === m.id;
-                      const isInRange = startYear === endYear && m.id >= startMonth && m.id <= endMonth;
+                      let isMonthDisabled = false;
+                      if (startYear !== null && startMonth !== null) {
+                        if (effectiveEndYear < startYear) {
+                          isMonthDisabled = true;
+                        } else if (effectiveEndYear === startYear) {
+                          // Earlier months and the start month itself are disabled
+                          isMonthDisabled = m.id <= startMonth;
+                        }
+                      }
+
+                      const isSelected = endMonth === m.id && endYear === effectiveEndYear;
+                      const isInRange = Boolean(
+                        startYear &&
+                          startMonth &&
+                          endYear &&
+                          endMonth &&
+                          ((effectiveEndYear === startYear &&
+                            effectiveEndYear === endYear &&
+                            m.id > startMonth &&
+                            m.id < endMonth) ||
+                            (effectiveEndYear === startYear &&
+                              effectiveEndYear < endYear &&
+                              m.id > startMonth) ||
+                            (effectiveEndYear > startYear && effectiveEndYear < endYear) ||
+                            (effectiveEndYear > startYear &&
+                              effectiveEndYear === endYear &&
+                              m.id < endMonth))
+                      );
+
                       return (
                         <button
                           type="button"
                           key={m.id}
-                          onClick={() => handleSelectEndMonth(endYear, m.id)}
-                          className={`p-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-between ${
-                            isSelected
-                              ? "bg-[#f8a44c] text-[#133b47] shadow-md scale-105"
+                          disabled={isMonthDisabled}
+                          onClick={() => handleSelectEndMonth(m.id)}
+                          className={`h-11 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
+                            isMonthDisabled
+                              ? "opacity-30 cursor-not-allowed bg-slate-100 text-slate-400 select-none pointer-events-none border-transparent shadow-none"
+                              : isSelected
+                              ? "bg-[#f8a44c] text-[#133b47] font-black shadow-sm ring-2 ring-[#f8a44c]/30"
                               : isInRange
-                              ? "bg-[#f8a44c]/20 text-[#133b47] border border-[#f8a44c]/40"
+                              ? "bg-[#f8a44c]/15 text-[#133b47] font-bold border border-[#f8a44c]/40"
                               : "bg-[#f4f9f8] hover:bg-[#e2eceb] text-[#133b47]"
                           }`}
                         >
                           <span>{m.name}</span>
-                          {isSelected && <CheckIcon className="w-3.5 h-3.5 stroke-[3]" />}
+                          {isSelected && <CheckIcon className="w-4 h-4 stroke-[3] shrink-0" />}
                         </button>
                       );
                     })}
                   </div>
                 </div>
               )}
+
+              {/* Bottom Actions Bar */}
+              <div className="flex items-center justify-between pt-2 border-t border-[#cbd8d6]/80">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPeriodChange(null, null, null, null);
+                    setActiveTab("start");
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-black text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowPathIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Скинути</span>
+                </button>
+
+                {isPeriodComplete && (
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="px-4 py-1.5 rounded-xl bg-[#133b47] hover:bg-[#0f2e38] text-[#f8a44c] font-black text-xs transition-colors shadow-sm cursor-pointer"
+                  >
+                    Застосувати ({calculateMonthCount()} міс.)
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

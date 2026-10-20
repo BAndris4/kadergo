@@ -4,14 +4,20 @@
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'DOWNLOAD_EXCEL') {
-    const { base64Data, fileName } = request;
-    const dataUrl = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + base64Data;
+    const { base64Data, fileName, mimeType } = request;
+    const type = mimeType || (fileName && fileName.toLowerCase().endsWith('.zip') ? 'application/zip' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const dataUrl = `data:${type};base64,` + base64Data;
 
-    // saveAs: true дозволяє користувачеві самостійно обрати папку та ім'я для збереження
+    // saveAs: true nyitja meg a Windows natív Mentés Másként ablakát:
+    // - Nincs webes mappa-jogosultságkérés (nem kell engedélyt adni a webhelynek)
+    // - Bármelyik mappa (pl. Asztal) választható, nincs rendszerfájl-tiltás
+    // - A felhasználó közvetlenül választja ki a mentési helyet
+    // - A letöltés megjelenik a Chrome jobb felső letöltési paneljén
+    // - A Windows megjegyzi a legutóbb használt mappát a következő letöltésekhez
     chrome.downloads.download({
       url: dataUrl,
       filename: fileName,
-      saveAs: true
+      saveAs: request.saveAs !== undefined ? Boolean(request.saveAs) : true
     }, (downloadId) => {
       if (chrome.runtime.lastError || !downloadId) {
         const errorMsg = (chrome.runtime.lastError && chrome.runtime.lastError.message) || '';
