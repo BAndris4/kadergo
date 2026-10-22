@@ -914,7 +914,7 @@ pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, Str
         let r = start_row + idx as u32;
         let excel_r = r + 1; // 1-based index
 
-        worksheet.set_row_height(r as u32, 36.0).map_err(|e| e.to_string())?;
+        worksheet.set_row_height(r as u32, 41.25).map_err(|e| e.to_string())?;
 
         // A: №
         worksheet.write_with_format(r, 0, (idx + 1) as u32, &format_data_center).map_err(|e| e.to_string())?;

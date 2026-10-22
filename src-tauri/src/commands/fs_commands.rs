@@ -776,11 +776,16 @@ const EXT_ICON_128: &[u8] = include_bytes!("../../../extensions/tax-gov-zreports
 const EXT_MOD_CONFIG: &str = include_str!("../../../extensions/tax-gov-zreports/modules/config.js");
 const EXT_MOD_ZIP: &str = include_str!("../../../extensions/tax-gov-zreports/modules/zip.js");
 const EXT_MOD_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/excel.js");
+const EXT_MOD_INCOME_BOOK_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/income-book-excel.js");
 const EXT_MOD_DOWNLOADER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/downloader.js");
 const EXT_MOD_DATE_UTILS: &str = include_str!("../../../extensions/tax-gov-zreports/modules/date-utils.js");
 const EXT_MOD_CABINET: &str = include_str!("../../../extensions/tax-gov-zreports/modules/cabinet-interactor.js");
 const EXT_MOD_SCRAPER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/table-scraper.js");
 const EXT_MOD_EXPORTER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/exporter.js");
+const EXT_MOD_MODAL_ASSETS: &str = include_str!("../../../extensions/tax-gov-zreports/modules/modal-assets.js");
+const EXT_MOD_MODAL_DOCK: &str = include_str!("../../../extensions/tax-gov-zreports/modules/modal-dock.js");
+const EXT_MOD_MODAL_TEMPLATES: &str = include_str!("../../../extensions/tax-gov-zreports/modules/modal-templates.js");
+const EXT_MOD_MODAL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/modal.js");
 const EXT_MOD_UI: &str = include_str!("../../../extensions/tax-gov-zreports/modules/ui.js");
 
 fn get_extension_file_str(file_name: &str, embedded: &str) -> String {
@@ -939,6 +944,12 @@ pub fn export_chrome_extension(as_zip: Option<bool>) -> Result<Option<String>, S
     .map_err(|e| e.to_string())?;
 
     fs::write(
+        modules_dir.join("income-book-excel.js"),
+        get_extension_file_str("modules/income-book-excel.js", EXT_MOD_INCOME_BOOK_EXCEL),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
         modules_dir.join("downloader.js"),
         get_extension_file_str("modules/downloader.js", EXT_MOD_DOWNLOADER),
     )
@@ -965,6 +976,30 @@ pub fn export_chrome_extension(as_zip: Option<bool>) -> Result<Option<String>, S
     fs::write(
         modules_dir.join("exporter.js"),
         get_extension_file_str("modules/exporter.js", EXT_MOD_EXPORTER),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("modal-assets.js"),
+        get_extension_file_str("modules/modal-assets.js", EXT_MOD_MODAL_ASSETS),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("modal-dock.js"),
+        get_extension_file_str("modules/modal-dock.js", EXT_MOD_MODAL_DOCK),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("modal-templates.js"),
+        get_extension_file_str("modules/modal-templates.js", EXT_MOD_MODAL_TEMPLATES),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("modal.js"),
+        get_extension_file_str("modules/modal.js", EXT_MOD_MODAL),
     )
     .map_err(|e| e.to_string())?;
 

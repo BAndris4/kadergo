@@ -249,8 +249,8 @@ window.KaderGo = window.KaderGo || {};
   <mergeCell ref="A${summaryRowIndex}:D${summaryRowIndex}"/>
 </mergeCells>`;
 
-    // Tájolás: ha több mint 30 sor van, akkor álló (portrait), ha 30 vagy kevesebb, akkor fekvő (landscape)
-    const orientation = numRows > 30 ? 'portrait' : 'landscape';
+    // Tájolás: ha több mint 40 sor van, akkor álló (portrait), ha 40 vagy kevesebb, akkor fekvő (landscape)
+    const orientation = numRows > 40 ? 'portrait' : 'landscape';
 
     zip.addFile('xl/worksheets/sheet1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
