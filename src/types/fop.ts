@@ -227,7 +227,10 @@ export interface DiscoveredFopDto {
 
 export interface WorkerPayrollOverride {
   worker_id: number;
-  previous_kopeks: number;
+  year?: number;
+  month?: number;
+  previous_kopeks?: number;
+  save_to_db?: boolean;
   manual_addition: number;
 }
 
@@ -536,3 +539,28 @@ export interface InitialNakazData {
   workerIds?: number[];
   periodText?: string;
 }
+
+export interface DatabaseInfo {
+  db_path: string;
+  db_size_bytes: number;
+  fop_count: number;
+  worker_count: number;
+  last_modified?: string | null;
+}
+
+export interface DatabaseExportResult {
+  success: boolean;
+  exported_path: string;
+  file_size_bytes: number;
+  fop_count: number;
+  worker_count: number;
+}
+
+export interface DatabaseImportResult {
+  success: boolean;
+  source_path: string;
+  backup_path?: string | null;
+  fop_count: number;
+  worker_count: number;
+}
+

@@ -209,9 +209,7 @@ svg.kadergo-btn-icon {
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(15, 23, 42, 0.6) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
+  background: rgba(15, 23, 42, 0.68) !important;
   z-index: 9999999 !important;
   display: flex !important;
   align-items: center !important;
@@ -398,8 +396,9 @@ svg.kadergo-btn-icon {
   color: #f8a44c !important;
 }
 
-.kadergo-mode-tab.disabled {
-  opacity: 0.42 !important;
+.kadergo-mode-tab.disabled,
+.kadergo-mode-tab[disabled] {
+  opacity: 0.35 !important;
   cursor: not-allowed !important;
   color: #94a3b8 !important;
   background: transparent !important;
@@ -407,8 +406,16 @@ svg.kadergo-btn-icon {
   box-shadow: none !important;
 }
 
-.kadergo-mode-tab.disabled:hover {
+.kadergo-mode-tab.disabled:hover,
+.kadergo-mode-tab[disabled]:hover {
   background: transparent !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+}
+
+.kadergo-mode-tab.disabled .kadergo-heroicon,
+.kadergo-mode-tab[disabled] .kadergo-heroicon {
+  opacity: 0.4 !important;
   color: #94a3b8 !important;
 }
 
@@ -514,18 +521,36 @@ svg.kadergo-btn-icon {
 .kadergo-grid-header {
   display: flex !important;
   align-items: center !important;
+  justify-content: space-between !important;
   gap: 6px !important;
   margin-bottom: 4px !important;
   color: #556e75 !important;
-  font-size: 10.5px !important;
+  font-size: 10px !important;
   font-weight: 900 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.4px !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+}
+
+.kadergo-grid-header-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.kadergo-grid-label {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .kadergo-grid-icon {
   color: #133b47 !important;
   display: inline-flex !important;
+  flex-shrink: 0 !important;
 }
 
 .kadergo-grid-value {
@@ -537,11 +562,329 @@ svg.kadergo-btn-icon {
   text-overflow: ellipsis !important;
 }
 
+/* Interactive Period Card */
+.kadergo-grid-card-interactive {
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+.kadergo-grid-card-interactive:hover {
+  border-color: #1f6070 !important;
+  background: #f0f7f6 !important;
+  box-shadow: 0 4px 14px rgba(31, 96, 112, 0.12) !important;
+}
+
+.kadergo-grid-change-badge {
+  display: none !important;
+  background: #e6f2f0 !important;
+  color: #1f6070 !important;
+  border: 1px solid #c2dbd7 !important;
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  align-items: center !important;
+  gap: 3px !important;
+  transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.kadergo-grid-change-badge.is-visible {
+  display: inline-flex !important;
+}
+
+.kadergo-grid-card-interactive:hover .kadergo-grid-change-badge {
+  background: #1f6070 !important;
+  color: #ffffff !important;
+  border-color: #1f6070 !important;
+}
+
+.kadergo-grid-change-badge.is-custom {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+
+/* ==============================================================================
+   Custom Period Picker Popover (Книга доходів)
+   ============================================================================== */
+.kadergo-period-popover-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(19, 59, 71, 0.22) !important;
+  backdrop-filter: blur(2px) !important;
+  z-index: 100 !important;
+  border-radius: 24px !important;
+  display: none !important;
+  animation: kadergoPopFadeIn 0.15s ease forwards !important;
+}
+
+.kadergo-period-popover-backdrop.is-open {
+  display: block !important;
+}
+
+.kadergo-period-popover {
+  position: absolute !important;
+  top: 75px !important;
+  left: 14px !important;
+  right: 14px !important;
+  background: #ffffff !important;
+  border: 2px solid #1f6070 !important;
+  border-radius: 20px !important;
+  padding: 16px !important;
+  box-shadow: 0 18px 45px rgba(19, 59, 71, 0.28) !important;
+  z-index: 101 !important;
+  display: none !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+  animation: kadergoPopSlideIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.kadergo-period-popover.is-open {
+  display: flex !important;
+}
+
+@keyframes kadergoPopFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes kadergoPopSlideIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.kadergo-pop-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1.5px solid #eef3f2 !important;
+}
+
+.kadergo-pop-title-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #133b47 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+.kadergo-pop-title-icon {
+  color: #1f6070 !important;
+  display: inline-flex !important;
+}
+
+.kadergo-pop-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.kadergo-pop-btn-auto {
+  background: #f1f6f5 !important;
+  border: 1px solid #c2dbd7 !important;
+  color: #1f6070 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  transition: all 0.15s ease !important;
+  line-height: 1 !important;
+  height: 24px !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+}
+
+.kadergo-pop-btn-auto:hover {
+  background: #1f6070 !important;
+  color: #ffffff !important;
+  border-color: #1f6070 !important;
+}
+
+.kadergo-pop-close-btn {
+  background: #f1f6f5 !important;
+  border: 1px solid #d4e2e0 !important;
+  border-radius: 50% !important;
+  width: 26px !important;
+  height: 26px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #556e75 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  transition: all 0.15s ease !important;
+}
+
+.kadergo-pop-close-btn:hover {
+  background: #133b47 !important;
+  color: #ffffff !important;
+  border-color: #133b47 !important;
+}
+
+/* Section Titles */
+.kadergo-pop-section-title {
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  color: #6d868e !important;
+  margin-bottom: 6px !important;
+}
+
+/* Months Grid (4x3) */
+.kadergo-pop-months-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 5px !important;
+}
+
+.kadergo-pop-month-btn {
+  background: #ffffff !important;
+  border: 1.5px solid #dbe6e4 !important;
+  border-radius: 9px !important;
+  padding: 6px 4px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+  user-select: none !important;
+}
+
+.kadergo-pop-month-btn:hover {
+  border-color: #1f6070 !important;
+  background: #f0f7f6 !important;
+}
+
+.kadergo-pop-month-btn.in-range {
+  background: #e6f3f1 !important;
+  border-color: #98c6bf !important;
+  color: #0f3540 !important;
+}
+
+.kadergo-pop-month-btn.active {
+  background: #1f6070 !important;
+  border-color: #1f6070 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 2px 6px rgba(31, 96, 112, 0.28) !important;
+}
+
+.kadergo-pop-month-btn.future {
+  opacity: 0.55 !important;
+}
+
+/* Manual Date Inputs */
+.kadergo-pop-dates-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #f7faf9 !important;
+  border: 1.5px solid #dce8e6 !important;
+  border-radius: 12px !important;
+  padding: 6px 10px !important;
+}
+
+.kadergo-pop-date-field {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.kadergo-pop-date-label {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  color: #6b848c !important;
+  text-transform: lowercase !important;
+}
+
+.kadergo-pop-date-input {
+  width: 100% !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  color: #133b47 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 6px !important;
+  padding: 4px 6px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.kadergo-pop-date-input:focus {
+  border-color: #1f6070 !important;
+  box-shadow: 0 0 0 2px rgba(31, 96, 112, 0.15) !important;
+}
+
+.kadergo-pop-date-input.invalid {
+  border-color: #e04b36 !important;
+  color: #e04b36 !important;
+  background: #fff5f5 !important;
+}
+
+.kadergo-pop-date-sep {
+  color: #8da2a8 !important;
+  font-weight: 900 !important;
+  font-size: 13px !important;
+}
+
+/* Popover Footer */
+.kadergo-pop-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  padding-top: 6px !important;
+}
+
+.kadergo-pop-btn-apply {
+  width: 100% !important;
+  justify-content: center !important;
+  background: #1f6070 !important;
+  border: none !important;
+  color: #ffffff !important;
+  padding: 9px 16px !important;
+  border-radius: 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 3px 8px rgba(31, 96, 112, 0.28) !important;
+}
+
+.kadergo-pop-btn-apply:hover {
+  background: #174b58 !important;
+  box-shadow: 0 4px 12px rgba(31, 96, 112, 0.38) !important;
+}
+
 /* Format Selector (Multiple months) */
 .kadergo-format-section {
   display: flex !important;
   flex-direction: column !important;
-  gap: 6px !important;
+  gap: 7px !important;
+}
+
+.kadergo-format-section.hidden {
+  display: none !important;
 }
 
 .kadergo-format-title {
@@ -591,6 +934,220 @@ svg.kadergo-btn-icon {
 
 .kadergo-format-btn.active .kadergo-heroicon {
   color: #f8a44c !important;
+}
+
+/* Quarters Option Row (Minimal, Sleek & Professional) */
+.kadergo-quarters-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 7px 12px !important;
+  background: #f8faf9 !important;
+  border: 1.5px solid #e2eceb !important;
+  border-radius: 14px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: all 0.16s ease !important;
+  margin-top: 1px !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-quarters-row:hover {
+  background: #f0f7f6 !important;
+  border-color: #cbd8d6 !important;
+}
+
+.kadergo-quarters-row.active {
+  background: #f0f7f6 !important;
+  border-color: #1f6070 !important;
+}
+
+.kadergo-quarters-row-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.kadergo-quarters-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  color: #7b949c !important;
+  transition: color 0.16s ease !important;
+}
+
+.kadergo-quarters-icon .kadergo-heroicon {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.kadergo-quarters-row.active .kadergo-quarters-icon {
+  color: #f8a44c !important; /* Signature amber accent */
+}
+
+.kadergo-quarters-title {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #556e75 !important;
+  transition: color 0.16s ease !important;
+}
+
+.kadergo-quarters-row.active .kadergo-quarters-title {
+  color: #133b47 !important;
+  font-weight: 900 !important;
+}
+
+/* Detected Group Badge */
+.kadergo-group-badge {
+  display: none !important;
+  padding: 1px 7px !important;
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: 6px !important;
+  color: #047857 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.1px !important;
+}
+
+.kadergo-quarters-row-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Auto-detect Group Button */
+.kadergo-btn-detect-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  height: 22px !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  border: 1.2px solid #cbd8d6 !important;
+  border-radius: 8px !important;
+  color: #1f6070 !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+  outline: none !important;
+  line-height: 1 !important;
+}
+
+.kadergo-btn-detect-group:hover {
+  background: #e6f2f0 !important;
+  border-color: #1f6070 !important;
+  color: #133b47 !important;
+}
+
+.kadergo-btn-detect-group .kadergo-heroicon {
+  width: 12px !important;
+  height: 12px !important;
+  color: #f8a44c !important; /* amber accent */
+}
+
+.kadergo-btn-detect-group.success {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #065f46 !important;
+}
+
+.kadergo-btn-detect-group.success .kadergo-heroicon {
+  color: #10b981 !important;
+}
+
+.kadergo-btn-detect-group.loading {
+  opacity: 0.8 !important;
+  cursor: wait !important;
+}
+
+.kadergo-detect-spinner {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid rgba(31, 96, 112, 0.25) !important;
+  border-top-color: #1f6070 !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  animation: kadergoSpin 0.7s linear infinite !important;
+}
+
+/* iOS-Style Toggle Switch */
+.kadergo-switch {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-switch * {
+  cursor: pointer !important;
+}
+
+.kadergo-switch-input {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+.kadergo-switch-track {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 36px !important;
+  height: 20px !important;
+  background: #d4e0de !important;
+  border-radius: 999px !important;
+  cursor: pointer !important;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-switch-thumb {
+  position: absolute !important;
+  top: 3px !important;
+  left: 3px !important;
+  width: 14px !important;
+  height: 14px !important;
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22) !important;
+  cursor: pointer !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-quarters-row.active .kadergo-switch-track {
+  background: #1f6070 !important;
+}
+
+.kadergo-quarters-row.active .kadergo-switch-thumb {
+  transform: translateX(16px) !important;
 }
 
 /* File Section */
@@ -937,8 +1494,10 @@ svg.kadergo-btn-icon {
   align-items: center !important;
   justify-content: center !important;
   margin-bottom: 12px !important;
-  filter: drop-shadow(0 12px 26px rgba(19, 59, 71, 0.14)) !important;
-  transition: transform 0.3s ease !important;
+  contain: layout paint !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
+  transition: transform 0.25s ease !important;
 }
 
 .kadergo-flow-svg-box svg {
@@ -1176,10 +1735,12 @@ svg.kadergo-btn-icon {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.4) 50%,
     rgba(255, 255, 255, 0) 100%
   ) !important;
   background-size: 200% 100% !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
   animation: kgBarShimmer 1.8s infinite linear !important;
 }
 

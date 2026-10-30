@@ -1,6 +1,6 @@
 // ==============================================================================
-// KaderGo - Unified Export Modal Controller
-// Sub-components: ModalAssets (vectors & icons), ModalDock (background extraction mini-dock)
+// KaderGo - Unified Modal Controller
+// Orchestrates mode selection, format options, period customization, and export flow
 // ==============================================================================
 
 window.KaderGo = window.KaderGo || {};
@@ -12,104 +12,143 @@ window.KaderGo = window.KaderGo || {};
   let currentRestoreFn = null;
 
   const { animatedKaderGoLogoSvg, kadergoFlowSvg, icons } = window.KaderGo.ModalAssets || {};
-  const ModalDock = window.KaderGo.ModalDock;
 
   function openUnifiedExportModal(initialOptions = {}) {
     return new Promise((resolve) => {
-      closeModal();
+      if (window.KaderGo.ModalDock) {
+        window.KaderGo.ModalDock.remove();
+      }
+      if (currentModalEl && currentModalEl.parentNode) {
+        currentModalEl.remove();
+        currentModalEl = null;
+      }
+      currentRestoreFn = null;
 
-      const { DateUtils, Cabinet } = window.KaderGo || {};
-      const now = new Date();
-      const currentYear = now.getFullYear();
+      const { DateUtils, Cabinet, ModalPeriod, ModalFlow } = window.KaderGo || {};
 
-      // Read current cabinet state
+      // Read current cabinet period first
       const { fromInput, toInput } = (Cabinet && typeof Cabinet.getPeriodInputs === 'function')
         ? Cabinet.getPeriodInputs()
         : { fromInput: null, toInput: null };
 
       const origFrom = (fromInput?.value || '').trim();
       const origTo = (toInput?.value || '').trim();
-      const hasValidCabinetPeriod = (Cabinet && typeof Cabinet.hasValidPeriod === 'function')
-        ? Cabinet.hasValidPeriod()
-        : false;
-      const targetFn = (Cabinet && typeof Cabinet.getCurrentlySelectedFiscalNumber === 'function')
-        ? Cabinet.getCurrentlySelectedFiscalNumber()
-        : null;
+      const hasValidCabinetPeriod = !!(origFrom && origTo && (!Cabinet || typeof Cabinet.hasValidPeriod !== 'function' || Cabinet.hasValidPeriod()));
+      const cabinetIntervals = (hasValidCabinetPeriod && DateUtils)
+        ? (DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo) || [])
+        : [];
 
-      // Intervals from cabinet period (if valid)
-      let cabinetIntervals = [];
-      if (hasValidCabinetPeriod && DateUtils && typeof DateUtils.splitDateRangeIntoMonthlyIntervals === 'function') {
-        cabinetIntervals = DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo);
-      }
+      let activeMode = initialOptions.initialMode || initialOptions.defaultMode || 'all'; // 'single' | 'all' | 'income_book'
+      let targetFn = initialOptions.targetFn || null;
 
-      // Disabled state checks per requirement:
-      // - "Всі РРО": disabled if date is not specified
-      // - "Обраний РРО": disabled if date is not specified OR fiscal number is not specified
-      const isSingleDisabled = !hasValidCabinetPeriod || !targetFn;
-      const isAllDisabled = !hasValidCabinetPeriod;
-
-      let singleTitle = 'Обраний РРО';
-      if (!hasValidCabinetPeriod && !targetFn) {
-        singleTitle = 'Вкажіть період та оберіть РРО у кабінеті';
-      } else if (!hasValidCabinetPeriod) {
-        singleTitle = 'Вкажіть період (дати «з» та «по») у кабінеті';
-      } else if (!targetFn) {
-        singleTitle = 'Оберіть фіскальний номер РРО у кабінеті';
-      }
-
-      let allTitle = 'Всі РРО';
-      if (!hasValidCabinetPeriod) {
-        allTitle = 'Вкажіть період (дати «з» та «по») у кабінеті';
-      }
-
-      // Default active mode: choose the first non-disabled mode
-      let activeMode = initialOptions.defaultMode;
-      if (activeMode === 'single' && isSingleDisabled) activeMode = null;
-      if (activeMode === 'all' && isAllDisabled) activeMode = null;
-
-      if (!activeMode) {
-        if (!isSingleDisabled) {
-          activeMode = 'single';
-        } else if (!isAllDisabled) {
-          activeMode = 'all';
-        } else {
-          activeMode = 'income_book';
+      // 1. Single Mode check
+      const getFn = (Cabinet && (Cabinet.getSelectedFiscalNumber || Cabinet.getCurrentlySelectedFiscalNumber));
+      if (typeof getFn === 'function') {
+        const foundFn = getFn.call(Cabinet);
+        if (foundFn) {
+          targetFn = foundFn;
         }
       }
 
-      // State per mode
-      let singleFormat = 'xlsx'; // 'xlsx' | 'zip'
-      let allFormat = 'zip';     // 'zip' | 'xlsx'
-      let selectedYear = initialOptions.initialYear ? parseInt(initialOptions.initialYear, 10) : currentYear;
-      let bookFormat = 'book';   // 'book' | 'zip'
+      let isSingleDisabled = !hasValidCabinetPeriod || !targetFn;
+      let isAllDisabled = !hasValidCabinetPeriod;
+      let singleTitle = 'Обраний РРО';
+      let allTitle = 'Всі РРО';
 
-      const availableYears = [
-        currentYear - 2,
-        currentYear - 1,
-        currentYear,
-        currentYear + 1,
-        currentYear + 2
-      ];
+      if (isSingleDisabled) {
+        if (!hasValidCabinetPeriod && !targetFn) singleTitle = 'Вкажіть період та оберіть РРО в кабінеті';
+        else if (!hasValidCabinetPeriod) singleTitle = 'Вкажіть період (дати) в кабінеті';
+        else singleTitle = 'Оберіть РРО в кабінеті';
+      } else {
+        singleTitle = `Обраний РРО (${targetFn})`;
+      }
 
-      // Construct modal DOM elements via ModalTemplates sub-component
+      if (isAllDisabled) {
+        allTitle = 'Вкажіть період (дати «з» та «по») в кабінеті';
+      } else {
+        allTitle = 'Оборот по всіх РРО';
+      }
+
+      // Fallback active mode if requested mode cannot be generated
+      if (!initialOptions.initialMode) {
+        if (activeMode === 'single' && isSingleDisabled) {
+          activeMode = !isAllDisabled ? 'all' : 'income_book';
+        } else if (activeMode === 'all' && isAllDisabled) {
+          activeMode = !isSingleDisabled ? 'single' : 'income_book';
+        }
+      }
+
+      // Income book year initialization
+      const currentYear = new Date().getFullYear();
+      let availableYears = [];
+      if (DateUtils && typeof DateUtils.getAvailableYears === 'function') {
+        availableYears = DateUtils.getAvailableYears();
+      }
+      if (!availableYears || availableYears.length === 0) {
+        availableYears = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+      }
+
+      let selectedYear = initialOptions.initialYear || (availableYears.includes(currentYear) ? currentYear : availableYears[0]);
+      if (activeMode === 'income_book' && DateUtils && typeof DateUtils.getYearExportInfo === 'function') {
+        const curYrInfo = DateUtils.getYearExportInfo(currentYear);
+        if (!curYrInfo.hasCompletedMonths && availableYears.includes(currentYear - 1)) {
+          selectedYear = currentYear - 1;
+        }
+      }
+
+      let singleFormat = 'zip';
+      let allFormat = 'zip';
+      let bookFormat = 'book'; // 'book' (single xlsx) | 'zip' (book + monthly files)
+      const cachedGroup = (function () {
+        if (initialOptions.detectedGroup) return initialOptions.detectedGroup;
+        try {
+          return sessionStorage.getItem('kadergo_fop_group');
+        } catch (e) {
+          return null;
+        }
+      })();
+
+      let bookQuarters = true;
+      if (cachedGroup) {
+        if (cachedGroup === '3') {
+          bookQuarters = true;
+        } else if (cachedGroup === 'not_found' || cachedGroup === 'unknown') {
+          bookQuarters = true;
+        } else {
+          bookQuarters = false;
+        }
+      }
+
+      // Build Modal DOM tree
       const {
         overlay,
         card,
-        titleWrap,
-        minimizeBtn,
-        closeBtn,
+        header,
         body,
+        titleWrap,
+        closeBtn,
+        minimizeBtn,
         tabsWrap,
         yearSection,
+        yearChipsContainer,
         formatSection,
         formatOptionsWrap,
+        incomeQuartersRow,
+        incomeQuartersToggle,
+        btnDetectGroup,
+        groupBadge,
         fileSection,
         fileChipsWrap,
         footer,
         cancelBtn,
         confirmBtn,
-        flowWrap
+        flowWrap,
+        popoverBackdrop,
+        popover
       } = window.KaderGo.ModalTemplates.createModalDom({
+        icons,
+        animatedKaderGoLogoSvg,
+        kadergoFlowSvg,
         activeMode,
         isSingleDisabled,
         isAllDisabled,
@@ -121,9 +160,150 @@ window.KaderGo = window.KaderGo || {};
         DateUtils,
         onYearSelect: (yr) => {
           selectedYear = yr;
+          if (periodController) periodController.resetCustom();
           updateView();
         }
       });
+
+      // Period Popover Component
+      const periodCardEl = card.querySelector('#kg-grid-period-card');
+      const periodBadgeEl = card.querySelector('#kg-grid-period-badge');
+
+      const periodController = ModalPeriod ? ModalPeriod.createPeriodPopover({
+        popoverBackdrop,
+        popover,
+        periodCardEl,
+        periodBadgeEl,
+        getSelectedYear: () => selectedYear,
+        getActiveMode: () => activeMode,
+        onApply: () => {
+          updateView();
+        }
+      }) : null;
+
+      let resetDetectTimer = null;
+
+      function resetDetectButtonState() {
+        if (resetDetectTimer) {
+          clearTimeout(resetDetectTimer);
+          resetDetectTimer = null;
+        }
+        if (btnDetectGroup) {
+          btnDetectGroup.disabled = false;
+          btnDetectGroup.classList.remove('loading', 'success');
+          btnDetectGroup.innerHTML = `
+            <span class="kadergo-detect-icon">${icons?.magnifyingGlass || icons?.search || ''}</span>
+            <span class="kadergo-detect-text">Авто</span>
+          `;
+        }
+        if (groupBadge) {
+          groupBadge.style.display = 'none';
+        }
+        try {
+          sessionStorage.removeItem('kadergo_fop_group');
+        } catch (e) {}
+      }
+
+      function scheduleDetectButtonReset() {
+        if (resetDetectTimer) clearTimeout(resetDetectTimer);
+        resetDetectTimer = setTimeout(() => {
+          resetDetectButtonState();
+        }, 10000);
+      }
+
+      if (cachedGroup) {
+        if (cachedGroup === 'not_found' || cachedGroup === 'unknown') {
+          if (btnDetectGroup) {
+            btnDetectGroup.disabled = false;
+            btnDetectGroup.classList.remove('loading', 'success');
+            btnDetectGroup.innerHTML = `
+              <span class="kadergo-detect-text">Не знайдено</span>
+            `;
+            setTimeout(() => {
+              resetDetectButtonState();
+            }, 2500);
+          }
+        } else {
+          if (groupBadge) {
+            groupBadge.textContent = `${cachedGroup} група`;
+            groupBadge.style.display = 'inline-flex';
+          }
+          if (btnDetectGroup) {
+            btnDetectGroup.classList.add('success');
+            btnDetectGroup.innerHTML = `
+              ${icons.check}
+              <span class="kadergo-detect-text">${cachedGroup} група</span>
+            `;
+          }
+          scheduleDetectButtonReset();
+        }
+      }
+
+      if (incomeQuartersRow) {
+        incomeQuartersRow.addEventListener('click', (e) => {
+          if (e.target.closest('#kg-btn-detect-group') || e.target.closest('.kadergo-switch')) {
+            return;
+          }
+          if (incomeQuartersToggle) {
+            incomeQuartersToggle.checked = !incomeQuartersToggle.checked;
+            incomeQuartersToggle.dispatchEvent(new Event('change'));
+          }
+        });
+      }
+
+      if (incomeQuartersToggle) {
+        incomeQuartersToggle.checked = bookQuarters;
+        if (incomeQuartersRow) {
+          incomeQuartersRow.classList.toggle('active', bookQuarters);
+        }
+        incomeQuartersToggle.addEventListener('change', (e) => {
+          bookQuarters = e.target.checked;
+          if (incomeQuartersRow) {
+            incomeQuartersRow.classList.toggle('active', bookQuarters);
+          }
+        });
+      }
+
+      if (btnDetectGroup) {
+        btnDetectGroup.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          btnDetectGroup.disabled = true;
+          btnDetectGroup.classList.add('loading');
+          btnDetectGroup.innerHTML = `
+            <span class="kadergo-detect-spinner"></span>
+            <span class="kadergo-detect-text">Перехід...</span>
+          `;
+
+          if (Cabinet && typeof Cabinet.detectFopGroup === 'function') {
+            Cabinet.detectFopGroup();
+          }
+        });
+      }
+
+      // Modal Flow / Animation Controller
+      const flow = ModalFlow ? ModalFlow.createModalFlow({
+        card,
+        flowWrap,
+        overlay,
+        minimizeBtn,
+        closeBtn,
+        titleWrap,
+        onCloseModal: closeModal,
+        onAbort: () => {
+          resolve({ proceed: false, cancelled: true });
+        }
+      }) : {
+        startIntro: async () => true,
+        update: () => {},
+        setSuccess: async () => {},
+        closeWithOutro: async () => closeModal(),
+        abort: () => {},
+        isAborted: () => false
+      };
+
+      currentRestoreFn = flow.restore;
 
       function updateView() {
         const heroIconBox = card.querySelector('#kg-hero-icon-box');
@@ -133,26 +313,79 @@ window.KaderGo = window.KaderGo || {};
         const periodVal = card.querySelector('#kg-grid-period-val');
         const modeVal = card.querySelector('#kg-grid-mode-val');
 
+        if (periodController) {
+          periodController.updateBadge();
+        }
+
+        if (activeMode !== 'income_book') {
+          if (periodCardEl) periodCardEl.classList.remove('kadergo-grid-card-interactive');
+          if (periodController) periodController.close();
+        }
+
+        if (incomeQuartersRow) {
+          incomeQuartersRow.style.setProperty('display', (activeMode === 'income_book') ? 'flex' : 'none', 'important');
+        }
+
+        // Re-evaluate period & RRO state in case inputs changed in background
+        const currentInputs = (Cabinet && typeof Cabinet.getPeriodInputs === 'function')
+          ? Cabinet.getPeriodInputs()
+          : { fromInput: null, toInput: null };
+        const curF = (currentInputs.fromInput?.value || '').trim();
+        const curT = (currentInputs.toInput?.value || '').trim();
+        const curValidPeriod = !!(curF && curT && (!Cabinet || typeof Cabinet.hasValidPeriod !== 'function' || Cabinet.hasValidPeriod()));
+
+        if (!targetFn && Cabinet) {
+          const fnChecker = Cabinet.getSelectedFiscalNumber || Cabinet.getCurrentlySelectedFiscalNumber;
+          if (typeof fnChecker === 'function') {
+            const detected = fnChecker.call(Cabinet);
+            if (detected) targetFn = detected;
+          }
+        }
+
+        isSingleDisabled = !curValidPeriod || !targetFn;
+        isAllDisabled = !curValidPeriod;
+
+        if (isSingleDisabled) {
+          if (!curValidPeriod && !targetFn) singleTitle = 'Вкажіть період та оберіть РРО в кабінеті';
+          else if (!curValidPeriod) singleTitle = 'Вкажіть період (дати) в кабінеті';
+          else singleTitle = 'Оберіть РРО в кабінеті';
+        } else {
+          singleTitle = `Обраний РРО (${targetFn})`;
+        }
+
+        if (isAllDisabled) {
+          allTitle = 'Вкажіть період (дати «з» та «по») в кабінеті';
+        } else {
+          allTitle = 'Оборот по всіх РРО';
+        }
+
         // Tabs active and disabled states
         tabsWrap.querySelectorAll('.kadergo-mode-tab').forEach((t) => {
           const mode = t.getAttribute('data-mode');
           if (mode === 'single') {
-            if (isSingleDisabled) t.classList.add('disabled');
-            else t.classList.remove('disabled');
+            t.classList.toggle('disabled', isSingleDisabled);
+            t.disabled = isSingleDisabled;
+            t.title = singleTitle;
           } else if (mode === 'all') {
-            if (isAllDisabled) t.classList.add('disabled');
-            else t.classList.remove('disabled');
+            t.classList.toggle('disabled', isAllDisabled);
+            t.disabled = isAllDisabled;
+            t.title = allTitle;
           }
-
-          if (mode === activeMode) {
-            t.classList.add('active');
-          } else {
-            t.classList.remove('active');
-          }
+          t.classList.toggle('active', mode === activeMode);
         });
 
         if (activeMode === 'single') {
-          // Hide year selector completely
+          if (!targetFn && Cabinet) {
+            const fnChecker = Cabinet.getSelectedFiscalNumber || Cabinet.getCurrentlySelectedFiscalNumber;
+            if (typeof fnChecker === 'function') {
+              const detected = fnChecker.call(Cabinet);
+              if (detected) {
+                targetFn = detected;
+                singleTitle = `Обраний РРО (${detected})`;
+              }
+            }
+          }
+
           yearSection.classList.add('hidden');
           yearSection.style.setProperty('display', 'none', 'important');
 
@@ -171,9 +404,10 @@ window.KaderGo = window.KaderGo || {};
               : '1 файл';
             heroBadge.textContent = fileCountText;
 
-            // Format section
             if (cabinetIntervals.length > 1) {
-              formatSection.style.display = 'block';
+              formatSection.classList.remove('hidden');
+              formatSection.style.setProperty('display', 'flex', 'important');
+              if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
               formatOptionsWrap.innerHTML = `
                 <button type="button" class="kadergo-format-btn ${singleFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
                   <span class="kadergo-format-btn-icon">${icons.archive}</span>
@@ -185,10 +419,11 @@ window.KaderGo = window.KaderGo || {};
                 </button>
               `;
             } else {
-              formatSection.style.display = 'none';
+              formatSection.classList.add('hidden');
+              formatSection.style.setProperty('display', 'none', 'important');
+              if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
             }
 
-            // File chips (Standard clean filename)
             fileChipsWrap.innerHTML = '';
             if (singleFormat === 'zip') {
               const zipChip = document.createElement('span');
@@ -223,7 +458,9 @@ window.KaderGo = window.KaderGo || {};
             modeVal.textContent = !targetFn ? 'Оберіть РРО в кабінеті' : fnText;
             modeVal.style.color = !targetFn ? '#e08e36' : '';
             heroBadge.textContent = 'Немає даних';
-            formatSection.style.display = 'none';
+            formatSection.classList.add('hidden');
+            formatSection.style.setProperty('display', 'none', 'important');
+            if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
             fileChipsWrap.innerHTML = `
               <span class="kadergo-file-chip" style="opacity: 0.7;">
                 ${icons.calendar}<span>${singleTitle}</span>
@@ -235,7 +472,6 @@ window.KaderGo = window.KaderGo || {};
           }
 
         } else if (activeMode === 'all') {
-          // Hide year selector completely
           yearSection.classList.add('hidden');
           yearSection.style.setProperty('display', 'none', 'important');
 
@@ -251,7 +487,9 @@ window.KaderGo = window.KaderGo || {};
             const badgeText = allFormat === 'zip' ? 'Архів ZIP' : 'Окремі файли';
             heroBadge.textContent = badgeText;
 
-            formatSection.style.display = 'block';
+            formatSection.classList.remove('hidden');
+            formatSection.style.setProperty('display', 'flex', 'important');
+            if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
             formatOptionsWrap.innerHTML = `
               <button type="button" class="kadergo-format-btn ${allFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
                 <span class="kadergo-format-btn-icon">${icons.archive}</span>
@@ -296,7 +534,9 @@ window.KaderGo = window.KaderGo || {};
             periodVal.style.color = '#e08e36';
             modeVal.textContent = 'Всі РРО';
             heroBadge.textContent = 'Період не вказано';
-            formatSection.style.display = 'none';
+            formatSection.classList.add('hidden');
+            formatSection.style.setProperty('display', 'none', 'important');
+            if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
             fileChipsWrap.innerHTML = `
               <span class="kadergo-file-chip" style="opacity: 0.7;">
                 ${icons.calendar}<span>Вкажіть період (дати «з» та «по») у кабінеті</span>
@@ -308,7 +548,6 @@ window.KaderGo = window.KaderGo || {};
           }
 
         } else if (activeMode === 'income_book') {
-          // Show year selector for Income Book mode
           yearSection.classList.remove('hidden');
           yearSection.style.setProperty('display', 'flex', 'important');
 
@@ -316,13 +555,37 @@ window.KaderGo = window.KaderGo || {};
           heroTag.textContent = 'Єдиний податок';
           heroTitle.textContent = 'Книга обліку доходів';
           heroBadge.textContent = `${selectedYear} рік`;
-
-          const yearInfo = DateUtils ? DateUtils.getYearExportInfo(selectedYear) : {};
-          periodVal.textContent = `${yearInfo.startStr || ''} — ${yearInfo.endStr || ''}`;
-          periodVal.style.color = '';
           modeVal.textContent = 'Всі РРО';
+          modeVal.style.color = '';
 
-          formatSection.style.display = 'block';
+          const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
+          const currentFromStr = dates.fromStr;
+          const currentToStr = dates.toStr;
+
+          if (periodVal) {
+            periodVal.textContent = `${currentFromStr} — ${currentToStr}`;
+            periodVal.style.color = '';
+            periodVal.style.display = 'block';
+          }
+          if (periodCardEl) {
+            periodCardEl.classList.add('kadergo-grid-card-interactive');
+          }
+
+          let effectiveIntervals = [];
+          const parsedFrom = DateUtils ? DateUtils.parseDateStr(currentFromStr) : null;
+          const parsedTo = DateUtils ? DateUtils.parseDateStr(currentToStr) : null;
+          const isDatesValid = !!(parsedFrom && parsedTo && parsedFrom <= parsedTo);
+
+          if (isDatesValid && DateUtils && typeof DateUtils.splitDateRangeIntoMonthlyIntervals === 'function') {
+            effectiveIntervals = DateUtils.splitDateRangeIntoMonthlyIntervals(currentFromStr, currentToStr);
+          }
+
+          formatSection.classList.remove('hidden');
+          formatSection.style.setProperty('display', 'flex', 'important');
+          if (incomeQuartersRow) {
+            incomeQuartersRow.style.setProperty('display', 'flex', 'important');
+            incomeQuartersRow.classList.toggle('active', bookQuarters);
+          }
           formatOptionsWrap.innerHTML = `
             <button type="button" class="kadergo-format-btn ${bookFormat === 'book' ? 'active' : ''}" data-fmt="book">
               <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
@@ -340,6 +603,13 @@ window.KaderGo = window.KaderGo || {};
             zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
             zipChip.innerHTML = `${icons.archive}<span>Книга_обліку_доходів_${selectedYear}_рік.zip</span>`;
             fileChipsWrap.appendChild(zipChip);
+            effectiveIntervals.forEach((it, idx) => {
+              const chip = document.createElement('span');
+              chip.className = 'kadergo-file-chip';
+              chip.style.animationDelay = `${0.03 * (idx + 1)}s`;
+              chip.innerHTML = `${icons.fileSpreadsheet}<span>${it.defaultFileName}</span>`;
+              fileChipsWrap.appendChild(chip);
+            });
           } else {
             const bookChip = document.createElement('span');
             bookChip.className = 'kadergo-file-chip kadergo-file-chip-gold';
@@ -347,14 +617,22 @@ window.KaderGo = window.KaderGo || {};
             fileChipsWrap.appendChild(bookChip);
           }
 
-          if (!yearInfo.hasCompletedMonths) {
+          if (!isDatesValid || effectiveIntervals.length === 0) {
             confirmBtn.disabled = true;
-            confirmBtn.innerHTML = `<span>Немає завершених місяців</span>`;
+            if (!parsedFrom || !parsedTo) {
+              confirmBtn.innerHTML = `<span>Вкажіть дати (ДД.ММ.РРРР)</span>`;
+            } else if (parsedFrom > parsedTo) {
+              confirmBtn.innerHTML = `<span>Дата «з» має бути раніше «по»</span>`;
+            } else {
+              confirmBtn.innerHTML = `<span>Немає завершених місяців</span>`;
+            }
           } else {
             confirmBtn.disabled = false;
+            const count = effectiveIntervals.length;
+            const countText = count === 1 ? '1 місяць' : (count < 5 ? `${count} місяці` : `${count} місяців`);
             const actionText = bookFormat === 'zip'
-              ? `Сформувати ZIP (${selectedYear})`
-              : `Сформувати Книгу (${selectedYear})`;
+              ? `Сформувати ZIP (${countText})`
+              : `Сформувати Книгу (${countText})`;
             confirmBtn.innerHTML = `
               ${icons.check}
               <span>${actionText}</span>
@@ -392,224 +670,28 @@ window.KaderGo = window.KaderGo || {};
       document.body.appendChild(overlay);
       currentModalEl = overlay;
 
-      let isFlowActive = false;
-      let isSuccessActive = false;
-      let isAborted = false;
-
-      const flow = {
-        isAborted() {
-          return isAborted;
-        },
-        abort() {
-          isAborted = true;
-        },
-        setProgress(opts = {}) {
-          if (isAborted) return;
-          const { title, subtitle, progressPercent, monthName, year, monthStep, monthTotal, stepText } = opts;
-          const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
-          const barEl = card.querySelector('#kg-flow-progress-bar');
-          const pctEl = card.querySelector('#kg-flow-percent');
-          const footerTextEl = card.querySelector('#kg-flow-footer-text');
-          const monthNameEl = card.querySelector('#kg-flow-month-name');
-          const stepTagEl = card.querySelector('#kg-flow-step-tag');
-
-          if (monthNameEl) {
-            if (monthName) {
-              monthNameEl.textContent = `${monthName} ${year || ''}`.trim();
-            } else if (title) {
-              monthNameEl.textContent = title;
-            }
-          }
-
-          if (stepTagEl) {
-            if (stepText) {
-              stepTagEl.textContent = stepText;
-            } else if (monthStep && monthTotal) {
-              stepTagEl.textContent = monthTotal > 1 ? `${monthStep} з ${monthTotal} міс.` : 'Звітний період';
-            }
-          }
-
-          if (subtitle !== undefined && flowSubtitleEl) flowSubtitleEl.textContent = subtitle;
-
-          if (ModalDock && ModalDock.getIsVisible()) {
-            ModalDock.update({
-              monthName: opts.monthName,
-              year: opts.year,
-              subtitle: opts.subtitle,
-              progressPercent: opts.progressPercent
-            });
-          }
-          if (typeof progressPercent === 'number') {
-            const clamped = Math.min(100, Math.max(0, Math.round(progressPercent)));
-            if (barEl) {
-              barEl.style.setProperty('width', clamped + '%', 'important');
-            }
-            if (pctEl) {
-              pctEl.textContent = clamped + '%';
-            }
-            if (footerTextEl) {
-              if (clamped >= 90) {
-                footerTextEl.textContent = 'Фіналізація та підготовка файлів Excel...';
-              } else if (clamped >= 50) {
-                footerTextEl.textContent = 'Зчитування та обробка даних кабінету...';
-              } else {
-                footerTextEl.textContent = 'Синхронізація з кабінетом платника податків...';
-              }
-            }
-          }
-        },
-        async setSuccess({ title, subtitle } = {}) {
-          if (isAborted) return;
-          isSuccessActive = true;
-          const stageCard = card.querySelector('#kg-stage-card');
-          const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
-          const barEl = card.querySelector('#kg-flow-progress-bar');
-          const pctEl = card.querySelector('#kg-flow-percent');
-          const livePill = card.querySelector('#kg-flow-live-pill');
-          const liveLabel = card.querySelector('#kg-flow-live-label');
-          const footerTextEl = card.querySelector('#kg-flow-footer-text');
-          const monthNameEl = card.querySelector('#kg-flow-month-name');
-          const stepTagEl = card.querySelector('#kg-flow-step-tag');
-
-          if (monthNameEl) monthNameEl.textContent = 'Звітність сформовано';
-          if (stepTagEl) stepTagEl.textContent = '100% Готово';
-
-          if (stageCard) stageCard.classList.add('state-success');
-          if (livePill) livePill.classList.add('state-done');
-          if (liveLabel) liveLabel.textContent = 'ГОТОВО ДО ЗБЕРЕЖЕННЯ';
-          if (title && monthNameEl) monthNameEl.textContent = title;
-          if (subtitle !== undefined && flowSubtitleEl) flowSubtitleEl.textContent = subtitle;
-          if (barEl) barEl.style.setProperty('width', '100%', 'important');
-          if (pctEl) pctEl.textContent = '100%';
-          if (footerTextEl) footerTextEl.textContent = 'Генерацію успішно завершено!';
-
-          if (ModalDock && ModalDock.getIsVisible()) {
-            ModalDock.setSuccess({
-              title: title || 'Файли успішно згенеровано!',
-              subtitle: subtitle || 'Оберіть місце для збереження'
-            });
-          }
-
-          const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
-          if (svgEl) {
-            svgEl.setAttribute('class', 'kadergo-flow-svg state-success');
-          }
-          // Показ та малювання успішної пипи (~850мс)
-          await new Promise((r) => setTimeout(r, 850));
-        },
-        async closeWithOutro() {
-          if (isAborted) {
-            closeModal();
-            return;
-          }
-          if (isSuccessActive) {
-            const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
-            if (svgEl) {
-              svgEl.setAttribute('class', 'kadergo-flow-svg state-check-outro');
-            }
-            // Анімація згортання та відлуння пипи (~480мс)
-            await new Promise((r) => setTimeout(r, 480));
-          }
-          closeModal();
-        },
-        close() {
-          closeModal();
-        }
-      };
-
-      function minimizeModal() {
-        if (!isFlowActive) return;
-        overlay.classList.add('minimized');
-        overlay.style.setProperty('display', 'none', 'important');
-
-        const monthName = card.querySelector('#kg-flow-month-name')?.textContent || '';
-        const subtitle = card.querySelector('#kg-flow-subtitle')?.textContent || '';
-        const pctText = card.querySelector('#kg-flow-percent')?.textContent || '0%';
-        const progressPercent = parseInt(pctText, 10) || 0;
-
-        if (ModalDock && typeof ModalDock.show === 'function') {
-          ModalDock.show({
-            initialData: { monthName, subtitle, progressPercent },
-            onRestore: restoreModal,
-            onAbort: handleAbortOrCancel
-          });
-        }
-      }
-
-      function restoreModal() {
-        if (ModalDock && typeof ModalDock.hide === 'function') {
-          ModalDock.hide();
-        }
-        overlay.classList.remove('minimized');
-        overlay.style.setProperty('display', 'flex', 'important');
-      }
-
-      currentRestoreFn = restoreModal;
-
       minimizeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        minimizeModal();
+        flow.minimize();
       });
 
       confirmBtn.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        isFlowActive = true;
-        card.classList.add('flow-active');
-        if (minimizeBtn) {
-          minimizeBtn.style.display = 'inline-flex';
-        }
-        if (closeBtn) {
-          closeBtn.style.visibility = 'visible';
-          closeBtn.title = 'Скасувати та повернутися';
-        }
-
-        if (titleWrap) {
-          titleWrap.innerHTML = '<span>Вивантаження звітів KaderGo</span>';
-        }
-
-        const flowSubtitleEl = card.querySelector('#kg-flow-subtitle');
-        const barEl = card.querySelector('#kg-flow-progress-bar');
-        const pctEl = card.querySelector('#kg-flow-percent');
-        const svgEl = flowWrap.querySelector('.kadergo-flow-svg');
-
-        // 1. FÁZIS: LOGÓ MEGJELENÉS (STATE-INTRO)
-        if (svgEl) {
-          svgEl.setAttribute('class', 'kadergo-flow-svg state-intro');
-        }
-        const monthNameEl = card.querySelector('#kg-flow-month-name');
-        const stepTagEl = card.querySelector('#kg-flow-step-tag');
-        if (monthNameEl) monthNameEl.textContent = 'Ініціалізація KaderGo...';
-        if (stepTagEl) stepTagEl.textContent = 'Підготовка';
-        if (flowSubtitleEl) flowSubtitleEl.textContent = 'Зв\'язок з кабінетом платника...';
-        if (barEl) barEl.style.setProperty('width', '5%', 'important');
-        if (pctEl) pctEl.textContent = '5%';
-
-        // Megvárjuk, amíg a logó animációja kirajzolódik és összeáll (~1000ms)
-        await new Promise((r) => setTimeout(r, 1000));
-        if (isAborted) {
+        const introOk = await flow.startIntro();
+        if (!introOk) {
           resolve({ proceed: false, cancelled: true });
           return;
         }
-
-        // 2. FÁZIS: MORPH LOADING SPINNERRE (STATE-SPINNER)
-        if (svgEl) {
-          svgEl.setAttribute('class', 'kadergo-flow-svg state-spinner');
-        }
-        if (monthNameEl) monthNameEl.textContent = 'Завантаження та обробка даних...';
-        if (stepTagEl) stepTagEl.textContent = 'Синхронізація';
-        if (flowSubtitleEl) flowSubtitleEl.textContent = 'Зчитування параметрів звітності...';
-        if (barEl) barEl.style.setProperty('width', '12%', 'important');
-        if (pctEl) pctEl.textContent = '12%';
 
         if (activeMode === 'single') {
           resolve({
             proceed: true,
             mode: 'single',
-            format: singleFormat,
             targetFn,
+            format: singleFormat,
             intervals: cabinetIntervals,
             flow
           });
@@ -622,20 +704,30 @@ window.KaderGo = window.KaderGo || {};
             flow
           });
         } else if (activeMode === 'income_book') {
+          const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
+          const fromStr = dates.fromStr;
+          const toStr = dates.toStr;
+
+          const intervals = (DateUtils && typeof DateUtils.splitDateRangeIntoMonthlyIntervals === 'function')
+            ? DateUtils.splitDateRangeIntoMonthlyIntervals(fromStr, toStr)
+            : [];
+
           resolve({
             proceed: true,
             mode: 'income_book',
             format: bookFormat,
             year: selectedYear,
+            fromStr,
+            toStr,
+            intervals,
+            includeQuarters: bookQuarters,
             flow
           });
         }
       });
 
       function handleAbortOrCancel() {
-        if (isFlowActive) {
-          // Ha kiszedés közben rákattint az X-re: leállítjuk a folyamatot és bezárjuk
-          isAborted = true;
+        if (flow.isFlowActive) {
           flow.abort();
 
           const monthNameEl = card.querySelector('#kg-flow-month-name');
@@ -663,14 +755,13 @@ window.KaderGo = window.KaderGo || {};
       cancelBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (isFlowActive) return; // Nem szakítjuk meg véletlenül, ha a footer már rejtve van
+        if (flow.isFlowActive) return;
         closeModal();
         resolve({ proceed: false });
       });
 
       overlay.addEventListener('click', (e) => {
-        // FONTOS: Folyamat közben a háttérre kattintás NEM lőheti le a letöltést!
-        if (isFlowActive) return;
+        if (flow.isFlowActive) return;
         if (e.target === overlay) {
           closeModal();
           resolve({ proceed: false });
@@ -678,11 +769,7 @@ window.KaderGo = window.KaderGo || {};
       });
 
       function onKeyDown(e) {
-        // KRITIKUS: CSAK VALÓDI FELHASZNÁLÓI GOMBNYOMÁSRA (e.isTrusted === true) REAGÁLUNK!
-        // A PrimeNG datepicker és autocomplete komponensek belsőleg szintetikus Escape KeyboardEvent-et küldenek
-        // bubbles: true-val a naptár popup bezárására, ami azonnal ledroppolta volna a letöltést!
         if (!e.isTrusted) return;
-
         if (e.key === 'Escape') {
           window.removeEventListener('keydown', onKeyDown);
           handleAbortOrCancel();
@@ -692,9 +779,6 @@ window.KaderGo = window.KaderGo || {};
     });
   }
 
-  /**
-   * Backward compatibility alias for single/all export modal
-   */
   function openExportModal(options = {}) {
     return openUnifiedExportModal({
       defaultMode: options.isAllRro ? 'all' : 'single',
@@ -702,9 +786,6 @@ window.KaderGo = window.KaderGo || {};
     });
   }
 
-  /**
-   * Backward compatibility alias for annual income book modal
-   */
   function openYearExportModal(options = {}) {
     return openUnifiedExportModal({
       defaultMode: 'income_book',
@@ -721,6 +802,12 @@ window.KaderGo = window.KaderGo || {};
       currentModalEl = null;
     }
     currentRestoreFn = null;
+    try {
+      sessionStorage.removeItem('kadergo_fop_group');
+      sessionStorage.removeItem('kadergo_reopened_from_detect');
+      sessionStorage.removeItem('kadergo_reopen_modal');
+      sessionStorage.removeItem('kadergo_pending_detect_group');
+    } catch (e) {}
   }
 
   window.KaderGo.Modal = {
@@ -737,4 +824,3 @@ window.KaderGo = window.KaderGo || {};
     }
   };
 })();
-

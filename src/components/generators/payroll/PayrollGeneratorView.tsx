@@ -22,6 +22,8 @@ import {
   CreditCardIcon,
   CheckCircleIcon,
   SparklesIcon,
+  LinkIcon,
+  LinkSlashIcon,
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas, PayrollCalculationPreviewDto, PayrollCalculationRowDto } from "../../../types/fop";
 import { WorkerCard } from "../../common/WorkerCard";
@@ -143,11 +145,11 @@ const DebouncedNumberInput: React.FC<DebouncedNumberInputProps> = ({
   initialValue,
   onSave,
   className = "",
-  placeholder = "0.00",
+  placeholder = "0,00",
 }) => {
   const formatVal = (v: number) => {
-    if (v === undefined || v === null || isNaN(v)) return "0";
-    return String(Number(v.toFixed(2)));
+    if (v === undefined || v === null || isNaN(v)) return "0,00";
+    return Number(v).toFixed(2).replace(".", ",");
   };
 
   const [valStr, setValStr] = useState<string>(formatVal(initialValue));
@@ -157,9 +159,12 @@ const DebouncedNumberInput: React.FC<DebouncedNumberInputProps> = ({
   }, [initialValue]);
 
   const handleBlur = () => {
-    const num = parseFloat(valStr) || 0;
-    if (Math.abs(num - (initialValue || 0)) > 0.001) {
-      onSave(num);
+    const cleanStr = valStr.replace(",", ".");
+    const num = parseFloat(cleanStr);
+    const validNum = isNaN(num) ? 0 : Math.max(0, num);
+    setValStr(Number(validNum).toFixed(2).replace(".", ","));
+    if (Math.abs(validNum - (initialValue || 0)) > 0.001) {
+      onSave(validNum);
     }
   };
 
@@ -171,9 +176,8 @@ const DebouncedNumberInput: React.FC<DebouncedNumberInputProps> = ({
 
   return (
     <input
-      type="number"
-      step="0.01"
-      min="0"
+      type="text"
+      inputMode="decimal"
       value={valStr}
       onChange={(e) => setValStr(e.target.value)}
       onBlur={handleBlur}
@@ -213,9 +217,13 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
   const [endYear, setEndYear] = useState<number | null>(null);
   const [endMonth, setEndMonth] = useState<number | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
-  const [workerOverrides, setWorkerOverrides] = useState<
-    Record<number, { previous_kopeks: number; manual_addition: number }>
+  const [manualAdditions, setManualAdditions] = useState<
+    Record<string, Record<number, number>>
   >({});
+  // Individual row link mode: true = linked (saves to DB as baseline), false = one-time edit (current sheet only)
+  // Key format: `${year}_${month}_${workerId}`
+  const [rowLinkModes, setRowLinkModes] = useState<Record<string, boolean>>({});
+  const [oneTimeKopeks, setOneTimeKopeks] = useState<Record<string, Record<number, number>>>({});
   const [previewData, setPreviewData] = useState<PayrollCalculationPreviewDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -230,6 +238,89 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const isRowLinked = useCallback((year: number, month: number, workerId: number): boolean => {
+    const key = `${year}_${month}_${workerId}`;
+    return rowLinkModes[key] ?? true;
+  }, [rowLinkModes]);
+
+  const handleToggleRowLink = async (year: number, month: number, workerId: number) => {
+    const comboKey = `${year}_${month}_${workerId}`;
+    const ymKey = `${year}_${month}`;
+    const current = rowLinkModes[comboKey] ?? true;
+    const nextVal = !current;
+
+    setRowLinkModes((prev) => ({
+      ...prev,
+      [comboKey]: nextVal,
+    }));
+
+    if (nextVal) {
+      // Switching to linked (DB): if there was a one-time kopek entered, persist it to DB now!
+      const pendingVal = oneTimeKopeks[ymKey]?.[workerId];
+      if (pendingVal !== undefined && activeFop) {
+        try {
+          await saveWorkerKopek(workerId, activeFop.id, year, month, pendingVal);
+        } catch (err) {
+          console.warn("Failed to save kopek to DB:", err);
+        }
+        setOneTimeKopeks((prev) => {
+          if (!prev[ymKey]) return prev;
+          const copy = { ...prev[ymKey] };
+          delete copy[workerId];
+          return { ...prev, [ymKey]: copy };
+        });
+        await loadPreview();
+      }
+    }
+  };
+
+  const handleToggleMonthLinks = async (rows: PayrollCalculationRowDto[]) => {
+    if (rows.length === 0) return;
+    const allCurrentlyLinked = rows.every((r) => isRowLinked(r.year || selectedYear, r.month || selectedMonth, r.worker_id));
+    const nextVal = !allCurrentlyLinked;
+
+    setRowLinkModes((prev) => {
+      const updated = { ...prev };
+      for (const r of rows) {
+        const y = r.year || selectedYear;
+        const m = r.month || selectedMonth;
+        updated[`${y}_${m}_${r.worker_id}`] = nextVal;
+      }
+      return updated;
+    });
+
+    if (nextVal && activeFop) {
+      for (const r of rows) {
+        const y = r.year || selectedYear;
+        const m = r.month || selectedMonth;
+        const ymKey = `${y}_${m}`;
+        const pendingVal = oneTimeKopeks[ymKey]?.[r.worker_id];
+        if (pendingVal !== undefined) {
+          try {
+            await saveWorkerKopek(r.worker_id, activeFop.id, y, m, pendingVal);
+          } catch (err) {
+            console.warn("Failed to persist kopek to DB:", err);
+          }
+        }
+      }
+      setOneTimeKopeks((prev) => {
+        const copy = { ...prev };
+        for (const r of rows) {
+          const y = r.year || selectedYear;
+          const m = r.month || selectedMonth;
+          const ymKey = `${y}_${m}`;
+          if (copy[ymKey]) {
+            const innerCopy = { ...copy[ymKey] };
+            delete innerCopy[r.worker_id];
+            copy[ymKey] = innerCopy;
+          }
+        }
+        return copy;
+      });
+      await loadPreview();
+    }
+  };
+
   const handleModeChange = (mode: "month" | "period") => {
     setSelectionMode(mode);
     if (mode === "period") {
@@ -240,6 +331,67 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
       setPreviewData(null);
     }
   };
+
+  const buildOverridesList = useCallback(() => {
+    const visited = new Set<string>();
+    const overrides: Array<{
+      worker_id: number;
+      year: number;
+      month: number;
+      previous_kopeks?: number;
+      save_to_db: boolean;
+      manual_addition: number;
+    }> = [];
+
+    const allYmKeys = new Set([...Object.keys(manualAdditions), ...Object.keys(oneTimeKopeks)]);
+
+    for (const ymKey of allYmKeys) {
+      const [yStr, mStr] = ymKey.split("_");
+      const y = parseInt(yStr, 10);
+      const m = parseInt(mStr, 10);
+      const curAdditions = manualAdditions[ymKey] || {};
+      const curOneTimes = oneTimeKopeks[ymKey] || {};
+
+      const workerIds = new Set([
+        ...Object.keys(curAdditions).map(Number),
+        ...Object.keys(curOneTimes).map(Number),
+      ]);
+
+      for (const wId of workerIds) {
+        const comboKey = `${y}_${m}_${wId}`;
+        visited.add(comboKey);
+        const linked = rowLinkModes[comboKey] ?? true;
+        overrides.push({
+          worker_id: wId,
+          year: y,
+          month: m,
+          previous_kopeks: curOneTimes[wId] !== undefined ? curOneTimes[wId] : undefined,
+          save_to_db: linked,
+          manual_addition: curAdditions[wId] || 0,
+        });
+      }
+    }
+
+    // Also include any explicitly unlinked rows even if value not changed yet
+    for (const [comboKey, linked] of Object.entries(rowLinkModes)) {
+      if (!linked && !visited.has(comboKey)) {
+        const [yStr, mStr, wIdStr] = comboKey.split("_");
+        const y = parseInt(yStr, 10);
+        const m = parseInt(mStr, 10);
+        const wId = parseInt(wIdStr, 10);
+        visited.add(comboKey);
+        overrides.push({
+          worker_id: wId,
+          year: y,
+          month: m,
+          save_to_db: false,
+          manual_addition: 0,
+        });
+      }
+    }
+
+    return overrides;
+  }, [manualAdditions, oneTimeKopeks, rowLinkModes]);
 
   const loadPreview = useCallback(async () => {
     if (!activeFop) {
@@ -256,18 +408,18 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
     setIsLoading(true);
     setLoadError(null);
     try {
+      const overridesList = buildOverridesList();
+
       if (selectionMode === "month") {
-        const overridesList = Object.entries(workerOverrides).map(([wId, val]) => ({
-          worker_id: Number(wId),
-          previous_kopeks: val.previous_kopeks || 0,
-          manual_addition: val.manual_addition || 0,
-        }));
+        const monthOverrides = overridesList.filter(
+          (o) => (o.year === selectedYear) && (o.month === selectedMonth)
+        );
         const res = (await previewPayroll(
           activeFop.id,
           selectedYear,
           selectedMonth,
           minWage,
-          overridesList
+          monthOverrides
         )) as PayrollCalculationPreviewDto;
         setPreviewData(res);
       } else {
@@ -277,7 +429,8 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
           startMonth!,
           endYear!,
           endMonth!,
-          minWage
+          minWage,
+          overridesList
         )) as PayrollCalculationPreviewDto;
         setPreviewData(res);
       }
@@ -287,7 +440,7 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [activeFop, selectionMode, selectedYear, selectedMonth, startYear, startMonth, endYear, endMonth, minWage, workerOverrides]);
+  }, [activeFop, selectionMode, selectedYear, selectedMonth, startYear, startMonth, endYear, endMonth, minWage, buildOverridesList]);
 
   useEffect(() => {
     loadPreview();
@@ -302,32 +455,44 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
   };
 
   const handlePrevKopeksChange = async (workerId: number, targetYear: number, targetMonth: number, num: number) => {
-    if (activeFop) {
-      try {
-        await saveWorkerKopek(workerId, activeFop.id, targetYear, targetMonth, num);
-      } catch (err) {
-        console.warn("Failed to persist kopek in DB:", err);
+    const ymKey = `${targetYear}_${targetMonth}`;
+    const linked = isRowLinked(targetYear, targetMonth, workerId);
+
+    if (linked) {
+      if (activeFop) {
+        try {
+          await saveWorkerKopek(workerId, activeFop.id, targetYear, targetMonth, num);
+        } catch (err) {
+          console.warn("Failed to persist kopek in DB:", err);
+        }
       }
+      setOneTimeKopeks((prev) => {
+        if (!prev[ymKey]) return prev;
+        const copy = { ...prev[ymKey] };
+        delete copy[workerId];
+        return { ...prev, [ymKey]: copy };
+      });
+    } else {
+      setOneTimeKopeks((prev) => ({
+        ...prev,
+        [ymKey]: {
+          ...(prev[ymKey] || {}),
+          [workerId]: num,
+        },
+      }));
     }
-    setWorkerOverrides((prev) => ({
-      ...prev,
-      [workerId]: {
-        previous_kopeks: num,
-        manual_addition: prev[workerId]?.manual_addition || 0,
-      },
-    }));
     await loadPreview();
   };
 
-  const handleManualAdditionChange = async (workerId: number, num: number) => {
-    setWorkerOverrides((prev) => ({
+  const handleManualAdditionChange = async (workerId: number, targetYear: number, targetMonth: number, num: number) => {
+    const key = `${targetYear}_${targetMonth}`;
+    setManualAdditions((prev) => ({
       ...prev,
-      [workerId]: {
-        previous_kopeks: prev[workerId]?.previous_kopeks || 0,
-        manual_addition: num,
+      [key]: {
+        ...(prev[key] || {}),
+        [workerId]: num,
       },
     }));
-    await loadPreview();
   };
 
   const handleCellHover = (pib: string, title: string, expression: string, result: string) => {
@@ -355,18 +520,18 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
     setIsGenerating(true);
     try {
       const targetDir = await ensureFopDirectory(rootFolder || "", activeFopCode, activeFopName, activeFop.folder_path);
+      const overridesList = buildOverridesList();
+
       if (selectionMode === "month") {
-        const overridesList = Object.entries(workerOverrides).map(([wId, val]) => ({
-          worker_id: Number(wId),
-          previous_kopeks: val.previous_kopeks || 0,
-          manual_addition: val.manual_addition || 0,
-        }));
+        const monthOverrides = overridesList.filter(
+          (o) => (o.year === selectedYear) && (o.month === selectedMonth)
+        );
         const generatedFilePath = await generatePayrollExcel({
           fop_id: activeFop.id,
           year: selectedYear,
           month: selectedMonth,
           min_wage: minWage,
-          worker_overrides: overridesList,
+          worker_overrides: monthOverrides,
           save_dir: targetDir || undefined,
         });
         setLastGeneratedPath(generatedFilePath);
@@ -384,6 +549,7 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
           end_year: endYear,
           end_month: endMonth,
           min_wage: minWage,
+          worker_overrides: overridesList,
           save_dir: targetDir || undefined,
         });
         setLastGeneratedPath(generatedFilePath);
@@ -697,7 +863,31 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
                       <th className="p-2 w-[110px]">П.І.Б.</th>
                       <th className="p-2 w-[80px]">Посада</th>
                       <th className="p-2 text-center w-[60px]">Дні/Год</th>
-                      <th className="p-2 text-right bg-[#1c4754] w-[85px]">Залишок</th>
+                      <th className="p-2 text-right bg-[#1c4754] w-[125px]">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span title="Залишок копійок з попереднього місяця (грн)">Залишок</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleMonthLinks(section.rows)}
+                            className={`p-1 rounded-md transition-all cursor-pointer ${
+                              section.rows.every((r) => isRowLinked(r.year || selectedYear, r.month || selectedMonth, r.worker_id))
+                                ? "bg-[#f8a44c] text-[#133b47] hover:brightness-110 shadow-xs"
+                                : "bg-amber-400/20 text-amber-300 border border-amber-400/40 hover:bg-amber-400/30"
+                            }`}
+                            title={
+                              section.rows.every((r) => isRowLinked(r.year || selectedYear, r.month || selectedMonth, r.worker_id))
+                                ? "🔗 Всі в режимі БД (ланцюжок). Натисніть, щоб перемкнути весь місяць на одноразовий режим"
+                                : "⛓️ Є одноразові записи. Натисніть, щоб перемкнути весь місяць у режим збереження в БД"
+                            }
+                          >
+                            {section.rows.every((r) => isRowLinked(r.year || selectedYear, r.month || selectedMonth, r.worker_id)) ? (
+                              <LinkIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                            ) : (
+                              <LinkSlashIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                            )}
+                          </button>
+                        </div>
+                      </th>
                       <th className="p-2 text-right">Ставка</th>
                       <th className="p-2 text-right">Заробітна</th>
                       <th className="p-2 text-right bg-[#1c4754]">Відпускні</th>
@@ -729,18 +919,57 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
                           </span>
                         </td>
                         <td className="p-1 text-right">
-                          <DebouncedNumberInput
-                            initialValue={row.prev_kopeks}
-                            onSave={(val) =>
-                              handlePrevKopeksChange(
-                                row.worker_id,
-                                row.year || selectedYear,
-                                row.month || selectedMonth,
-                                val
-                              )
-                            }
-                            className="w-18 px-2 py-0.5 text-right text-xs font-black font-mono text-[#133b47] bg-white border border-[#cbd8d6] focus:border-[#133b47] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#133b47]"
-                          />
+                          {(() => {
+                            const rowYear = row.year || selectedYear;
+                            const rowMonth = row.month || selectedMonth;
+                            const ymKey = `${rowYear}_${rowMonth}`;
+                            const linked = isRowLinked(rowYear, rowMonth, row.worker_id);
+                            const displayVal =
+                              oneTimeKopeks[ymKey]?.[row.worker_id] !== undefined
+                                ? oneTimeKopeks[ymKey][row.worker_id]
+                                : row.prev_kopeks;
+
+                            return (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRowLink(rowYear, rowMonth, row.worker_id)}
+                                  className={`p-1 rounded-md transition-all cursor-pointer ${
+                                    linked
+                                      ? "text-[#133b47]/70 hover:text-[#133b47] hover:bg-[#133b47]/10"
+                                      : "text-amber-700 bg-amber-100 hover:bg-amber-200 border border-amber-300 shadow-2xs"
+                                  }`}
+                                  title={
+                                    linked
+                                      ? "🔗 Ланцюжок увімкнено: зберігати нове значення в БД як основу для наступних місяців"
+                                      : "⛓️ Одноразовий режим: зміна тільки для цієї відомості (без запису в БД)"
+                                  }
+                                >
+                                  {linked ? (
+                                    <LinkIcon className="w-3.5 h-3.5 stroke-[2.3]" />
+                                  ) : (
+                                    <LinkSlashIcon className="w-3.5 h-3.5 stroke-[2.3]" />
+                                  )}
+                                </button>
+                                <DebouncedNumberInput
+                                  initialValue={displayVal}
+                                  onSave={(val) =>
+                                    handlePrevKopeksChange(
+                                      row.worker_id,
+                                      rowYear,
+                                      rowMonth,
+                                      val
+                                    )
+                                  }
+                                  className={`w-18 px-2 py-0.5 text-right text-xs font-black font-mono rounded-lg focus:outline-none focus:ring-1 ${
+                                    !linked
+                                      ? "text-amber-900 bg-amber-50 border-2 border-dashed border-amber-400 focus:border-amber-600 focus:ring-amber-500 shadow-xs"
+                                      : "text-[#133b47] bg-white border border-[#cbd8d6] focus:border-[#133b47] focus:ring-[#133b47]"
+                                  }`}
+                                />
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-2 text-right text-[#556e75] font-mono">
                           {row.rate.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -769,7 +998,14 @@ export const PayrollGeneratorView: React.FC<PayrollGeneratorViewProps> = ({
                         <td className="p-1 text-right bg-[#e2eceb]/40">
                           <DebouncedNumberInput
                             initialValue={row.manual_addition}
-                            onSave={(val) => handleManualAdditionChange(row.worker_id, val)}
+                            onSave={(val) =>
+                              handleManualAdditionChange(
+                                row.worker_id,
+                                row.year || selectedYear,
+                                row.month || selectedMonth,
+                                val
+                              )
+                            }
                             className="w-14 px-1.5 py-0.5 text-right text-xs font-black font-mono text-[#133b47] bg-white border border-[#cbd8d6] focus:border-[#133b47] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#133b47]"
                           />
                         </td>

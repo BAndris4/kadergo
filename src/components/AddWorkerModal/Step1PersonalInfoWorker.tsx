@@ -1,7 +1,7 @@
 import React from "react";
-import { UserIcon } from "@heroicons/react/24/outline";
 import { CreateWorkerFormState } from "../../types/fop";
 import { DatePicker } from "../pickers/DatePicker";
+import { BeanAvatar } from "../common/BeanAvatar";
 
 interface Step1WorkerProps {
   formData: CreateWorkerFormState;
@@ -13,9 +13,13 @@ export const Step1PersonalInfoWorker: React.FC<Step1WorkerProps> = ({ formData, 
   return (
     <div className="p-6 rounded-3xl bg-[#f8faf9] border-2 border-[#e2eceb]">
       <div className="text-base font-black text-[#133b47] mb-5 font-heading flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-[#133b47]/10 flex items-center justify-center">
-          <UserIcon className="w-5 h-5 text-[#133b47] stroke-[2.2]" />
-        </div>
+        <BeanAvatar
+          vezeteknev={formData.vezeteknev}
+          keresztnev={formData.keresztnev}
+          apai_nev={formData.apai_nev}
+          gender={formData.nem}
+          size="sm"
+        />
         <span>Основна інформація про працівника</span>
       </div>
 

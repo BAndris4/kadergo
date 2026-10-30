@@ -41,8 +41,19 @@ import {
   openFolderInExplorer,
   updateFopDirect,
 } from "../../../services/fopService";
-import { getWorkerAccusativeName, getWorkerDativeName, getWorkerInitials, formatUkrainianDate, formatDotDateWithZeros, declinePositionGenitive } from "../../../utils/ukrainianDeclension";
+import {
+  getWorkerAccusativeName,
+  getWorkerDativeName,
+  getWorkerAccusativeNameAsync,
+  getWorkerDativeNameAsync,
+  useWorkerDeclensions,
+  getWorkerInitials,
+  formatUkrainianDate,
+  formatDotDateWithZeros,
+  declinePositionGenitive,
+} from "../../../utils/ukrainianDeclension";
 import { CustomDatePicker } from "../../pickers/CustomDatePicker";
+import { BeanAvatar } from "../../common/BeanAvatar";
 
 interface NakazGeneratorViewProps {
   fops: FopData[];
@@ -554,6 +565,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   const activeFopCode = activeFop ? activeFop.kod || activeFop.fop_kod || "" : "";
   const activeFopEdrpou = activeFop ? activeFop.fop_kod || activeFop.kod || "" : "";
 
+  const workerDeclensions = useWorkerDeclensions(activeFop?.munkasok);
   const [currentAddress, setCurrentAddress] = useState<string>("");
 
   useEffect(() => {
@@ -636,10 +648,20 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
   );
 
   // Calculate target hire date from the first selected worker for priyom
-  const priyomTargetDate = React.useMemo(() => {
+  const priyomHireDate = React.useMemo(() => {
     if (selectedPriyomWorkerIds.length === 0 || !activeFop || !activeFop.munkasok) return null;
     const firstWorker = activeFop.munkasok.find((w) => w.id === selectedPriyomWorkerIds[0]);
     return firstWorker ? (firstWorker.munkakezdes_datum || "") : null;
+  }, [selectedPriyomWorkerIds, activeFop]);
+
+  // Calculate target application/decree date from the first selected worker for priyom (Дата видання наказу)
+  const priyomZayavaDate = React.useMemo(() => {
+    if (selectedPriyomWorkerIds.length === 0 || !activeFop || !activeFop.munkasok) return null;
+    const firstWorker = activeFop.munkasok.find((w) => w.id === selectedPriyomWorkerIds[0]);
+    if (!firstWorker) return null;
+    return (firstWorker.kerelem_datum && firstWorker.kerelem_datum.trim())
+      ? firstWorker.kerelem_datum.trim()
+      : (firstWorker.munkakezdes_datum && firstWorker.munkakezdes_datum.trim() ? firstWorker.munkakezdes_datum.trim() : null);
   }, [selectedPriyomWorkerIds, activeFop]);
 
   // Calculate target dismissal date from the first selected worker for zvilnennya
@@ -649,23 +671,33 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     return firstWorker ? (firstWorker.munkaviszony_vege || "") : null;
   }, [selectedZvilnennyaWorkerIds, activeFop]);
 
-  // Automatically sync decree date (isoNakazDate) with the worker's date (priyomTargetDate / zvilnennyaTargetDate)
+  // Automatically sync decree date (isoNakazDate) with the worker's decree issue date (priyom) or dismissal date (zvilnennya)
   useEffect(() => {
-    if (selectedNakazType === "priyom" && priyomTargetDate) {
-      setIsoNakazDate(priyomTargetDate);
+    if (initialNakazData?.date && initialNakazData.type === selectedNakazType) {
+      setIsoNakazDate(initialNakazData.date);
+    } else if (selectedNakazType === "priyom" && priyomZayavaDate) {
+      setIsoNakazDate(priyomZayavaDate);
     } else if (selectedNakazType === "zvilnennya" && zvilnennyaTargetDate) {
       setIsoNakazDate(zvilnennyaTargetDate);
     }
-  }, [selectedNakazType, priyomTargetDate, zvilnennyaTargetDate]);
+  }, [selectedNakazType, priyomZayavaDate, zvilnennyaTargetDate, initialNakazData]);
 
   const handleTogglePriyomWorker = (w: Munkas) => {
-    const wDate = w.munkakezdes_datum || "";
+    const wHireDate = w.munkakezdes_datum || "";
     if (selectedPriyomWorkerIds.includes(w.id)) {
       setSelectedPriyomWorkerIds((prev) => prev.filter((id) => id !== w.id));
     } else {
-      if (priyomTargetDate !== null && wDate !== priyomTargetDate) {
-        onShowToast(`У один наказ про прийняття можна включити лише працівників з однаковою датою прийняття (${priyomTargetDate})!`);
+      if (priyomHireDate !== null && wHireDate !== priyomHireDate) {
+        onShowToast(`У один наказ про прийняття можна включити лише працівників з однаковою датою початку роботи (${formatDotDateWithZeros(priyomHireDate)})!`);
         return;
+      }
+      if (selectedPriyomWorkerIds.length === 0) {
+        const defaultZayavaDate = (w.kerelem_datum && w.kerelem_datum.trim())
+          ? w.kerelem_datum.trim()
+          : (w.munkakezdes_datum && w.munkakezdes_datum.trim() ? w.munkakezdes_datum.trim() : null);
+        if (defaultZayavaDate) {
+          setIsoNakazDate(defaultZayavaDate);
+        }
       }
       setSelectedPriyomWorkerIds((prev) => [...prev, w.id]);
     }
@@ -702,22 +734,38 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
     if (activeFop && activeFop.munkasok && activeFop.munkasok.length > 0) {
       setSelectedKasaWorkerIds((prev) => (prev.length > 0 ? prev : activeFop.munkasok.map((w) => w.id)));
       
-      // Auto-select initial priyom workers matching the first worker's start date
-      const firstActive = activeFop.munkasok[0];
-      if (firstActive) {
-        const targetKezd = firstActive.munkakezdes_datum || "";
-        const matchingPriyom = activeFop.munkasok.filter((w) => (w.munkakezdes_datum || "") === targetKezd).map((w) => w.id);
-        setSelectedPriyomWorkerIds(matchingPriyom);
+      // Auto-select initial priyom workers:
+      // If initialNakazData specifies workerIds for priyom, PRESERVE them!
+      // Otherwise, only default if no worker is currently selected.
+      if (initialNakazData?.type === "priyom" && initialNakazData.workerIds && initialNakazData.workerIds.length > 0) {
+        setSelectedPriyomWorkerIds(initialNakazData.workerIds);
+      } else {
+        setSelectedPriyomWorkerIds((prev) => {
+          if (prev.length > 0) return prev;
+          const firstActive = activeFop.munkasok[0];
+          if (firstActive) {
+            const targetKezd = firstActive.munkakezdes_datum || "";
+            return activeFop.munkasok.filter((w) => (w.munkakezdes_datum || "") === targetKezd).map((w) => w.id);
+          }
+          return [];
+        });
       }
 
-      // Auto-select initial zvilnennya workers matching the first dismissed worker's end date
-      const dismissedList = activeFop.munkasok.filter((w) => w.munkaviszony_vege && w.munkaviszony_vege.trim().length > 0);
-      if (dismissedList.length > 0) {
-        const targetVege = dismissedList[0].munkaviszony_vege || "";
-        const matchingZviln = dismissedList.filter((w) => (w.munkaviszony_vege || "") === targetVege).map((w) => w.id);
-        setSelectedZvilnennyaWorkerIds(matchingZviln);
+      // Auto-select initial zvilnennya workers:
+      // If initialNakazData specifies workerIds for zvilnennya, PRESERVE them!
+      // Otherwise, only default if no worker is currently selected.
+      if (initialNakazData?.type === "zvilnennya" && initialNakazData.workerIds && initialNakazData.workerIds.length > 0) {
+        setSelectedZvilnennyaWorkerIds(initialNakazData.workerIds);
       } else {
-        setSelectedZvilnennyaWorkerIds([]);
+        setSelectedZvilnennyaWorkerIds((prev) => {
+          if (prev.length > 0) return prev;
+          const dismissedList = activeFop.munkasok.filter((w) => w.munkaviszony_vege && w.munkaviszony_vege.trim().length > 0);
+          if (dismissedList.length > 0) {
+            const targetVege = dismissedList[0].munkaviszony_vege || "";
+            return dismissedList.filter((w) => (w.munkaviszony_vege || "") === targetVege).map((w) => w.id);
+          }
+          return [];
+        });
       }
 
       setKasaWorkerHours((prev) => {
@@ -734,7 +782,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         return updated;
       });
     }
-  }, [activeFop]);
+  }, [activeFop, initialNakazData]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -878,28 +926,30 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         }
       }
 
-      const workerItems: NakazPriyomWorkerItem[] = selectedWorkers.map((w) => {
-        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
-        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
-        const sal = w.fizetes
-          ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`
-          : salaryStr;
-        const workStart = w.munkakezdes_datum
-          ? formatDotDateWithZeros(w.munkakezdes_datum)
-          : formattedWorkStartDate;
+      const workerItems: NakazPriyomWorkerItem[] = await Promise.all(
+        selectedWorkers.map(async (w) => {
+          const acc = await getWorkerAccusativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const dat = await getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+          const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+          const sal = w.fizetes
+            ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`
+            : salaryStr;
+          const workStart = w.munkakezdes_datum
+            ? formatDotDateWithZeros(w.munkakezdes_datum)
+            : formattedWorkStartDate;
 
-        return {
-          worker_name_accusative: acc,
-          worker_name_dative: dat,
-          worker_initials: init,
-          position_name: pos,
-          salary_str: sal,
-          work_start_date_str: workStart,
-          employment_type: !w.foallas ? "sumisnyctvo" : !w.teljes_munkaido ? "nepovny_chas" : "main",
-        };
-      });
+          return {
+            worker_name_accusative: acc,
+            worker_name_dative: dat,
+            worker_initials: init,
+            position_name: pos,
+            salary_str: sal,
+            work_start_date_str: workStart,
+            employment_type: !w.foallas ? "sumisnyctvo" : !w.teljes_munkaido ? "nepovny_chas" : "main",
+          };
+        })
+      );
 
       await generateNakazPriyomDocx({
         fop_id: activeFop.id,
@@ -951,24 +1001,26 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         }
       }
 
-      const workerItems: NakazZvilnennyaWorkerItem[] = selectedWorkers.map((w) => {
-        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
-        const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
-        const disDate = w.munkaviszony_vege
-          ? formatDotDateWithZeros(w.munkaviszony_vege)
-          : formattedNakazDate;
+      const workerItems: NakazZvilnennyaWorkerItem[] = await Promise.all(
+        selectedWorkers.map(async (w) => {
+          const acc = await getWorkerAccusativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const dat = await getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+          const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
+          const disDate = w.munkaviszony_vege
+            ? formatDotDateWithZeros(w.munkaviszony_vege)
+            : formattedNakazDate;
 
-        return {
-          worker_name_accusative: acc,
-          worker_name_dative: dat,
-          worker_initials: init,
-          position_name: pos,
-          dismissal_date_str: disDate,
-          reason_text: "за угодою сторін, п. 1 ст. 36 КЗпП України",
-        };
-      });
+          return {
+            worker_name_accusative: acc,
+            worker_name_dative: dat,
+            worker_initials: init,
+            position_name: pos,
+            dismissal_date_str: disDate,
+            reason_text: "за угодою сторін, п. 1 ст. 36 КЗпП України",
+          };
+        })
+      );
 
       await generateNakazZvilnennyaDocx({
         fop_id: activeFop.id,
@@ -1049,23 +1101,25 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         }
       }
 
-      const workerItems: NakazKasaWorkerItem[] = kasaWorkers.map((w) => {
-        const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
-        const pronoun = getUkrainianPronoun(w);
-        const hours = kasaWorkerHours[w.id] || {
-          startTime: "09:00",
-          endTime: w.teljes_munkaido ? "17:00" : "13:00",
-        };
+      const workerItems: NakazKasaWorkerItem[] = await Promise.all(
+        kasaWorkers.map(async (w) => {
+          const dativeName = await getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+          const pronoun = getUkrainianPronoun(w);
+          const hours = kasaWorkerHours[w.id] || {
+            startTime: "09:00",
+            endTime: w.teljes_munkaido ? "17:00" : "13:00",
+          };
 
-        return {
-          dative_name: dativeName,
-          initials,
-          pronoun,
-          start_time: hours.startTime || "09:00",
-          end_time: hours.endTime || (w.teljes_munkaido ? "17:00" : "13:00"),
-        };
-      });
+          return {
+            dative_name: dativeName,
+            initials,
+            pronoun,
+            start_time: hours.startTime || "09:00",
+            end_time: hours.endTime || (w.teljes_munkaido ? "17:00" : "13:00"),
+          };
+        })
+      );
 
       await generateNakazKasaDocx({
         fop_id: activeFop.id,
@@ -1143,17 +1197,19 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
         }
       }
 
-      const workerItems: NakazPrroWorkerItem[] = prroWorkers.map((w) => {
-        const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-        const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
-        const posName = w.foglalkozas_megnevezes ? w.foglalkozas_megnevezes.toLowerCase() : "продавець непродовольчих товарів";
+      const workerItems: NakazPrroWorkerItem[] = await Promise.all(
+        prroWorkers.map(async (w) => {
+          const dativeName = await getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+          const initials = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
+          const posName = w.foglalkozas_megnevezes ? w.foglalkozas_megnevezes.toLowerCase() : "продавець непродовольчих товарів";
 
-        return {
-          dative_name: dativeName,
-          posada: posName,
-          initials,
-        };
-      });
+          return {
+            dative_name: dativeName,
+            posada: posName,
+            initials,
+          };
+        })
+      );
 
       await generateNakazPrroDocx({
         fop_id: activeFop.id,
@@ -1840,7 +1896,6 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                     {activeFop.munkasok.map((w) => {
                       const isChecked = selectedKasaWorkerIds.includes(w.id);
                       const fullName = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ");
-                      const initial = w.vezeteknev ? w.vezeteknev.charAt(0).toUpperCase() : "?";
 
                       return (
                         <div
@@ -1853,15 +1908,17 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                           }`}
                         >
                           <div className="flex items-center gap-3.5 truncate">
-                            <div
-                              className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 transition-all shadow-sm ${
-                                isChecked
-                                  ? "bg-[#133b47] text-[#f8a44c] scale-105"
-                                  : "bg-[#133b47]/10 text-[#133b47]"
+                            <BeanAvatar
+                              gender={w.nem}
+                              vezeteknev={w.vezeteknev}
+                              keresztnev={w.keresztnev}
+                              apai_nev={w.apai_nev}
+                              id={w.id}
+                              size="sm"
+                              className={`transition-all shadow-sm ${
+                                isChecked ? "scale-105 ring-2 ring-[#133b47]" : ""
                               }`}
-                            >
-                              {initial}
-                            </div>
+                            />
                             <div className="flex flex-col truncate text-left">
                               <span className={`text-sm font-black truncate leading-snug transition-colors ${
                                 isChecked ? "text-[#133b47]" : "text-slate-700"
@@ -1917,11 +1974,11 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                 onChange={setIsoNakazDate}
               />
 
-              {priyomTargetDate && (
+              {priyomHireDate && (
                 <div className="bg-[#f0f7f6] p-3 rounded-2xl border border-[#cbd8d6] flex items-center justify-between gap-2 text-xs font-black text-[#133b47]">
-                  <span>Фіксація дати прийняття:</span>
+                  <span>Дата початку роботи:</span>
                   <span className="px-2.5 py-1 rounded-lg bg-[#133b47] text-[#f8a44c]">
-                    {formatDotDateWithZeros(priyomTargetDate)}
+                    {formatDotDateWithZeros(priyomHireDate)}
                   </span>
                 </div>
               )}
@@ -1932,10 +1989,9 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                   {activeFop.munkasok.map((w) => {
                     const isChecked = selectedPriyomWorkerIds.includes(w.id);
                     const wDate = w.munkakezdes_datum || "";
-                    const isMatch = priyomTargetDate === null || wDate === priyomTargetDate;
+                    const isMatch = priyomHireDate === null || wDate === priyomHireDate;
                     const isDisabled = !isChecked && !isMatch;
                     const fullName = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ");
-                    const initial = w.vezeteknev ? w.vezeteknev.charAt(0).toUpperCase() : "?";
                     const empTag = !w.foallas ? " (сумісництво)" : !w.teljes_munkaido ? " (неповний час)" : " (основне)";
 
                     return (
@@ -1951,21 +2007,24 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3.5 truncate">
-                          <div
-                            className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 transition-all shadow-sm ${
-                              isChecked
-                                ? "bg-[#133b47] text-[#f8a44c] scale-105"
-                                : "bg-[#133b47]/10 text-[#133b47]"
+                          <BeanAvatar
+                            gender={w.nem}
+                            vezeteknev={w.vezeteknev}
+                            keresztnev={w.keresztnev}
+                            apai_nev={w.apai_nev}
+                            id={w.id}
+                            size="sm"
+                            className={`transition-all shadow-sm ${
+                              isChecked ? "scale-105 ring-2 ring-[#133b47]" : ""
                             }`}
-                          >
-                            {initial}
-                          </div>
+                          />
                           <div className="flex flex-col truncate text-left">
                             <span className={`text-sm font-black truncate leading-snug ${isChecked ? "text-[#133b47]" : "text-slate-700"}`}>
                               {fullName}
                             </span>
                             <span className="text-[11px] font-bold text-[#556e75] truncate mt-0.5">
-                              {wDate ? `Прийнято: ${formatDotDateWithZeros(wDate)}${empTag}` : `Дата не вказана${empTag}`}
+                              {w.kerelem_datum ? `Дата наказу: ${formatDotDateWithZeros(w.kerelem_datum)} • ` : ""}
+                              {wDate ? `Початок роботи: ${formatDotDateWithZeros(wDate)}${empTag}` : `Дата не вказана${empTag}`}
                             </span>
                           </div>
                         </div>
@@ -2016,7 +2075,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
               {zvilnennyaTargetDate && (
                 <div className="bg-[#f0f7f6] p-3 rounded-2xl border border-[#cbd8d6] flex items-center justify-between gap-2 text-xs font-black text-[#133b47]">
-                  <span>Фіксація дати звільнення:</span>
+                  <span>Дата звільнення:</span>
                   <span className="px-2.5 py-1 rounded-lg bg-[#133b47] text-[#f8a44c]">
                     {formatDotDateWithZeros(zvilnennyaTargetDate)}
                   </span>
@@ -2033,7 +2092,6 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                     const isMatch = zvilnennyaTargetDate === null || wDate === zvilnennyaTargetDate;
                     const isDisabled = !hasVege || (!isChecked && !isMatch);
                     const fullName = [w.vezeteknev, w.keresztnev, w.apai_nev].filter(Boolean).join(" ");
-                    const initial = w.vezeteknev ? w.vezeteknev.charAt(0).toUpperCase() : "?";
 
                     return (
                       <div
@@ -2048,15 +2106,17 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3.5 truncate">
-                          <div
-                            className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 transition-all shadow-sm ${
-                              isChecked
-                                ? "bg-[#133b47] text-[#f8a44c] scale-105"
-                                : "bg-[#133b47]/10 text-[#133b47]"
+                          <BeanAvatar
+                            gender={w.nem}
+                            vezeteknev={w.vezeteknev}
+                            keresztnev={w.keresztnev}
+                            apai_nev={w.apai_nev}
+                            id={w.id}
+                            size="sm"
+                            className={`transition-all shadow-sm ${
+                              isChecked ? "scale-105 ring-2 ring-[#133b47]" : ""
                             }`}
-                          >
-                            {initial}
-                          </div>
+                          />
                           <div className="flex flex-col truncate text-left">
                             <span className={`text-sm font-black truncate leading-snug ${isChecked ? "text-[#133b47]" : "text-slate-700"}`}>
                               {fullName}
@@ -2384,7 +2444,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                       activeFop.munkasok
                         .filter((w) => selectedKasaWorkerIds.includes(w.id))
                         .map((w, idx, arr) => {
-                          const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                          const dativeName = workerDeclensions[w.id]?.dative || getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                           const posName = w.foglalkozas_megnevezes ? w.foglalkozas_megnevezes.toLowerCase() : "продавець непродовольчих товарів";
                           const punct = idx === arr.length - 1 ? "." : ";";
 
@@ -2489,7 +2549,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                       activeFop.munkasok
                         .filter((w) => selectedKasaWorkerIds.includes(w.id))
                         .map((w, idx, arr) => {
-                          const dativeName = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                          const dativeName = workerDeclensions[w.id]?.dative || getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                           const pronoun = getUkrainianPronoun(w);
                           const hours = kasaWorkerHours[w.id] || {
                             startTime: "09:00",
@@ -2595,7 +2655,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
 
                       if (selectedWorkers.length === 1) {
                         const w = selectedWorkers[0];
-                        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const acc = workerDeclensions[w.id]?.accusative || getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                         const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
                         const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
 
@@ -2618,7 +2678,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                             1. Звільнити з роботи від {disDate} р. наступних працівників:
                           </p>
                           {selectedWorkers.map((w, idx) => {
-                            const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                            const acc = workerDeclensions[w.id]?.accusative || getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                             const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
                             return (
                               <p key={w.id} className="pl-6 font-medium">
@@ -2658,12 +2718,12 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                           </p>
                         );
                       }
-                      const startDate = priyomTargetDate ? formatDotDateWithZeros(priyomTargetDate) : formattedWorkStartDate;
+                      const startDate = priyomHireDate ? formatDotDateWithZeros(priyomHireDate) : formattedWorkStartDate;
 
                       if (selectedWorkers.length === 1) {
                         const w = selectedWorkers[0];
-                        const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
-                        const dat = getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const acc = workerDeclensions[w.id]?.accusative || getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                        const dat = workerDeclensions[w.id]?.dative || getWorkerDativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                         const init = getWorkerInitials(w.vezeteknev, w.keresztnev, w.apai_nev);
                         const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
                         const sal = w.fizetes
@@ -2694,7 +2754,7 @@ export const NakazGeneratorView: React.FC<NakazGeneratorViewProps> = ({
                             1. Прийняти на роботу з {startDate} р. наступних працівників:
                           </p>
                           {selectedWorkers.map((w, idx) => {
-                            const acc = getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
+                            const acc = workerDeclensions[w.id]?.accusative || getWorkerAccusativeName(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem);
                             const pos = declinePositionGenitive(w.foglalkozas_megnevezes || "працівник");
                             const sal = w.fizetes
                               ? `${w.fizetes.toLocaleString("uk-UA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} грн.`

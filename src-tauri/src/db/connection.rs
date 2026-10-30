@@ -2,19 +2,39 @@ use rusqlite::{Connection, Result as SqlResult};
 use std::fs;
 use std::path::PathBuf;
 
-pub fn get_db_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    if path.ends_with("src-tauri") {
-        if let Some(parent) = path.parent() {
-            path = parent.to_path_buf();
+pub fn get_db_dir() -> PathBuf {
+    // 1. Check development path (current_dir with database or src-tauri parent)
+    let cur = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut dev_path = cur.clone();
+    if dev_path.ends_with("src-tauri") {
+        if let Some(parent) = dev_path.parent() {
+            dev_path = parent.to_path_buf();
         }
     }
-    path.push("database");
-    if !path.exists() {
-        let _ = fs::create_dir_all(&path);
+    let dev_db = dev_path.join("database");
+    if dev_db.exists() {
+        return dev_db;
     }
-    path.push("kadergo.db");
-    path
+
+    // 2. Portable mode: check next to executable
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let exe_db = exe_dir.join("database");
+            if exe_db.exists() {
+                return exe_db;
+            }
+        }
+    }
+
+    // 3. Fallback to dev_db
+    if !dev_db.exists() {
+        let _ = fs::create_dir_all(&dev_db);
+    }
+    dev_db
+}
+
+pub fn get_db_path() -> PathBuf {
+    get_db_dir().join("kadergo.db")
 }
 
 pub fn init_sqlite_db() -> SqlResult<Connection> {

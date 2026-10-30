@@ -10,7 +10,15 @@ use crate::db::init_sqlite_db;
 #[derive(Debug, Clone, Deserialize)]
 pub struct WorkerPayrollOverride {
     pub worker_id: i64,
-    pub previous_kopeks: f64,
+    #[serde(default)]
+    pub year: Option<i32>,
+    #[serde(default)]
+    pub month: Option<u32>,
+    #[serde(default)]
+    pub previous_kopeks: Option<f64>,
+    #[serde(default)]
+    pub save_to_db: bool,
+    #[serde(default)]
     pub manual_addition: f64,
 }
 
@@ -33,6 +41,7 @@ pub struct PayrollCalculationRowDto {
     pub prev_kopeks: f64,
     pub rate: f64,
     pub worked_salary: f64,
+    #[serde(default)]
     pub manual_addition: f64,
     pub total_salary_m: f64,
     pub esv_o: f64,
@@ -234,12 +243,12 @@ fn calculate_worker_month_kopek(
 
     if let Some(hired) = hired_ymd {
         if hired > target_end {
-            return prev_kopeks;
+            return 0.0;
         }
     }
     if let Some(dismissed) = dismissed_ymd {
         if dismissed < target_start {
-            return prev_kopeks;
+            return 0.0;
         }
     }
 
@@ -344,7 +353,25 @@ fn get_or_cascade_db_kopek(
 
     let (mut cur_year, mut cur_month, mut cur_kopek) = match prev_rec {
         Some(rec) => rec,
-        None => return 0.0,
+        None => {
+            let hire_date_opt: Option<String> = conn
+                .query_row(
+                    "SELECT j.munkakezdes_datum FROM jogviszony j WHERE j.munkavallalo_id = ?1 AND j.fop_id = ?2",
+                    params![worker_id, fop_id],
+                    |r| r.get(0),
+                )
+                .ok()
+                .flatten();
+            if let Some((h_y, h_m, _)) = hire_date_opt.as_deref().and_then(parse_ymd_date) {
+                if (h_y < target_year) || (h_y == target_year && h_m < target_month) {
+                    (h_y, h_m, 0.0)
+                } else {
+                    return 0.0;
+                }
+            } else {
+                return 0.0;
+            }
+        }
     };
 
     // 3. Fast-forward cascade simulate from (cur_year, cur_month) up to target_month
@@ -451,9 +478,13 @@ pub fn preview_payroll(
         }
     }
 
-    // Overrides map
+    // Overrides map (filtering for matching year and month if provided)
     let overrides_map: HashMap<i64, WorkerPayrollOverride> = worker_overrides
         .into_iter()
+        .filter(|o| {
+            o.year.map(|y| y == year).unwrap_or(true)
+                && o.month.map(|m| m == month).unwrap_or(true)
+        })
         .map(|o| (o.worker_id, o))
         .collect();
 
@@ -515,17 +546,14 @@ pub fn preview_payroll(
 
 
         let override_val = overrides_map.get(&w.id);
+        let is_save_to_db = override_val.map(|o| o.save_to_db).unwrap_or(true);
 
-        let prev_kopeks = match override_val {
-            Some(o) => {
-                let _ = conn.execute(
-                    "INSERT INTO kopek (munkavallalo_id, fop_id, ev, honap, kopek)
-                     VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT(munkavallalo_id, fop_id, ev, honap)
-                     DO UPDATE SET kopek = excluded.kopek",
-                    params![w.id, fop_id, year, month, o.previous_kopeks],
-                );
-                o.previous_kopeks
+        let prev_kopeks = match override_val.and_then(|o| o.previous_kopeks) {
+            Some(k) => {
+                if is_save_to_db {
+                    let _ = save_worker_kopek(w.id, fop_id, year, month, k);
+                }
+                k
             }
             None => get_or_cascade_db_kopek(&conn, w.id, fop_id, year, month, min_wage),
         };
@@ -614,14 +642,16 @@ pub fn preview_payroll(
 
 
         // Auto-save calculated ending kopeks (W) as starting kopeks (E) for the NEXT month in SQLite DB!
-        let (next_year, next_month) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
-        let _ = conn.execute(
-            "INSERT INTO kopek (munkavallalo_id, fop_id, ev, honap, kopek)
-             VALUES (?1, ?2, ?3, ?4, ?5)
-             ON CONFLICT(munkavallalo_id, fop_id, ev, honap)
-             DO UPDATE SET kopek = excluded.kopek",
-            params![w.id, fop_id, next_year, next_month, remaining_kopeks_w],
-        );
+        if override_val.map(|o| o.previous_kopeks.is_none() || o.save_to_db).unwrap_or(true) {
+            let (next_year, next_month) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
+            let _ = conn.execute(
+                "INSERT INTO kopek (munkavallalo_id, fop_id, ev, honap, kopek)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(munkavallalo_id, fop_id, ev, honap)
+                 DO UPDATE SET kopek = excluded.kopek",
+                params![w.id, fop_id, next_year, next_month, remaining_kopeks_w],
+            );
+        }
 
 
         calculation_rows.push(PayrollCalculationRowDto {
@@ -669,30 +699,17 @@ pub fn preview_payroll(
     })
 }
 
-#[tauri::command]
-pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, String> {
-    let _conn = init_sqlite_db().map_err(|e| e.to_string())?;
-
-
-    // Also persist any overrides & current kopeks to DB
-    for ov in &req.worker_overrides {
-        let _ = save_worker_kopek(ov.worker_id, req.fop_id, req.year, req.month, ov.previous_kopeks);
-    }
-
-    let preview = preview_payroll(
-        req.fop_id,
-        req.year,
-        req.month,
-        req.min_wage,
-        req.worker_overrides,
-    )?;
-
-    // Save calculated remaining kopeks (Column W) for the NEXT month in DB automatically!
-    let (next_year, next_month) = if req.month == 12 { (req.year + 1, 1) } else { (req.year, req.month + 1) };
-    for row in &preview.rows {
-        let _ = save_worker_kopek(row.worker_id, req.fop_id, next_year, next_month, row.remaining_kopeks_w);
-    }
-
+#[tauri::command]
+pub fn generate_payroll_excel(req: GeneratePayrollRequest) -> Result<String, String> {
+    // preview_payroll handles overrides and respects save_to_db for current & next month persistence
+    let preview = preview_payroll(
+        req.fop_id,
+        req.year,
+        req.month,
+        req.min_wage,
+        req.worker_overrides,
+    )?;
+
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
 
@@ -1126,6 +1143,8 @@ pub struct GeneratePayrollPeriodRequest {
     pub end_year: i32,
     pub end_month: u32,
     pub min_wage: f64,
+    #[serde(default)]
+    pub worker_overrides: Vec<WorkerPayrollOverride>,
     pub save_dir: Option<String>,
 }
 
@@ -1139,12 +1158,22 @@ pub fn generate_payroll_period_excel(req: GeneratePayrollPeriodRequest) -> Resul
     let mut last_path = String::new();
 
     while (cur_year < req.end_year) || (cur_year == req.end_year && cur_month <= req.end_month) {
+        let cur_overrides: Vec<WorkerPayrollOverride> = req
+            .worker_overrides
+            .iter()
+            .filter(|o| {
+                o.year.map(|y| y == cur_year).unwrap_or(true)
+                    && o.month.map(|m| m == cur_month).unwrap_or(true)
+            })
+            .cloned()
+            .collect();
+
         let single_req = GeneratePayrollRequest {
             fop_id: req.fop_id,
             year: cur_year,
             month: cur_month,
             min_wage: req.min_wage,
-            worker_overrides: Vec::new(),
+            worker_overrides: cur_overrides,
             save_dir: req.save_dir.clone(),
         };
 
@@ -1170,6 +1199,7 @@ pub fn preview_payroll_period(
     end_year: i32,
     end_month: u32,
     min_wage: f64,
+    worker_overrides: Vec<WorkerPayrollOverride>,
 ) -> Result<PayrollCalculationPreviewDto, String> {
     let mut cur_year = start_year;
     let mut cur_month = start_month;
@@ -1182,7 +1212,16 @@ pub fn preview_payroll_period(
     let mut work_days_20_sum = 0u32;
 
     while (cur_year < end_year) || (cur_year == end_year && cur_month <= end_month) {
-        let single_preview = preview_payroll(fop_id, cur_year, cur_month, min_wage, Vec::new())?;
+        let cur_overrides: Vec<WorkerPayrollOverride> = worker_overrides
+            .iter()
+            .filter(|o| {
+                o.year.map(|y| y == cur_year).unwrap_or(true)
+                    && o.month.map(|m| m == cur_month).unwrap_or(true)
+            })
+            .cloned()
+            .collect();
+
+        let single_preview = preview_payroll(fop_id, cur_year, cur_month, min_wage, cur_overrides)?;
 
         last_fop_name = single_preview.fop_name;
         last_fop_code = single_preview.fop_code;

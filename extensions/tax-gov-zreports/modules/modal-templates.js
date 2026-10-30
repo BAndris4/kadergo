@@ -86,11 +86,11 @@
     const tabsWrap = document.createElement('div');
     tabsWrap.className = 'kadergo-mode-tabs';
     tabsWrap.innerHTML = `
-      <button type="button" class="kadergo-mode-tab ${activeMode === 'single' ? 'active' : ''} ${isSingleDisabled ? 'disabled' : ''}" data-mode="single" title="${singleTitle}">
+      <button type="button" class="kadergo-mode-tab ${activeMode === 'single' ? 'active' : ''} ${isSingleDisabled ? 'disabled' : ''}" ${isSingleDisabled ? 'disabled' : ''} data-mode="single" title="${singleTitle}">
         ${icons?.documentText || ''}
         <span>Обраний РРО</span>
       </button>
-      <button type="button" class="kadergo-mode-tab ${activeMode === 'all' ? 'active' : ''} ${isAllDisabled ? 'disabled' : ''}" data-mode="all" title="${allTitle}">
+      <button type="button" class="kadergo-mode-tab ${activeMode === 'all' ? 'active' : ''} ${isAllDisabled ? 'disabled' : ''}" ${isAllDisabled ? 'disabled' : ''} data-mode="all" title="${allTitle}">
         ${icons?.layers || ''}
         <span>Всі РРО</span>
       </button>
@@ -162,28 +162,100 @@
     const grid = document.createElement('div');
     grid.className = 'kadergo-modal-grid';
     grid.innerHTML = `
-      <div class="kadergo-grid-card">
+      <div class="kadergo-grid-card" id="kg-grid-period-card">
         <div class="kadergo-grid-header">
-          <span class="kadergo-grid-icon">${icons?.calendar || ''}</span>
-          <span class="kadergo-grid-label">Період вивантаження</span>
+          <div class="kadergo-grid-header-left">
+            <span class="kadergo-grid-icon">${icons?.calendar || ''}</span>
+            <span class="kadergo-grid-label">Період</span>
+          </div>
+          <span class="kadergo-grid-change-badge" id="kg-grid-period-badge" style="display:none;">Змінити ▾</span>
         </div>
         <div class="kadergo-grid-value" id="kg-grid-period-val">-</div>
       </div>
       <div class="kadergo-grid-card">
         <div class="kadergo-grid-header">
-          <span class="kadergo-grid-icon">${icons?.layers || ''}</span>
-          <span class="kadergo-grid-label">Режим</span>
+          <div class="kadergo-grid-header-left">
+            <span class="kadergo-grid-icon">${icons?.layers || ''}</span>
+            <span class="kadergo-grid-label">Режим</span>
+          </div>
         </div>
         <div class="kadergo-grid-value" id="kg-grid-mode-val">-</div>
       </div>
     `;
 
+    // Popover Backdrop & Dialog for Custom Period Picker
+    const popoverBackdrop = document.createElement('div');
+    popoverBackdrop.className = 'kadergo-period-popover-backdrop';
+    popoverBackdrop.id = 'kg-period-popover-backdrop';
+    popoverBackdrop.style.display = 'none';
+
+    const popover = document.createElement('div');
+    popover.className = 'kadergo-period-popover';
+    popover.id = 'kg-period-popover';
+    popover.style.display = 'none';
+    popover.innerHTML = `
+      <div class="kadergo-pop-header">
+        <div class="kadergo-pop-title-wrap">
+          <span class="kadergo-pop-title-icon">${icons?.calendar || ''}</span>
+          <span id="kg-pop-title">Налаштування періоду</span>
+        </div>
+        <div class="kadergo-pop-header-actions">
+          <button type="button" class="kadergo-pop-btn-auto" id="kg-pop-btn-auto" title="Повернути авто-період">↺ Авто</button>
+          <button type="button" class="kadergo-pop-close-btn" id="kg-pop-close-btn" title="Закрити">✕</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="kadergo-pop-section-title">Місяці звітного року:</div>
+        <div class="kadergo-pop-months-grid" id="kg-pop-months-grid"></div>
+      </div>
+
+      <div>
+        <div class="kadergo-pop-section-title">Точні дати періоду:</div>
+        <div class="kadergo-pop-dates-row">
+          <div class="kadergo-pop-date-field">
+            <span class="kadergo-pop-date-label">з</span>
+            <input type="text" class="kadergo-pop-date-input" id="kg-pop-date-from" placeholder="01.01.РРРР" maxlength="10" autocomplete="off" spellcheck="false" />
+          </div>
+          <span class="kadergo-pop-date-sep">—</span>
+          <div class="kadergo-pop-date-field">
+            <span class="kadergo-pop-date-label">по</span>
+            <input type="text" class="kadergo-pop-date-input" id="kg-pop-date-to" placeholder="31.12.РРРР" maxlength="10" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+      </div>
+
+      <div class="kadergo-pop-footer">
+        <button type="button" class="kadergo-pop-btn-apply" id="kg-pop-apply-btn">${icons?.check || '✓'} Застосувати період</button>
+      </div>
+    `;
+
     // 5. Format Switcher
     const formatSection = document.createElement('div');
-    formatSection.className = 'kadergo-format-section';
+    formatSection.className = 'kadergo-format-section hidden';
+    formatSection.style.setProperty('display', 'none', 'important');
     formatSection.innerHTML = `
       <div class="kadergo-format-title">Формат:</div>
       <div class="kadergo-format-options" id="kg-format-options"></div>
+      <div class="kadergo-quarters-row" id="kg-income-quarters-row" title="Додати розрахунок по кварталах (I–IV кв.) та залишок ліміту 3 групи" style="display: none;">
+        <div class="kadergo-quarters-row-left">
+          <span class="kadergo-quarters-icon">${icons?.chartBar || ''}</span>
+          <span class="kadergo-quarters-title">Квартали</span>
+          <span class="kadergo-group-badge" id="kg-group-badge" style="display: none;"></span>
+        </div>
+        <div class="kadergo-quarters-row-right">
+          <button type="button" class="kadergo-btn-detect-group" id="kg-btn-detect-group" title="Автоматично визначити групу ФОП у кабінеті (Облікові дані)">
+            <span class="kadergo-detect-icon">${icons?.magnifyingGlass || icons?.search || ''}</span>
+            <span class="kadergo-detect-text">Авто</span>
+          </button>
+          <label class="kadergo-switch" title="Увімкнути/вимкнути квартали">
+            <input type="checkbox" id="kg-income-quarters-toggle" class="kadergo-switch-input" checked />
+            <span class="kadergo-switch-track">
+              <span class="kadergo-switch-thumb"></span>
+            </span>
+          </label>
+        </div>
+      </div>
     `;
 
     // 6. File Chips Section
@@ -223,6 +295,8 @@
     card.appendChild(header);
     card.appendChild(body);
     card.appendChild(footer);
+    card.appendChild(popoverBackdrop);
+    card.appendChild(popover);
 
     // Flow & Loading State View (SVG Spinner & Success Pipa)
     const flowWrap = document.createElement('div');
@@ -306,12 +380,18 @@
       grid,
       formatSection,
       formatOptionsWrap: formatSection.querySelector('#kg-format-options'),
+      incomeQuartersRow: formatSection.querySelector('#kg-income-quarters-row'),
+      incomeQuartersToggle: formatSection.querySelector('#kg-income-quarters-toggle'),
+      btnDetectGroup: formatSection.querySelector('#kg-btn-detect-group'),
+      groupBadge: formatSection.querySelector('#kg-group-badge'),
       fileSection,
       fileChipsWrap: fileSection.querySelector('#kg-file-chips-wrap'),
       footer,
       cancelBtn,
       confirmBtn,
       flowWrap,
+      popoverBackdrop,
+      popover,
       // Internal flow elements
       flowElements: {
         stageCard: card.querySelector('#kg-stage-card'),

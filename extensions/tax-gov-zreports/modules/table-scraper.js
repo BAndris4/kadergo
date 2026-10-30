@@ -97,6 +97,14 @@ window.KaderGo = window.KaderGo || {};
       page++;
     }
 
+    if (page > 1) {
+      const firstBtn = document.querySelector('button.p-paginator-first:not(.p-disabled):not([disabled])');
+      if (firstBtn) {
+        firstBtn.click();
+        await delay(200);
+      }
+    }
+
     return allTrs;
   }
 

@@ -26,6 +26,7 @@ import { ZayavaPriyomGeneratorView, ZayavaTypeCategory } from "../components/gen
 import { ShtatGeneratorView } from "../components/generators/shtat/ShtatGeneratorView";
 import { GrafikGeneratorView } from "../components/generators/grafik/GrafikGeneratorView";
 import { NakazGeneratorView } from "../components/generators/nakaz/NakazGeneratorView";
+import { BeanAvatar } from "../components/common/BeanAvatar";
 
 interface DocumentGeneratorViewProps {
   fops: FopData[];
@@ -235,9 +236,13 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
           >
             {activeFop ? (
               <div className="flex items-center gap-3 truncate">
-                <div className="w-8 h-8 rounded-xl bg-[#133b47] text-[#f8a44c] text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
-                  {activeFop.vezeteknev.charAt(0)}
-                </div>
+                <BeanAvatar
+                  id={activeFop.id}
+                  familyName={activeFop.vezeteknev}
+                  givenName={activeFop.keresztnev}
+                  patronymicName={activeFop.apai_nev}
+                  size="sm"
+                />
                 <div className="flex items-center gap-2 truncate">
                   <span className="truncate font-bold text-[#133b47]">{activeFopName}</span>
                   {activeFopCode && (
@@ -312,13 +317,13 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                              isSelected ? "bg-[#f8a44c] text-[#133b47]" : "bg-[#133b47] text-[#f8a44c]"
-                            }`}
-                          >
-                            {f.vezeteknev.charAt(0)}
-                          </div>
+                          <BeanAvatar
+                            id={f.id}
+                            familyName={f.vezeteknev}
+                            givenName={f.keresztnev}
+                            patronymicName={f.apai_nev}
+                            size="sm"
+                          />
                           <div className="flex flex-col min-w-0">
                             <div className="flex items-center gap-2 truncate">
                               <span className="text-sm font-bold truncate">{name}</span>

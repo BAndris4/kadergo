@@ -12,6 +12,7 @@ use commands::{
     run_installer_from_bytes, download_and_run_installer, fetch_github_releases,
     get_folder_groups, create_folder_group, update_folder_group, delete_folder_group, move_fop_to_group, parse_fop_folder_info,
     export_chrome_extension,
+    get_database_info, export_database, import_database, open_database_folder,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -69,7 +70,11 @@ pub fn run() {
             run_installer_from_bytes,
             download_and_run_installer,
             fetch_github_releases,
-            export_chrome_extension
+            export_chrome_extension,
+            get_database_info,
+            export_database,
+            import_database,
+            open_database_folder
         ])
 
 

@@ -1,76 +1,198 @@
-// Helper for Ukrainian declensions (Dative for FOP, Genitive for Worker)
+import * as shevchenko from "shevchenko";
+import { useState, useEffect } from "react";
 
-export function declineMaleSurnameGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("ик") || n.endsWith("ук") || n.endsWith("юк") || n.endsWith("ак") || n.endsWith("як") || n.endsWith("ок") || n.endsWith("ець")) {
-    return n + "а";
+// In-memory cache for fast synchronous lookups across renders
+const declensionCache = new Map<string, string>();
+
+/**
+ * Normalizes input gender to shevchenko-compatible 'masculine' | 'feminine'
+ */
+export function normalizeGender(
+  nem?: string,
+  givenName?: string,
+  patronymicName?: string,
+  _familyName?: string
+): shevchenko.GrammaticalGender {
+  const raw = (nem || "").toLowerCase().trim();
+  if (
+    raw === "жінка" ||
+    raw === "nő" ||
+    raw === "female" ||
+    raw === "f" ||
+    raw === "feminine"
+  ) {
+    return shevchenko.GrammaticalGender.FEMININE;
   }
-  if (n.endsWith("ич") || n.endsWith("ович") || n.endsWith("евич") || n.endsWith("ев")) {
-    return n + "а";
+  if (
+    raw === "чоловік" ||
+    raw === "férfi" ||
+    raw === "male" ||
+    raw === "m" ||
+    raw === "masculine"
+  ) {
+    return shevchenko.GrammaticalGender.MASCULINE;
   }
-  if (n.endsWith("ов") || n.endsWith("ев") || n.endsWith("єв") || n.endsWith("ін") || n.endsWith("їн")) {
-    return n + "а";
+
+  // Detect from patronymic ending if available
+  if (patronymicName) {
+    const p = patronymicName.trim().toLowerCase();
+    if (p.endsWith("івна") || p.endsWith("ївна") || p.endsWith("овна") || p.endsWith("евна")) {
+      return shevchenko.GrammaticalGender.FEMININE;
+    }
+    if (p.endsWith("ич") || p.endsWith("ович") || p.endsWith("евич") || p.endsWith("євич")) {
+      return shevchenko.GrammaticalGender.MASCULINE;
+    }
   }
-  if (n.endsWith("ий") || n.endsWith("ій")) {
-    return n.slice(0, -2) + "ого";
+
+  // Detect from common Ukrainian female given name endings
+  if (givenName) {
+    const g = givenName.trim().toLowerCase();
+    if (g.endsWith("а") || g.endsWith("я") || g.endsWith("ія")) {
+      // Exceptions: Микола, Ілля, etc. are masculine
+      if (g !== "микола" && g !== "ілля" && g !== "лука" && g !== "хома" && g !== "кузьма" && g !== "сава") {
+        return shevchenko.GrammaticalGender.FEMININE;
+      }
+    }
   }
-  if (n.endsWith("а") || n.endsWith("я")) {
-    return n.slice(0, -1) + "и";
-  }
-  return n + "а";
+
+  return shevchenko.GrammaticalGender.MASCULINE;
 }
 
-export function declineMaleFirstNameGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("о") || n.endsWith("й") || n.endsWith("ь")) {
-    return n.slice(0, -1) + "а";
+/**
+ * Core declension function using shevchenko.js
+ */
+export async function declineNameWithShevchenko(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev: string | undefined,
+  nem: string | undefined,
+  grammaticalCase: "genitive" | "dative" | "accusative" | "vocative" | "nominative" | "ablative" | "locative"
+): Promise<{ familyName: string; givenName: string; patronymicName: string; fullName: string }> {
+  const familyName = vezeteknev ? vezeteknev.trim() : "";
+  const givenName = keresztnev ? keresztnev.trim() : "";
+  const patronymicName = apai_nev ? apai_nev.trim() : "";
+  const gender = normalizeGender(nem, givenName, patronymicName, familyName);
+
+  const input: shevchenko.DeclensionInput = {
+    gender,
+  };
+  if (familyName) input.familyName = familyName;
+  if (givenName) input.givenName = givenName;
+  if (patronymicName) input.patronymicName = patronymicName;
+
+  let output: { familyName?: string; givenName?: string; patronymicName?: string };
+
+  try {
+    switch (grammaticalCase) {
+      case "genitive":
+        output = await shevchenko.inGenitive(input);
+        break;
+      case "dative":
+        output = await shevchenko.inDative(input);
+        break;
+      case "accusative":
+        output = await shevchenko.inAccusative(input);
+        break;
+      case "vocative":
+        output = await shevchenko.inVocative(input);
+        break;
+      case "ablative":
+        output = await shevchenko.inAblative(input);
+        break;
+      case "locative":
+        output = await shevchenko.inLocative(input);
+        break;
+      case "nominative":
+      default:
+        output = await shevchenko.inNominative(input);
+        break;
+    }
+  } catch (err) {
+    console.warn("shevchenko declension error:", err);
+    output = input;
   }
-  if (n.endsWith("а") || n.endsWith("я")) {
-    return n.slice(0, -1) + "и";
-  }
-  return n + "а";
+
+  const outFamily = output.familyName || familyName;
+  const outGiven = output.givenName || givenName;
+  const outPatronymic = output.patronymicName || patronymicName;
+  const fullName = [outFamily, outGiven, outPatronymic].filter(Boolean).join(" ");
+
+  return {
+    familyName: outFamily,
+    givenName: outGiven,
+    patronymicName: outPatronymic,
+    fullName,
+  };
 }
 
-export function declineMalePatronymicGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("ич") || n.endsWith("чич")) {
-    return n + "а";
-  }
-  return n + "а";
+// ─── Asynchronous Declension APIs (Exact shevchenko.js Results) ─────
+
+export async function getWorkerGenitiveNameAsync(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): Promise<string> {
+  const key = `gen_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
+
+  const res = await declineNameWithShevchenko(vezeteknev, keresztnev, apai_nev, nem, "genitive");
+  declensionCache.set(key, res.fullName);
+  return res.fullName;
 }
 
-export function declineFemaleSurnameGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("ська") || n.endsWith("цька") || n.endsWith("зька")) {
-    return n.slice(0, -2) + "кої";
-  }
-  if (n.endsWith("а") || n.endsWith("я")) {
-    return n.slice(0, -1) + "и";
-  }
-  return n;
+export async function getWorkerDativeNameAsync(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): Promise<string> {
+  const key = `dat_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
+
+  const res = await declineNameWithShevchenko(vezeteknev, keresztnev, apai_nev, nem, "dative");
+  declensionCache.set(key, res.fullName);
+  return res.fullName;
 }
 
-export function declineFemaleFirstNameGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("а")) return n.slice(0, -1) + "и";
-  if (n.endsWith("я")) return n.slice(0, -1) + "ї";
-  if (n.endsWith("ь")) return n.slice(0, -1) + "і";
-  return n + "и";
+export async function getWorkerAccusativeNameAsync(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): Promise<string> {
+  const key = `acc_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
+
+  const res = await declineNameWithShevchenko(vezeteknev, keresztnev, apai_nev, nem, "accusative");
+  declensionCache.set(key, res.fullName);
+  return res.fullName;
 }
 
-export function declineFemalePatronymicGenitive(name: string): string {
-  if (!name) return "";
-  const n = name.trim();
-  if (n.endsWith("вна") || n.endsWith("івна") || n.endsWith("ївна")) {
-    return n.slice(0, -1) + "и";
-  }
-  return n + "и";
+export async function getWorkerVocativeNameAsync(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): Promise<string> {
+  const key = `voc_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
+
+  const res = await declineNameWithShevchenko(vezeteknev, keresztnev, apai_nev, nem, "vocative");
+  declensionCache.set(key, res.fullName);
+  return res.fullName;
 }
+
+export async function getFopDativeNameAsync(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): Promise<string> {
+  return getWorkerDativeNameAsync(vezeteknev, keresztnev, apai_nev, nem);
+}
+
+// ─── Synchronous Declension APIs (Cached or Background-Warmed) ──────
 
 export function getWorkerGenitiveName(
   vezeteknev: string,
@@ -78,95 +200,106 @@ export function getWorkerGenitiveName(
   apai_nev?: string,
   nem?: string
 ): string {
-  const isFemale = nem?.toLowerCase() === "жінка" || nem?.toLowerCase() === "nő" || nem?.toLowerCase() === "female";
+  const key = `gen_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
 
-  if (isFemale) {
-    const s = declineFemaleSurnameGenitive(vezeteknev);
-    const f = declineFemaleFirstNameGenitive(keresztnev);
-    const p = apai_nev ? declineFemalePatronymicGenitive(apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  } else {
-    const s = declineMaleSurnameGenitive(vezeteknev);
-    const f = declineMaleFirstNameGenitive(keresztnev);
-    const p = apai_nev ? declineMalePatronymicGenitive(apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  }
+  // Trigger background declension to populate cache
+  getWorkerGenitiveNameAsync(vezeteknev, keresztnev, apai_nev, nem);
+  return [vezeteknev, keresztnev, apai_nev].filter(Boolean).join(" ");
 }
 
-// Dative Case for FOP
-export function getFopDativeName(
-  vezeteknev: string,
-  keresztnev: string,
-  apai_nev?: string,
-  nem?: string
-): string {
-  const isFemale = nem?.toLowerCase() === "жінка" || nem?.toLowerCase() === "nő" || nem?.toLowerCase() === "female";
-
-  if (isFemale) {
-    const s = vezeteknev.endsWith("ська") || vezeteknev.endsWith("цька") ? vezeteknev.slice(0, -2) + "кій" : vezeteknev + "і";
-    const f = keresztnev.endsWith("а") ? keresztnev.slice(0, -1) + "і" : keresztnev + "і";
-    const p = apai_nev ? (apai_nev.endsWith("вна") ? apai_nev.slice(0, -1) + "і" : apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  } else {
-    const s = vezeteknev.endsWith("ич") || vezeteknev.endsWith("ук") || vezeteknev.endsWith("юк") || vezeteknev.endsWith("ак") || vezeteknev.endsWith("ов") || vezeteknev.endsWith("ев") ? vezeteknev + "у" : vezeteknev + "у";
-    const f = keresztnev.endsWith("й") || keresztnev.endsWith("ь") ? keresztnev.slice(0, -1) + "ю" : keresztnev + "у";
-    const p = apai_nev ? (apai_nev.endsWith("ич") ? apai_nev + "у" : apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  }
-}
-
-// Accusative Case for Worker (Прийняти кого?)
-export function getWorkerAccusativeName(
-  vezeteknev: string,
-  keresztnev: string,
-  apai_nev?: string,
-  nem?: string
-): string {
-  const isFemale = nem?.toLowerCase() === "жінка" || nem?.toLowerCase() === "nő" || nem?.toLowerCase() === "female";
-
-  if (isFemale) {
-    const s = vezeteknev.endsWith("ська") || vezeteknev.endsWith("цька") ? vezeteknev.slice(0, -2) + "ську" :
-              vezeteknev.endsWith("а") ? vezeteknev.slice(0, -1) + "у" :
-              vezeteknev.endsWith("я") ? vezeteknev.slice(0, -1) + "ю" : vezeteknev;
-    const f = keresztnev.endsWith("а") ? keresztnev.slice(0, -1) + "у" :
-              keresztnev.endsWith("я") ? keresztnev.slice(0, -1) + "ю" : keresztnev;
-    const p = apai_nev ? (apai_nev.endsWith("вна") ? apai_nev.slice(0, -1) + "у" : apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  } else {
-    const s = declineMaleSurnameGenitive(vezeteknev);
-    const f = declineMaleFirstNameGenitive(keresztnev);
-    const p = apai_nev ? declineMalePatronymicGenitive(apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  }
-}
-
-// Dative Case for Worker (Кому?)
 export function getWorkerDativeName(
   vezeteknev: string,
   keresztnev: string,
   apai_nev?: string,
   nem?: string
 ): string {
-  const isFemale = nem?.toLowerCase() === "жінка" || nem?.toLowerCase() === "nő" || nem?.toLowerCase() === "female";
+  const key = `dat_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
 
-  if (isFemale) {
-    const s = vezeteknev.endsWith("ська") || vezeteknev.endsWith("цька") ? vezeteknev.slice(0, -2) + "ській" :
-              vezeteknev.endsWith("а") ? vezeteknev.slice(0, -1) + "і" :
-              vezeteknev.endsWith("я") ? vezeteknev.slice(0, -1) + "ї" : vezeteknev;
-    const f = keresztnev.endsWith("а") ? keresztnev.slice(0, -1) + "і" :
-              keresztnev.endsWith("я") ? keresztnev.slice(0, -1) + "ї" :
-              keresztnev.endsWith("ь") ? keresztnev.slice(0, -1) + "і" : keresztnev + "і";
-    const p = apai_nev ? (apai_nev.endsWith("вна") ? apai_nev.slice(0, -1) + "і" : apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  } else {
-    const s = vezeteknev.endsWith("ий") || vezeteknev.endsWith("ій") ? vezeteknev.slice(0, -2) + "ому" : vezeteknev;
-    const f = keresztnev.endsWith("й") || keresztnev.endsWith("ь") ? keresztnev.slice(0, -1) + "ю" :
-              keresztnev.endsWith("о") ? keresztnev.slice(0, -1) + "у" :
-              keresztnev.endsWith("а") || keresztnev.endsWith("я") ? keresztnev.slice(0, -1) + "і" : keresztnev + "у";
-    const p = apai_nev ? (apai_nev.endsWith("ич") ? apai_nev + "у" : apai_nev) : "";
-    return [s, f, p].filter(Boolean).join(" ");
-  }
+  getWorkerDativeNameAsync(vezeteknev, keresztnev, apai_nev, nem);
+  return [vezeteknev, keresztnev, apai_nev].filter(Boolean).join(" ");
 }
+
+export function getWorkerAccusativeName(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): string {
+  const key = `acc_${vezeteknev}_${keresztnev}_${apai_nev || ""}_${nem || ""}`;
+  if (declensionCache.has(key)) return declensionCache.get(key)!;
+
+  getWorkerAccusativeNameAsync(vezeteknev, keresztnev, apai_nev, nem);
+  return [vezeteknev, keresztnev, apai_nev].filter(Boolean).join(" ");
+}
+
+export function getFopDativeName(
+  vezeteknev: string,
+  keresztnev: string,
+  apai_nev?: string,
+  nem?: string
+): string {
+  return getWorkerDativeName(vezeteknev, keresztnev, apai_nev, nem);
+}
+
+// ─── React Hook & Prewarming Helpers ────────────────────────────────
+
+export async function prewarmWorkerDeclensions(
+  workers: Array<{ vezeteknev: string; keresztnev: string; apai_nev?: string; nem?: string }>
+): Promise<void> {
+  if (!workers || workers.length === 0) return;
+  await Promise.all(
+    workers.flatMap((w) => [
+      getWorkerGenitiveNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+      getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+      getWorkerAccusativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+    ])
+  );
+}
+
+export function useWorkerDeclensions(
+  workers: Array<{ id: number; vezeteknev: string; keresztnev: string; apai_nev?: string; nem?: string }> | undefined
+): Record<number, { genitive: string; dative: string; accusative: string }> {
+  const [declensions, setDeclensions] = useState<
+    Record<number, { genitive: string; dative: string; accusative: string }>
+  >({});
+
+  useEffect(() => {
+    if (!workers || workers.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      workers.map(async (w) => {
+        const [genitive, dative, accusative] = await Promise.all([
+          getWorkerGenitiveNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+          getWorkerDativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+          getWorkerAccusativeNameAsync(w.vezeteknev, w.keresztnev, w.apai_nev, w.nem),
+        ]);
+        return { id: w.id, genitive, dative, accusative };
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      const map: Record<number, { genitive: string; dative: string; accusative: string }> = {};
+      for (const item of results) {
+        map[item.id] = {
+          genitive: item.genitive,
+          dative: item.dative,
+          accusative: item.accusative,
+        };
+      }
+      setDeclensions(map);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workers]);
+
+  return declensions;
+}
+
+// ─── Format & Utility Helpers ───────────────────────────────────────
 
 // Worker Initials (Surname F.P., e.g. "Комарі Г.Ю.")
 export function getWorkerInitials(

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FopData, FolderGroup, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazZvilnennyaRequest, GenerateNakazKasaRequest, GenerateNakazPrroRequest, GenerateNakazShtatRequest, GenerateNakazGrafikVidpustokRequest, NakazFileItem } from "../types/fop";
+import { FopData, FolderGroup, CreateFopFormState, EditFopFormState, CreateWorkerFormState, EditWorkerFormState, Munkas, DiscoveredFopDto, WorkerDayOverride, WorkerPayrollOverride, GenerateZayavaPriyomDocxRequest, GenerateShtatDocxRequest, GenerateGrafikDocxRequest, GenerateNakazPriyomRequest, GenerateNakazZvilnennyaRequest, GenerateNakazKasaRequest, GenerateNakazPrroRequest, GenerateNakazShtatRequest, GenerateNakazGrafikVidpustokRequest, NakazFileItem, DatabaseInfo, DatabaseExportResult, DatabaseImportResult } from "../types/fop";
 import { INITIAL_FOPS } from "../constants/initialData";
 
 const LOCAL_STORAGE_KEY = "kadergo_fops_store_v6";
@@ -552,7 +552,7 @@ export async function previewPayroll(
   year: number,
   month: number,
   minWage: number,
-  workerOverrides: Array<{ worker_id: number; previous_kopeks: number; manual_addition: number }>
+  workerOverrides: Array<{ worker_id: number; previous_kopeks?: number; save_to_db?: boolean; manual_addition: number }>
 ) {
   return await invoke("preview_payroll", {
     fopId,
@@ -569,7 +569,8 @@ export async function previewPayrollPeriod(
   startMonth: number,
   endYear: number,
   endMonth: number,
-  minWage: number
+  minWage: number,
+  workerOverrides: WorkerPayrollOverride[] = []
 ) {
   return await invoke("preview_payroll_period", {
     fopId,
@@ -578,6 +579,7 @@ export async function previewPayrollPeriod(
     endYear,
     endMonth,
     minWage,
+    workerOverrides,
   });
 }
 
@@ -586,7 +588,7 @@ export async function generatePayrollExcel(req: {
   year: number;
   month: number;
   min_wage: number;
-  worker_overrides: Array<{ worker_id: number; previous_kopeks: number; manual_addition: number }>;
+  worker_overrides: WorkerPayrollOverride[];
   save_dir?: string;
 }): Promise<string> {
   return await invoke<string>("generate_payroll_excel", { req });
@@ -599,6 +601,7 @@ export async function generatePayrollPeriodExcel(req: {
   end_year: number;
   end_month: number;
   min_wage: number;
+  worker_overrides?: WorkerPayrollOverride[];
   save_dir?: string;
 }): Promise<string> {
   return await invoke<string>("generate_payroll_period_excel", { req });
@@ -797,6 +800,23 @@ export async function parseFopFolderInfo(folderPath: string): Promise<Discovered
 export async function exportChromeExtension(asZip?: boolean): Promise<string | null> {
   return await invoke<string | null>("export_chrome_extension", { asZip });
 }
+
+export async function getDatabaseInfo(): Promise<DatabaseInfo> {
+  return await invoke<DatabaseInfo>("get_database_info");
+}
+
+export async function exportDatabase(targetPath?: string): Promise<DatabaseExportResult> {
+  return await invoke<DatabaseExportResult>("export_database", { targetPath });
+}
+
+export async function importDatabase(sourcePath?: string): Promise<DatabaseImportResult> {
+  return await invoke<DatabaseImportResult>("import_database", { sourcePath });
+}
+
+export async function openDatabaseFolder(): Promise<string> {
+  return await invoke<string>("open_database_folder");
+}
+
 
 
 

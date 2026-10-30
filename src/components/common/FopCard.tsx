@@ -12,6 +12,7 @@ import { FopData, Munkas } from "../../types/fop";
 import { WorkerCard } from "./WorkerCard";
 import { formatAddressDisplay } from "../../utils/addressUtils";
 import { openFolderInExplorer, pickFopFolder } from "../../services/fopService";
+import { BeanAvatar } from "./BeanAvatar";
 
 interface FopCardProps {
   fop: FopData;
@@ -109,9 +110,15 @@ export const FopCard: React.FC<FopCardProps> = ({
             </svg>
           </div>
 
-          <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-black text-xl shadow-md shrink-0">
-            {fop.vezeteknev.charAt(0)}
-          </div>
+          <BeanAvatar
+            gender={fop.nem}
+            vezeteknev={fop.vezeteknev}
+            keresztnev={fop.keresztnev}
+            apai_nev={fop.apai_nev}
+            id={fop.id}
+            size="lg"
+            className="shadow-md"
+          />
 
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">

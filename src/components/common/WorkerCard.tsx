@@ -1,6 +1,7 @@
 import React from "react";
 import { Munkas } from "../../types/fop";
-import { UserIcon, PencilSquareIcon, TrashIcon, UserMinusIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, TrashIcon, UserMinusIcon } from "@heroicons/react/24/outline";
+import { BeanAvatar } from "./BeanAvatar";
 
 interface WorkerCardProps {
   worker: Munkas;
@@ -29,17 +30,23 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({ worker, onEditClick, onD
       }`}
     >
       <div className="flex items-center gap-4 min-w-0">
-        <div
-          className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-base shrink-0 border ${
-            isDismissed
-              ? "bg-red-100 text-red-700 border-red-200"
-              : "bg-[#e6eeed] text-[#133b47] border-[#cbd8d6]"
-          }`}
-        >
-          {isDismissed ? (
-            <UserMinusIcon className="w-5 h-5 stroke-[2.2]" />
-          ) : (
-            <UserIcon className="w-5 h-5 stroke-[2.2]" />
+        <div className="relative shrink-0">
+          <BeanAvatar
+            gender={worker.nem}
+            vezeteknev={worker.vezeteknev}
+            keresztnev={worker.keresztnev}
+            apai_nev={worker.apai_nev}
+            id={worker.id}
+            size="md"
+            isDismissed={isDismissed}
+          />
+          {isDismissed && (
+            <div
+              className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-xs border-2 border-white"
+              title="Звільнений працівник"
+            >
+              <UserMinusIcon className="w-3 h-3 stroke-[2.8]" />
+            </div>
           )}
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">

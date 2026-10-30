@@ -12,6 +12,7 @@ import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 import { CustomMonthYearPicker } from "../../pickers/CustomMonthYearPicker";
 import { CustomPeriodRangePicker } from "../../pickers/CustomPeriodRangePicker";
 import { WorkerCard } from "../../common/WorkerCard";
+import { BeanAvatar } from "../../common/BeanAvatar";
 import { generateGrafikDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
 import { CreateNakazPromptModal } from "../../modals/CreateNakazPromptModal";
 import { calculateDefaultShtatOrGrafikDate } from "../../../utils/ukrainianDeclension";
@@ -485,9 +486,22 @@ export const GrafikGeneratorView: React.FC<GrafikGeneratorViewProps> = ({
                     {/* Worker Full Name */}
                     <td className="p-4 border-r border-[#cbd8d6] font-extrabold text-sm text-[#133b47]">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#133b47] text-[#f8a44c] text-sm font-black flex items-center justify-center shrink-0 shadow-2xs">
-                          {item.worker_name.charAt(0)}
-                        </div>
+                        {(() => {
+                          const w = activeFop?.munkasok?.find((m) => {
+                            const name = [m.vezeteknev, m.keresztnev, m.apai_nev].filter(Boolean).join(" ");
+                            return name === item.worker_name;
+                          });
+                          return (
+                            <BeanAvatar
+                              id={w?.id}
+                              gender={w?.nem}
+                              familyName={w?.vezeteknev || item.worker_name}
+                              givenName={w?.keresztnev}
+                              patronymicName={w?.apai_nev}
+                              size="sm"
+                            />
+                          );
+                        })()}
                         <span className="text-sm font-extrabold text-[#133b47]">{item.worker_name}</span>
                       </div>
                     </td>

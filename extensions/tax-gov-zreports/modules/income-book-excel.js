@@ -9,7 +9,7 @@ window.KaderGo = window.KaderGo || {};
   'use strict';
 
   const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac x16r2 xr" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac" xmlns:x16r2="http://schemas.microsoft.com/office/spreadsheetml/2015/02/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><numFmts count="2"><numFmt numFmtId="43" formatCode="_-* #,##0.00_-;\\-* #,##0.00_-;_-* &quot;-&quot;??_-;_-@_-"/><numFmt numFmtId="168" formatCode="_-* #,##0.00\\ _₴_-;\\-* #,##0.00\\ _₴_-;_-* &quot;-&quot;??\\ _₴_-;_-@_-"/></numFmts><fonts count="7" x14ac:knownFonts="1"><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="238"/><scheme val="minor"/></font><font><b/><sz val="10"/><color rgb="FF000000"/><name val="Arial"/><family val="2"/><charset val="204"/></font><font><sz val="10"/><color rgb="FF000000"/><name val="Arial"/><family val="2"/><charset val="204"/></font><font><b/><sz val="14"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="204"/><scheme val="minor"/></font><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font><font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="238"/><scheme val="minor"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFC000"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="10"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom/><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top/><bottom/><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top/><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right/><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border></borders><cellStyleXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="43" fontId="5" fillId="0" borderId="0" applyFont="0" applyFill="0" applyBorder="0" applyAlignment="0" applyProtection="0"/><xf numFmtId="168" fontId="5" fillId="0" borderId="0" applyFont="0" applyFill="0" applyBorder="0" applyAlignment="0" applyProtection="0"/></cellStyleXfs><cellXfs count="27"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="2" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="5" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="6" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="7" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="3" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="4" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="43" fontId="4" fillId="3" borderId="8" xfId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="43" fontId="4" fillId="3" borderId="9" xfId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="6" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="6" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="2" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="6" xfId="0" applyFont="1" applyBorder="1"/></cellXfs><cellStyles count="3"><cellStyle name="Ezres" xfId="1" builtinId="3"/><cellStyle name="Ezres 2" xfId="2" xr:uid="{5BA5C384-C1DE-4E8B-B9DA-999DE3DA848C}"/><cellStyle name="Normál" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/><extLst><ext uri="{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:slicerStyles defaultSlicerStyle="SlicerStyleLight1"/></ext><ext uri="{9260A510-F301-46a8-8635-F512D64BE5F5}" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"><x15:timelineStyles defaultTimelineStyle="TimeSlicerStyleLight1"/></ext></extLst></styleSheet>`;
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac x16r2 xr" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac" xmlns:x16r2="http://schemas.microsoft.com/office/spreadsheetml/2015/02/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><numFmts count="2"><numFmt numFmtId="43" formatCode="_-* #,##0.00_-;\\-* #,##0.00_-;_-* &quot;-&quot;??_-;_-@_-"/><numFmt numFmtId="168" formatCode="_-* #,##0.00\\ _₴_-;\\-* #,##0.00\\ _₴_-;_-* &quot;-&quot;??\\ _₴_-;_-@_-"/></numFmts><fonts count="7" x14ac:knownFonts="1"><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="238"/><scheme val="minor"/></font><font><b/><sz val="10"/><color rgb="FF000000"/><name val="Arial"/><family val="2"/><charset val="204"/></font><font><sz val="10"/><color rgb="FF000000"/><name val="Arial"/><family val="2"/><charset val="204"/></font><font><b/><sz val="14"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="204"/><scheme val="minor"/></font><font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font><font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><charset val="238"/><scheme val="minor"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFC000"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF92D050"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="10"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom/><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top/><bottom/><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top/><bottom/><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left style="thin"><color indexed="64"/></left><right/><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border><border><left/><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border></borders><cellStyleXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="43" fontId="5" fillId="0" borderId="0" applyFont="0" applyFill="0" applyBorder="0" applyAlignment="0" applyProtection="0"/><xf numFmtId="168" fontId="5" fillId="0" borderId="0" applyFont="0" applyFill="0" applyBorder="0" applyAlignment="0" applyProtection="0"/></cellStyleXfs><cellXfs count="33"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="2" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="5" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="6" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="7" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="3" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="4" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="43" fontId="4" fillId="3" borderId="8" xfId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="43" fontId="4" fillId="3" borderId="9" xfId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="6" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="6" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="2" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="2" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="6" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="6" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="2" fontId="6" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="2" fontId="6" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="43" fontId="6" fillId="3" borderId="1" xfId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="43" fontId="6" fillId="4" borderId="1" xfId="1" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs><cellStyles count="3"><cellStyle name="Ezres" xfId="1" builtinId="3"/><cellStyle name="Ezres 2" xfId="2" xr:uid="{5BA5C384-C1DE-4E8B-B9DA-999DE3DA848C}"/><cellStyle name="Normál" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/><extLst><ext uri="{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:slicerStyles defaultSlicerStyle="SlicerStyleLight1"/></ext><ext uri="{9260A510-F301-46a8-8635-F512D64BE5F5}" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"><x15:timelineStyles defaultTimelineStyle="TimeSlicerStyleLight1"/></ext></extLst></styleSheet>`;
 
   /**
    * Generates a 1:1 replica of "Книга обліку доходів єдиний за {year} рік.xlsx"
@@ -18,7 +18,7 @@ window.KaderGo = window.KaderGo || {};
    * @param {Object} params.monthlyData - Map of month number (1..12) to { sales: number, returns: number }
    * @returns {{ uint8: Uint8Array, blob: Blob, fileName: string }}
    */
-  function buildIncomeBookXlsxData({ year, monthlyData = {} }) {
+  function buildIncomeBookXlsxData({ year, monthlyData = {}, includeQuarters = true }) {
     const { SimpleZip } = window.KaderGo.Zip;
     const zip = new SimpleZip();
     const strYear = String(year);
@@ -135,6 +135,17 @@ window.KaderGo = window.KaderGo || {};
       `Оборот за ${strYear} рік` // 32
     ];
 
+    if (includeQuarters) {
+      sharedStrings.push(
+        'I квартал', // 33
+        'II квартал', // 34
+        'III квартал', // 35
+        'IV квартал', // 36
+        'Ліміт 3 група', // 37
+        `Залишилося у ${strYear} році` // 38
+      );
+    }
+
     let ssXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="100" uniqueCount="${sharedStrings.length}">\n`;
     for (const str of sharedStrings) {
       const esc = String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -143,11 +154,29 @@ window.KaderGo = window.KaderGo || {};
     ssXml += `</sst>`;
     zip.addFile('xl/sharedStrings.xml', ssXml);
 
+    // Calculate quarterly amounts and cumulative totals
+    const monthNets = {};
+    for (let mi = 1; mi <= 12; mi++) {
+      const mD = monthlyData[mi] || { sales: 0, returns: 0 };
+      const s = Math.round((Number(mD.sales) || 0) * 100) / 100;
+      const r = Math.round((Number(mD.returns) || 0) * 100) / 100;
+      monthNets[mi] = Math.round((s - r) * 100) / 100;
+    }
+    const q1 = Math.round(((monthNets[1] || 0) + (monthNets[2] || 0) + (monthNets[3] || 0)) * 100) / 100;
+    const q2 = Math.round(((monthNets[4] || 0) + (monthNets[5] || 0) + (monthNets[6] || 0)) * 100) / 100;
+    const q3 = Math.round(((monthNets[7] || 0) + (monthNets[8] || 0) + (monthNets[9] || 0)) * 100) / 100;
+    const q4 = Math.round(((monthNets[10] || 0) + (monthNets[11] || 0) + (monthNets[12] || 0)) * 100) / 100;
+    const cum2 = Math.round((q1 + q2) * 100) / 100;
+    const cum3 = Math.round((cum2 + q3) * 100) / 100;
+    const cum4 = Math.round((cum3 + q4) * 100) / 100;
+
+    const maxCol = includeQuarters ? '1:13' : '1:10';
+
     // 9. xl/worksheets/sheet1.xml
     let sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">
   <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
-  <dimension ref="A1:J48"/>
+  <dimension ref="${includeQuarters ? 'A1:M52' : 'A1:J48'}"/>
   <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
   <sheetFormatPr defaultRowHeight="15"/>
   <cols>
@@ -161,16 +190,19 @@ window.KaderGo = window.KaderGo || {};
     <col min="8" max="8" width="11" customWidth="1"/>
     <col min="9" max="9" width="9.5703125" customWidth="1"/>
     <col min="10" max="10" width="9.5703125" bestFit="1" customWidth="1"/>
+    ${includeQuarters ? `<col min="11" max="11" width="13" customWidth="1"/>
+    <col min="12" max="12" width="14" customWidth="1"/>
+    <col min="13" max="13" width="14" customWidth="1"/>` : ''}
   </cols>
   <sheetData>
-    <row r="1" spans="1:10"><c r="F1" s="4" t="s"><v>8</v></c></row>
-    <row r="2" spans="1:10"><c r="F2" s="4" t="s"><v>9</v></c></row>
-    <row r="3" spans="1:10"><c r="F3" s="4" t="s"><v>10</v></c></row>
-    <row r="5" spans="1:10"><c r="B5" s="12" t="s"><v>0</v></c><c r="C5" s="12"/><c r="D5" s="12"/><c r="E5" s="12"/><c r="F5" s="12"/><c r="G5" s="12"/><c r="H5" s="12"/><c r="I5" s="12"/></row>
-    <row r="6" spans="1:10" ht="30.75" customHeight="1"><c r="B6" s="13" t="s"><v>11</v></c><c r="C6" s="13"/><c r="D6" s="13"/><c r="E6" s="13"/><c r="F6" s="13"/><c r="G6" s="13"/><c r="H6" s="13"/><c r="I6" s="13"/></row>
-    <row r="7" spans="1:10"><c r="A7" s="14" t="s"><v>12</v></c><c r="B7" s="15" t="s"><v>1</v></c><c r="C7" s="18" t="s"><v>2</v></c><c r="D7" s="18"/><c r="E7" s="18"/><c r="F7" s="18"/><c r="G7" s="18"/><c r="H7" s="19" t="s"><v>3</v></c><c r="I7" s="19"/><c r="J7" s="9" t="s"><v>13</v></c></row>
-    <row r="8" spans="1:10"><c r="A8" s="14"/><c r="B8" s="16"/><c r="C8" s="10" t="s"><v>4</v></c><c r="D8" s="10"/><c r="E8" s="10"/><c r="F8" s="11" t="s"><v>14</v></c><c r="G8" s="10" t="s"><v>5</v></c><c r="H8" s="10" t="s"><v>3</v></c><c r="I8" s="10"/><c r="J8" s="9"/></row>
-    <row r="9" spans="1:10" ht="135" customHeight="1"><c r="A9" s="14"/><c r="B9" s="17"/><c r="C9" s="5" t="s"><v>15</v></c><c r="D9" s="5" t="s"><v>7</v></c><c r="E9" s="5" t="s"><v>16</v></c><c r="F9" s="11"/><c r="G9" s="10"/><c r="H9" s="5" t="s"><v>6</v></c><c r="I9" s="5" t="s"><v>17</v></c><c r="J9" s="9"/></row>
+    <row r="1" spans="${maxCol}"><c r="F1" s="4" t="s"><v>8</v></c></row>
+    <row r="2" spans="${maxCol}"><c r="F2" s="4" t="s"><v>9</v></c></row>
+    <row r="3" spans="${maxCol}"><c r="F3" s="4" t="s"><v>10</v></c></row>
+    <row r="5" spans="${maxCol}"><c r="B5" s="12" t="s"><v>0</v></c><c r="C5" s="12"/><c r="D5" s="12"/><c r="E5" s="12"/><c r="F5" s="12"/><c r="G5" s="12"/><c r="H5" s="12"/><c r="I5" s="12"/></row>
+    <row r="6" spans="${maxCol}" ht="30.75" customHeight="1"><c r="B6" s="13" t="s"><v>11</v></c><c r="C6" s="13"/><c r="D6" s="13"/><c r="E6" s="13"/><c r="F6" s="13"/><c r="G6" s="13"/><c r="H6" s="13"/><c r="I6" s="13"/></row>
+    <row r="7" spans="${maxCol}"><c r="A7" s="14" t="s"><v>12</v></c><c r="B7" s="15" t="s"><v>1</v></c><c r="C7" s="18" t="s"><v>2</v></c><c r="D7" s="18"/><c r="E7" s="18"/><c r="F7" s="18"/><c r="G7" s="18"/><c r="H7" s="19" t="s"><v>3</v></c><c r="I7" s="19"/><c r="J7" s="9" t="s"><v>13</v></c></row>
+    <row r="8" spans="${maxCol}"><c r="A8" s="14"/><c r="B8" s="16"/><c r="C8" s="10" t="s"><v>4</v></c><c r="D8" s="10"/><c r="E8" s="10"/><c r="F8" s="11" t="s"><v>14</v></c><c r="G8" s="10" t="s"><v>5</v></c><c r="H8" s="10" t="s"><v>3</v></c><c r="I8" s="10"/><c r="J8" s="9"/></row>
+    <row r="9" spans="${maxCol}" ht="135" customHeight="1"><c r="A9" s="14"/><c r="B9" s="17"/><c r="C9" s="5" t="s"><v>15</v></c><c r="D9" s="5" t="s"><v>7</v></c><c r="E9" s="5" t="s"><v>16</v></c><c r="F9" s="11"/><c r="G9" s="10"/><c r="H9" s="5" t="s"><v>6</v></c><c r="I9" s="5" t="s"><v>17</v></c><c r="J9" s="9"/></row>
 `;
 
     let totalEVal = 0;
@@ -189,7 +221,7 @@ window.KaderGo = window.KaderGo || {};
       totalCashVal = Math.round((totalCashVal + net) * 100) / 100;
 
       // Header row of month (yellow fill, row height 15)
-      sheetXml += `    <row r="${R}" spans="1:10">`;
+      sheetXml += `    <row r="${R}" spans="${maxCol}">`;
       sheetXml += `<c r="A${R}" s="6"><v>${m}</v></c>`;
       sheetXml += `<c r="B${R}" s="22" t="s"><v>${monthStrIdx}</v></c>`;
       sheetXml += `<c r="C${R}" s="23"><f>C${R + 1}+C${R + 2}</f><v>${sales}</v></c>`;
@@ -198,10 +230,25 @@ window.KaderGo = window.KaderGo || {};
       sheetXml += `<c r="F${R}" s="23"/>`;
       sheetXml += `<c r="G${R}" s="23"><f>E${R}</f><v>${net}</v></c>`;
       sheetXml += `<c r="H${R}" s="23"/><c r="I${R}" s="23"/><c r="J${R}" s="23"/>`;
+
+      if (includeQuarters) {
+        if (m === 3) {
+          sheetXml += `<c r="K16" s="27" t="s"><v>33</v></c>`;
+          sheetXml += `<c r="L16" s="28"><f>E10+E13+E16</f><v>${q1}</v></c>`;
+        } else if (m === 6) {
+          sheetXml += `<c r="K25" s="27" t="s"><v>34</v></c>`;
+          sheetXml += `<c r="L25" s="28"><f>E19+E22+E25</f><v>${q2}</v></c>`;
+          sheetXml += `<c r="M25" s="29"><f>L16+L25</f><v>${cum2}</v></c>`;
+        } else if (m === 9) {
+          sheetXml += `<c r="K34" s="27" t="s"><v>35</v></c>`;
+          sheetXml += `<c r="L34" s="28"><f>E28+E31+E34</f><v>${q3}</v></c>`;
+          sheetXml += `<c r="M34" s="29"><f>M25+L34</f><v>${cum3}</v></c>`;
+        }
+      }
       sheetXml += `</row>\n`;
 
       // Cash row
-      sheetXml += `    <row r="${R + 1}" spans="1:10">`;
+      sheetXml += `    <row r="${R + 1}" spans="${maxCol}">`;
       sheetXml += `<c r="A${R + 1}" s="7"/>`;
       sheetXml += `<c r="B${R + 1}" s="3" t="s"><v>19</v></c>`;
       sheetXml += `<c r="C${R + 1}" s="2"><v>${sales}</v></c>`;
@@ -213,7 +260,7 @@ window.KaderGo = window.KaderGo || {};
       sheetXml += `</row>\n`;
 
       // Cashless row
-      sheetXml += `    <row r="${R + 2}" spans="1:10">`;
+      sheetXml += `    <row r="${R + 2}" spans="${maxCol}">`;
       sheetXml += `<c r="A${R + 2}" s="8"/>`;
       sheetXml += `<c r="B${R + 2}" s="3" t="s"><v>20</v></c>`;
       sheetXml += `<c r="C${R + 2}" s="2"><v>0</v></c>`;
@@ -222,57 +269,106 @@ window.KaderGo = window.KaderGo || {};
       sheetXml += `<c r="F${R + 2}" s="2"/>`;
       sheetXml += `<c r="G${R + 2}" s="2"><f>E${R + 2}</f><v>0</v></c>`;
       sheetXml += `<c r="H${R + 2}" s="2"/><c r="I${R + 2}" s="2"/><c r="J${R + 2}" s="2"/>`;
+
+      if (includeQuarters && m === 12) {
+        sheetXml += `<c r="K45" s="27" t="s"><v>36</v></c>`;
+        sheetXml += `<c r="L45" s="28"><f>E37+E40+E43</f><v>${q4}</v></c>`;
+        sheetXml += `<c r="M45" s="29"><f>M34+L45</f><v>${cum4}</v></c>`;
+      }
       sheetXml += `</row>\n`;
     }
 
     // Row 46: Оборот за рік (merged C46:D46, amber highlight)
-    sheetXml += `    <row r="46" spans="1:10" ht="18.75" customHeight="1">`;
+    sheetXml += `    <row r="46" spans="${maxCol}" ht="18.75" customHeight="1">`;
     sheetXml += `<c r="B46" s="26" t="s"><v>32</v></c>`;
     sheetXml += `<c r="C46" s="20"><f>E10+E13+E16+E19+E22+E25+E28+E31+E34+E37+E40+E43</f><v>${totalEVal}</v></c>`;
     sheetXml += `<c r="D46" s="21"/>`;
     sheetXml += `</row>\n`;
 
     // Row 47: в тому ч. готівка
-    sheetXml += `    <row r="47" spans="1:10">`;
+    sheetXml += `    <row r="47" spans="${maxCol}">`;
     sheetXml += `<c r="B47" s="3" t="s"><v>19</v></c>`;
     sheetXml += `<c r="C47" s="1"><f>E44+E41+E38+E35+E32+E29+E26+E23+E20+E17+E14+E11</f><v>${totalCashVal}</v></c>`;
     sheetXml += `</row>\n`;
 
     // Row 48: в тому ч. без готівка
-    sheetXml += `    <row r="48" spans="1:10">`;
+    sheetXml += `    <row r="48" spans="${maxCol}">`;
     sheetXml += `<c r="B48" s="3" t="s"><v>20</v></c>`;
     sheetXml += `<c r="C48" s="1"><f>E45+E42+E39+E36+E33+E30+E27+E24+E21+E18+E15+E12</f><v>0</v></c>`;
     sheetXml += `</row>\n`;
 
+    if (includeQuarters) {
+      const yrNum = parseInt(strYear, 10) || new Date().getFullYear();
+      let limitVal = 9336000;
+      if (yrNum <= 2023) {
+        limitVal = 7818900;
+      } else if (yrNum === 2024) {
+        limitVal = 8285700;
+      } else if (yrNum === 2025) {
+        limitVal = 9336000;
+      } else {
+        // 2026-tól a minimálbér 8 647 грн (1167 * 8647)
+        limitVal = 10091049;
+      }
+      const remainingVal = Math.round((limitVal - totalEVal) * 100) / 100;
+
+      // Row 50: blank spacer
+      sheetXml += `    <row r="50" spans="${maxCol}"/>\n`;
+
+      // Row 51: Ліміт 3 група
+      sheetXml += `    <row r="51" spans="${maxCol}">`;
+      sheetXml += `<c r="B51" s="27" t="s"><v>37</v></c>`;
+      sheetXml += `<c r="C51" s="31"><v>${limitVal}</v></c>`;
+      sheetXml += `<c r="D51" s="31"/>`;
+      sheetXml += `</row>\n`;
+
+      // Row 52: Залишилося у {year} році
+      sheetXml += `    <row r="52" spans="${maxCol}">`;
+      sheetXml += `<c r="B52" s="30" t="s"><v>38</v></c>`;
+      sheetXml += `<c r="C52" s="32"><f>C51-C46</f><v>${remainingVal}</v></c>`;
+      sheetXml += `<c r="D52" s="32"/>`;
+      sheetXml += `</row>\n`;
+    }
+
+    const mergeCells = [
+      'A10:A12',
+      'B5:I5',
+      'B6:I6',
+      'A7:A9',
+      'B7:B9',
+      'C7:G7',
+      'H7:I7',
+      'J7:J9',
+      'C8:E8',
+      'F8:F9',
+      'G8:G9',
+      'H8:I8',
+      'C46:D46',
+      'A13:A15',
+      'A16:A18',
+      'A19:A21',
+      'A22:A24',
+      'A25:A27',
+      'A28:A30',
+      'A31:A33',
+      'A34:A36',
+      'A37:A39',
+      'A40:A42',
+      'A43:A45'
+    ];
+
+    if (includeQuarters) {
+      mergeCells.push('C51:D51', 'C52:D52');
+    }
+
     sheetXml += `  </sheetData>
-  <mergeCells count="24">
-    <mergeCell ref="A10:A12"/>
-    <mergeCell ref="B5:I5"/>
-    <mergeCell ref="B6:I6"/>
-    <mergeCell ref="A7:A9"/>
-    <mergeCell ref="B7:B9"/>
-    <mergeCell ref="C7:G7"/>
-    <mergeCell ref="H7:I7"/>
-    <mergeCell ref="J7:J9"/>
-    <mergeCell ref="C8:E8"/>
-    <mergeCell ref="F8:F9"/>
-    <mergeCell ref="G8:G9"/>
-    <mergeCell ref="H8:I8"/>
-    <mergeCell ref="C46:D46"/>
-    <mergeCell ref="A13:A15"/>
-    <mergeCell ref="A16:A18"/>
-    <mergeCell ref="A19:A21"/>
-    <mergeCell ref="A22:A24"/>
-    <mergeCell ref="A25:A27"/>
-    <mergeCell ref="A28:A30"/>
-    <mergeCell ref="A31:A33"/>
-    <mergeCell ref="A34:A36"/>
-    <mergeCell ref="A37:A39"/>
-    <mergeCell ref="A40:A42"/>
-    <mergeCell ref="A43:A45"/>
-  </mergeCells>
+  <mergeCells count="${mergeCells.length}">\n`;
+    for (const ref of mergeCells) {
+      sheetXml += `    <mergeCell ref="${ref}"/>\n`;
+    }
+    sheetXml += `  </mergeCells>
   <pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>
-  <pageSetup paperSize="9" scale="76" orientation="portrait" verticalDpi="0"/>
+  <pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 </worksheet>`;
 
     zip.addFile('xl/worksheets/sheet1.xml', sheetXml);

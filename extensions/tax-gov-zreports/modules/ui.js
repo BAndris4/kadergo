@@ -93,24 +93,30 @@ window.KaderGo = window.KaderGo || {};
     btnEl.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
+      await openExportModal();
+    });
 
-      // If downloading and minimized to background, clicking the button restores the modal!
-      if (window.KaderGo.Exporter && window.KaderGo.Exporter.isDownloading()) {
-        if (window.KaderGo.Modal && typeof window.KaderGo.Modal.restoreModal === 'function') {
-          window.KaderGo.Modal.restoreModal();
-        }
-        return;
-      }
+    wrapperEl.appendChild(btnEl);
+  }
 
-      if (!window.KaderGo.Modal || typeof window.KaderGo.Modal.openUnifiedExportModal !== 'function') {
-        return;
+  async function openExportModal(customOpts = {}) {
+    // If downloading and minimized to background, clicking the button restores the modal!
+    if (window.KaderGo.Exporter && window.KaderGo.Exporter.isDownloading()) {
+      if (window.KaderGo.Modal && typeof window.KaderGo.Modal.restoreModal === 'function') {
+        window.KaderGo.Modal.restoreModal();
       }
+      return;
+    }
 
-      const modalRes = await window.KaderGo.Modal.openUnifiedExportModal();
-      if (!modalRes || !modalRes.proceed) {
-        console.log('[KaderGo] Експорт скасовано користувачем.');
-        return;
-      }
+    if (!window.KaderGo.Modal || typeof window.KaderGo.Modal.openUnifiedExportModal !== 'function') {
+      return;
+    }
+
+    const modalRes = await window.KaderGo.Modal.openUnifiedExportModal(customOpts);
+    if (!modalRes || !modalRes.proceed) {
+      console.log('[KaderGo] Експорт скасовано користувачем.');
+      return;
+    }
 
       const setLoadingState = (loading, initialStatus) => {
         if (loading) {
@@ -207,7 +213,11 @@ window.KaderGo = window.KaderGo || {};
         const currentYear = new Date().getFullYear();
         const res = await window.KaderGo.Exporter.downloadYearIncomeBookAndReports({
           year: modalRes.year || currentYear,
+          fromStr: modalRes.fromStr,
+          toStr: modalRes.toStr,
+          intervals: modalRes.intervals,
           exportFormat: modalRes.format || 'book',
+          includeQuarters: modalRes.includeQuarters !== false,
           flow: modalRes.flow,
           onStart: () => setLoadingState(true, 'Підготовка...'),
           onProgress: progressCallback,
@@ -216,9 +226,6 @@ window.KaderGo = window.KaderGo || {};
         });
         handleDone(res);
       }
-    });
-
-    wrapperEl.appendChild(btnEl);
   }
 
   function updateUI() {
@@ -289,6 +296,7 @@ window.KaderGo = window.KaderGo || {};
     isTargetPage,
     ensureButtonCreated,
     updateUI,
+    openExportModal,
     init: startObserverAndPolling
   };
 })();

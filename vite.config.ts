@@ -9,6 +9,12 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), react()],
 
+  resolve: {
+    alias: {
+      beanheads: "beanheads/dist/beanheads.esm.js",
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   clearScreen: false,
   server: {

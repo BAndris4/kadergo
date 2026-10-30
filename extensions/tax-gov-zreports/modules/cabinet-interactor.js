@@ -96,13 +96,17 @@ window.KaderGo = window.KaderGo || {};
 
   function findAutocompleteElements() {
     const comp = document.querySelector('p-autocomplete[formcontrolname="fn"]') ||
+                 document.querySelector('p-autocomplete[name="fn"]') ||
                  document.querySelector('p-autocomplete');
-    if (!comp) return null;
 
-    const input = comp.querySelector('input.p-autocomplete-input') || comp.querySelector('input');
-    const dropdownBtn = comp.querySelector('button.p-autocomplete-dropdown') || comp.querySelector('button');
+    let input = comp ? (comp.querySelector('input.p-autocomplete-input') || comp.querySelector('input')) : null;
+    if (!input) {
+      input = document.querySelector('input[placeholder*="РРО"], input[placeholder*="рро"], input[placeholder*="фіскальн"], input[formcontrolname="fn"]');
+    }
 
-    return { comp, input, dropdownBtn };
+    const dropdownBtn = comp ? (comp.querySelector('button.p-autocomplete-dropdown') || comp.querySelector('button')) : null;
+
+    return { comp: comp || (input ? input.closest('.p-autocomplete') : null), input, dropdownBtn };
   }
 
   function isAutocompleteLoading() {
@@ -406,13 +410,21 @@ window.KaderGo = window.KaderGo || {};
 
   function getCurrentlySelectedFiscalNumber() {
     const auto = findAutocompleteElements();
-    if (auto && auto.input && auto.input.value) {
-      const val = auto.input.value.trim();
-      // '400' сама по собі не є номером
-      if (val !== '400') {
-        const match = val.match(/\b(400\d{5,})\b/) || val.match(/\b(400\d{3,})\b/);
+    if (auto && auto.input) {
+      const val = (auto.input.value || auto.input.getAttribute('value') || '').trim();
+      // '400' сама по собі не є повним номером
+      if (val && val !== '400') {
+        const match = val.match(/\b(400\d{3,})\b/) || val.match(/\b(\d{7,12})\b/);
         if (match) return match[1];
       }
+    }
+
+    // Перевіряємо виділений або єдиний елемент списку autocomplete
+    const activeItem = document.querySelector('.p-autocomplete-panel li.p-highlight, .p-autocomplete-panel li[aria-selected="true"], .p-autocomplete-token-label');
+    if (activeItem) {
+      const txt = (activeItem.textContent || '').trim();
+      const match = txt.match(/\b(400\d{3,})\b/) || txt.match(/\b(\d{7,12})\b/);
+      if (match) return match[1];
     }
 
     const Scraper = window.KaderGo.Scraper;
@@ -421,7 +433,7 @@ window.KaderGo = window.KaderGo || {};
       const tds = table.querySelectorAll('tbody td');
       for (const td of tds) {
         const text = (td.textContent || '').trim();
-        const match = text.match(/\b(400\d{5,})\b/) || text.match(/\b(400\d{3,})\b/);
+        const match = text.match(/\b(400\d{3,})\b/) || text.match(/\b(\d{7,12})\b/);
         if (match) return match[1];
       }
     }
@@ -465,25 +477,46 @@ window.KaderGo = window.KaderGo || {};
     const Scraper = window.KaderGo.Scraper;
     const table = Scraper ? Scraper.findTable() : document.querySelector('table');
     if (table) {
-      const emptyRow = table.querySelector('.p-datatable-emptymessage');
+      const emptyRow = table.querySelector('.p-datatable-emptymessage, .p-datatable-empty-message');
       if (emptyRow && window.getComputedStyle(emptyRow).display !== 'none') {
         return true;
       }
       const tbody = table.querySelector('tbody');
       if (tbody) {
         const text = (tbody.textContent || '').toLowerCase();
-        if (text.includes('даних не знайдено') || text.includes('не знайдено записів') || text.includes('не знайдено')) {
+        if (text.includes('даних не знайдено') || text.includes('не знайдено записів') || text.includes('не знайдено') || text.includes('немає даних')) {
           return true;
         }
       }
     }
 
     const container = document.querySelector('app-eltype-z-sod') || document.body;
-    const msgs = container.querySelectorAll('.p-messages, .p-message, .p-datatable-emptymessage, .alert, .ui-messages');
+    const msgs = container.querySelectorAll('.p-messages, .p-message, .p-datatable-emptymessage, .p-datatable-empty-message, .alert, .ui-messages');
     for (let i = 0; i < msgs.length; i++) {
       const txt = (msgs[i].textContent || '').toLowerCase();
-      if (txt.includes('даних не знайдено') || txt.includes('не знайдено')) {
+      if (txt.includes('даних не знайдено') || txt.includes('не знайдено') || txt.includes('немає даних')) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  function hasValidDataRows(tbody, targetFn) {
+    if (!tbody) return false;
+    const cleanFn = targetFn ? String(targetFn).trim() : null;
+    const rows = tbody.querySelectorAll('tr');
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.cells && row.cells.length > 3 &&
+          !row.classList.contains('p-datatable-emptymessage') &&
+          !row.classList.contains('p-datatable-empty-message')) {
+        const rowText = row.textContent || '';
+        if (rowText.toLowerCase().includes('даних не знайдено') || rowText.toLowerCase().includes('не знайдено')) {
+          continue;
+        }
+        if (!cleanFn || rowText.includes(cleanFn)) {
+          return true;
+        }
       }
     }
     return false;
@@ -523,97 +556,89 @@ window.KaderGo = window.KaderGo || {};
     if (!table) return false;
 
     const tbody = table.querySelector('tbody');
-    if (!tbody) return false;
-
-    if (tbody.querySelector('.p-datatable-emptymessage')) {
-      return false;
-    }
-
-    const rows = tbody.querySelectorAll('tr');
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.cells && row.cells.length > 3 && !row.classList.contains('p-datatable-emptymessage')) {
-        if (!targetFn || (row.textContent || '').includes(targetFn)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return hasValidDataRows(tbody, targetFn);
   }
 
   async function waitForTableReady(targetFn, oldFingerprint, maxWaitMs) {
-    const timeout = maxWaitMs || (window.KaderGo.Config && window.KaderGo.Config.MAX_TABLE_WAIT_MS) || 30000;
+    const timeout = maxWaitMs || (window.KaderGo.Config && window.KaderGo.Config.MAX_TABLE_WAIT_MS) || 15000;
     const Scraper = window.KaderGo.Scraper;
     const start = Date.now();
     let sawLoading = false;
-    await delay(300);
+    const cleanFn = targetFn ? String(targetFn).trim() : null;
+    await delay(250);
 
     while (Date.now() - start < timeout) {
-      // 1. Швидкий перехід: якщо з'явився напис «Даних не знайдено» — миттєво повертаємося без очікування
+      // 1. Швидкий перехід: напис «Даних не знайдено»
       if (hasEmptyStateMessage()) {
         console.log('[KaderGo] Виявлено «Даних не знайдено» — миттєвий перехід далі.');
         await delay(100);
         return { ready: true, hasData: false };
       }
 
-      // 2. Якщо спінер/маска завантаження активні — сайт обробляє запит, фіксуємо завантаження
+      // 2. Якщо спінер/маска завантаження активні — фіксуємо завантаження
       const mask = document.querySelector('.p-datatable-mask, .p-datatable-loading-overlay, .p-datatable-loading-icon, .pi-spin');
-      if (mask && window.getComputedStyle(mask).display !== 'none') {
+      const isMaskVisible = mask && window.getComputedStyle(mask).display !== 'none';
+      if (isMaskVisible) {
         sawLoading = true;
         await delay(150);
         continue;
       }
 
-      // 3. Перевіряємо наявність оновлених рядків у таблиці
+      // 3. Якщо маска була активна і щойно зникла — запит завершено
       const table = Scraper ? Scraper.findTable() : document.querySelector('table');
-      if (table) {
-        const tbody = table.querySelector('tbody');
-        if (tbody) {
-          if (tbody.querySelector('.p-datatable-emptymessage')) {
-            return { ready: true, hasData: false };
+      const tbody = table ? table.querySelector('tbody') : null;
+
+      if (sawLoading && !isMaskVisible) {
+        if (hasEmptyStateMessage()) {
+          await delay(100);
+          return { ready: true, hasData: false };
+        }
+        if (hasValidDataRows(tbody, cleanFn)) {
+          await delay(200);
+          return { ready: true, hasData: true };
+        } else {
+          await delay(100);
+          return { ready: true, hasData: false };
+        }
+      }
+
+      // 4. Якщо маска не фіксувалась (швидка відповідь) або оновлюється безпосередньо DOM
+      if (tbody) {
+        if (hasEmptyStateMessage()) {
+          await delay(100);
+          return { ready: true, hasData: false };
+        }
+
+        const currentFingerprint = tbody.innerText || '';
+
+        if (oldFingerprint) {
+          if (currentFingerprint !== oldFingerprint && currentFingerprint.length > 0) {
+            if (hasValidDataRows(tbody, cleanFn)) {
+              await delay(200);
+              return { ready: true, hasData: true };
+            } else {
+              await delay(100);
+              return { ready: true, hasData: false };
+            }
           }
 
-          const currentFingerprint = tbody.innerText || '';
-
-          // Якщо була активна маска завантаження і вона щойно зникла з даними — запит завершено
-          if (sawLoading && currentFingerprint.length > 0) {
+          if (Date.now() - start > 1800 && hasValidDataRows(tbody, cleanFn)) {
+            await delay(150);
+            return { ready: true, hasData: true };
+          }
+        } else {
+          if (hasValidDataRows(tbody, cleanFn)) {
             await delay(200);
             return { ready: true, hasData: true };
           }
+        }
 
-          if (oldFingerprint) {
-            // Якщо таблиця містила попередні дані — чекаємо оновлення вмісту
-            if (currentFingerprint !== oldFingerprint && currentFingerprint.length > 0) {
-              await delay(200);
-              return { ready: true, hasData: true };
-            }
-
-            // Якщо минуло понад 1.8с без спінера, і рядки відповідають targetFn (дані вже були або повернулися ідентичні)
-            if (Date.now() - start > 1800) {
-              const rows = tbody.querySelectorAll('tr');
-              for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                if (row.cells && row.cells.length > 3 && !row.classList.contains('p-datatable-emptymessage')) {
-                  if (!targetFn || (row.textContent || '').includes(targetFn)) {
-                    await delay(150);
-                    return { ready: true, hasData: true };
-                  }
-                }
-              }
-            }
+        // Якщо минуло понад 3.5 секунди без спінера і немає рядків — не зависаємо на 30с
+        if (Date.now() - start > 3500 && !sawLoading) {
+          if (hasValidDataRows(tbody, cleanFn)) {
+            return { ready: true, hasData: true };
           } else {
-            // Якщо таблиця спочатку була порожньою — шукаємо появу рядків
-            const rows = tbody.querySelectorAll('tr');
-            for (let i = 0; i < rows.length; i++) {
-              const row = rows[i];
-              if (row.cells && row.cells.length > 3 && !row.classList.contains('p-datatable-emptymessage')) {
-                if (!targetFn || (row.textContent || '').includes(targetFn)) {
-                  await delay(200);
-                  return { ready: true, hasData: true };
-                }
-              }
-            }
+            return { ready: true, hasData: false };
           }
         }
       }
@@ -622,6 +647,255 @@ window.KaderGo = window.KaderGo || {};
     }
 
     return { ready: false, hasData: false };
+  }
+
+  // ==============================================================================
+  // FOP Group Autodetection (from https://cabinet.tax.gov.ua/account)
+  // ==============================================================================
+
+  function normalizeGroupNumber(raw) {
+    if (!raw) return null;
+    const str = String(raw).trim();
+    if (!str) return null;
+
+    // Direct digit 1-4
+    if (/^[1-4]$/.test(str)) return str;
+
+    // Roman numerals (Latin I, V or Cyrillic І, V)
+    if (/^(?:III|ІІІ|iii|ііі)$/i.test(str)) return '3';
+    if (/^(?:II|ІІ|ii|іі)$/i.test(str)) return '2';
+    if (/^(?:IV|ІV|iv|іv)$/i.test(str)) return '4';
+    if (/^(?:I|І|i|і)$/i.test(str)) return '1';
+
+    // Ukrainian words
+    if (/(?:трет|3\s*-?\s*т)/i.test(str)) return '3';
+    if (/(?:друг|2\s*-?\s*г)/i.test(str)) return '2';
+    if (/(?:перш|1\s*-?\s*ш)/i.test(str)) return '1';
+    if (/(?:четверт|4\s*-?\s*т)/i.test(str)) return '4';
+
+    // Matches like "3 група", "Група: 3", "3-тя група", "III група"
+    const mNum = str.match(/\b([1-4])\s*(?:-?\s*(?:тя|га|ша|та))?\s*груп/i) ||
+                 str.match(/груп[аи]?\s*[:\-–—]?\s*([1-4])\b/i) ||
+                 str.match(/\b([1-4])\b/);
+    if (mNum && mNum[1] && /^[1-4]$/.test(mNum[1])) {
+      return mNum[1];
+    }
+
+    const mRom = str.match(/\b(III|ІІІ|II|ІІ|IV|ІV|I|І)\s*груп/i) ||
+                 str.match(/груп[аи]?\s*[:\-–—]?\s*(III|ІІІ|II|ІІ|IV|ІV|I|І)\b/i);
+    if (mRom && mRom[1]) {
+      const r = mRom[1].toUpperCase();
+      if (r === 'III' || r === 'ІІІ') return '3';
+      if (r === 'II' || r === 'ІІ') return '2';
+      if (r === 'IV' || r === 'ІV') return '4';
+      if (r === 'I' || r === 'І') return '1';
+    }
+
+    return null;
+  }
+
+  function extractFopGroupFromDom(doc) {
+    if (!doc) return null;
+
+    try {
+      // 1. Check Table Rows (most common in Tax Cabinet)
+      const rows = doc.querySelectorAll('tr');
+      for (const tr of rows) {
+        const rowText = (tr.textContent || '').toLowerCase();
+        if (rowText.includes('груп') || rowText.includes('єдин') || rowText.includes('платник єп')) {
+          const cells = tr.querySelectorAll('td, th');
+          for (let i = 0; i < cells.length; i++) {
+            const cellText = (cells[i].textContent || '').trim();
+            if (/груп/i.test(cellText)) {
+              // 1a. Group number inside this cell itself
+              const gSelf = normalizeGroupNumber(cellText);
+              if (gSelf) return gSelf;
+              // 1b. Group number in adjacent cell
+              if (i + 1 < cells.length) {
+                const gNext = normalizeGroupNumber(cells[i + 1].textContent);
+                if (gNext) return gNext;
+                const inp = cells[i + 1].querySelector('input');
+                if (inp && inp.value) {
+                  const gInp = normalizeGroupNumber(inp.value);
+                  if (gInp) return gInp;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Check PrimeNG field blocks, definitions, labels
+      const allElements = doc.querySelectorAll('div, label, span, p, td, li, dt, dd');
+      for (const el of allElements) {
+        const text = (el.textContent || '').trim();
+        if (/^груп[аи](?:\s+платника)?(?:\s+єдиного\s+податку)?\s*[:\-–—]?$/i.test(text) ||
+            /^статус(?:\s+платника)?\s+єдиного\s+податку/i.test(text)) {
+          if (el.nextElementSibling) {
+            const g = normalizeGroupNumber(el.nextElementSibling.textContent);
+            if (g) return g;
+            const inp = el.nextElementSibling.querySelector('input');
+            if (inp && inp.value) {
+              const gInp = normalizeGroupNumber(inp.value);
+              if (gInp) return gInp;
+            }
+          }
+          if (el.parentElement && el.parentElement.nextElementSibling) {
+            const g = normalizeGroupNumber(el.parentElement.nextElementSibling.textContent);
+            if (g) return g;
+            const inp = el.parentElement.nextElementSibling.querySelector('input');
+            if (inp && inp.value) {
+              const gInp = normalizeGroupNumber(inp.value);
+              if (gInp) return gInp;
+            }
+          }
+        }
+      }
+
+      // 3. Check Form Inputs
+      const inputs = doc.querySelectorAll('input, select');
+      for (const inp of inputs) {
+        const attr = ((inp.getAttribute('formcontrolname') || '') + ' ' + (inp.name || '') + ' ' + (inp.id || '')).toLowerCase();
+        if (/group|grupa|hrupa|epgroup/.test(attr)) {
+          const g = normalizeGroupNumber(inp.value);
+          if (g) return g;
+        }
+      }
+
+      // 4. Regex Match over full body text
+      const bodyText = doc.body ? (doc.body.innerText || doc.body.textContent || '') : '';
+      const matches = [
+        bodyText.match(/груп[аи](?:\s+платника)?(?:\s+єдиного\s+податку)?\s*[:\-–—]?\s*([1-4])\b/i),
+        bodyText.match(/груп[аи](?:\s+платника)?(?:\s+єдиного\s+податку)?\s*[:\-–—]?\s*(III|ІІІ|II|ІІ|IV|ІV|I|І)\b/i),
+        bodyText.match(/\b([1-4])\s*(?:-?\s*(?:тя|га|ша|та))?\s*груп/i),
+        bodyText.match(/\b(III|ІІІ|II|ІІ|IV|ІV|I|І)\s*груп/i),
+        bodyText.match(/платник\s+єдиного\s+податку\s*([1-4])\s*груп/i),
+        bodyText.match(/платник\s+єдиного\s+податку\s*(III|ІІІ|II|ІІ|IV|ІV|I|І)\s*груп/i)
+      ];
+
+      for (const m of matches) {
+        if (m && m[1]) {
+          const g = normalizeGroupNumber(m[1]);
+          if (g) return g;
+        }
+      }
+
+      // 5. Check Session / Local Storage JSON
+      const storageSources = [window.sessionStorage, window.localStorage];
+      for (const st of storageSources) {
+        try {
+          if (!st) continue;
+          for (let k = 0; k < st.length; k++) {
+            const key = st.key(k);
+            if (!key) continue;
+            const val = st.getItem(key);
+            if (!val || val.length > 50000) continue;
+            const m = val.match(/"(?:group|grupa|fopGroup|epGroup|taxGroup)"\s*:\s*"?([1-4]|III|ІІІ|II|ІІ|I|І)"?/i);
+            if (m && m[1]) {
+              const g = normalizeGroupNumber(m[1]);
+              if (g) return g;
+            }
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[KaderGo] extractFopGroupFromDom error:', e);
+    }
+
+    return null;
+  }
+
+  function navigateToAccountForGroupDetection() {
+    try {
+      sessionStorage.setItem('kadergo_pending_detect_group', JSON.stringify({
+        returnUrl: window.location.href,
+        timestamp: Date.now()
+      }));
+    } catch (e) {}
+    window.location.href = 'https://cabinet.tax.gov.ua/account';
+  }
+
+  function handlePendingAccountGroupDetection(pendingJson) {
+    let returnUrl = 'https://cabinet.tax.gov.ua/cashregs/zreports';
+    try {
+      const data = JSON.parse(pendingJson);
+      if (data && data.returnUrl) returnUrl = data.returnUrl;
+      // If older than 2 minutes, abort
+      if (data && data.timestamp && Date.now() - data.timestamp > 120000) {
+        sessionStorage.removeItem('kadergo_pending_detect_group');
+        return;
+      }
+    } catch (e) {}
+
+    // Show stylish toast on the /account page so the user sees what's happening
+    const toast = document.createElement('div');
+    toast.className = 'kadergo-nav-toast';
+    toast.innerHTML = `
+      <div style="position:fixed;top:20px;right:20px;z-index:999999;background:#133b47;color:#ffffff;padding:12px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-family:sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;">
+        <span class="kg-nav-spinner" style="width:14px;height:14px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:#f8a44c;border-radius:50%;display:inline-block;animation:kadergoSpin 0.7s linear infinite;"></span>
+        <span class="kg-nav-text">KaderGo: Визначення групи ФОП...</span>
+      </div>
+    `;
+    document.body.appendChild(toast);
+
+    let attempts = 0;
+    const maxAttempts = 50; // up to 6 seconds
+    const interval = setInterval(() => {
+      attempts++;
+
+      // If after 1.5s not found, check if a single tax tab can be switched
+      if (attempts === 12 || attempts === 25) {
+        try {
+          const tabs = document.querySelectorAll('p-tabview li, .p-tabview-nav li, .nav-tabs li, a[role="tab"], p-accordiontab');
+          for (const tab of tabs) {
+            const txt = (tab.textContent || '').toLowerCase();
+            if ((txt.includes('єдин') || txt.includes('реєстраційні') || txt.includes('облікові')) &&
+                !tab.classList.contains('p-highlight') && !tab.classList.contains('p-accordion-header-active') && !tab.classList.contains('active')) {
+              const clickTarget = tab.querySelector('a, button, .p-tabview-nav-link') || tab;
+              clickTarget.click();
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+
+      const grp = extractFopGroupFromDom(document);
+      if (grp) {
+        clearInterval(interval);
+        sessionStorage.removeItem('kadergo_pending_detect_group');
+        sessionStorage.setItem('kadergo_fop_group', grp);
+        sessionStorage.setItem('kadergo_reopen_modal', 'true');
+
+        const textEl = toast.querySelector('.kg-nav-text');
+        const spinnerEl = toast.querySelector('.kg-nav-spinner');
+        if (textEl) textEl.textContent = `KaderGo: Знайдено: ${grp} група! Повернення...`;
+        if (spinnerEl) spinnerEl.style.borderTopColor = '#10b981';
+
+        setTimeout(() => {
+          window.location.href = returnUrl;
+        }, 350);
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        sessionStorage.removeItem('kadergo_pending_detect_group');
+        sessionStorage.setItem('kadergo_fop_group', 'not_found');
+        sessionStorage.setItem('kadergo_reopen_modal', 'true');
+
+        const textEl = toast.querySelector('.kg-nav-text');
+        if (textEl) textEl.textContent = 'KaderGo: Групу не знайдено. Повернення...';
+
+        setTimeout(() => {
+          window.location.href = returnUrl;
+        }, 600);
+      }
+    }, 120);
+  }
+
+  function detectFopGroup() {
+    navigateToAccountForGroupDetection();
+    return { redirecting: true };
   }
 
   window.KaderGo.Cabinet = {
@@ -638,10 +912,16 @@ window.KaderGo = window.KaderGo || {};
     discoverAllFiscalNumbers,
     selectFiscalNumber,
     getCurrentlySelectedFiscalNumber,
+    getSelectedFiscalNumber: getCurrentlySelectedFiscalNumber,
     findSearchButton,
     triggerSearch,
     hasEmptyStateMessage,
     isTableAlreadyLoadedFor,
-    waitForTableReady
+    waitForTableReady,
+    normalizeGroupNumber,
+    extractFopGroupFromDom,
+    navigateToAccountForGroupDetection,
+    handlePendingAccountGroupDetection,
+    detectFopGroup
   };
 })();

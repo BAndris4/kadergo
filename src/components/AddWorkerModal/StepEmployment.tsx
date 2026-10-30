@@ -146,12 +146,12 @@ export const StepEmployment: React.FC<StepEmploymentProps> = ({
 
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
-            Дата заяви працівника
+            Дата видання наказу
           </label>
           <DatePicker
             value={formData.kerelem_datum}
             onChange={(val) => onChange({ target: { name: "kerelem_datum", value: val } } as any)}
-            placeholder="Дата заяви"
+            placeholder="Дата видання наказу"
           />
         </div>
       </div>

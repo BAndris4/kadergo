@@ -93,9 +93,46 @@
   // ----------------------------------------------------------------------------
   // Lifecycle Initialization
   // ----------------------------------------------------------------------------
+
+  function bootstrap() {
+    // 1. Check if we navigated to /account to detect FOP group
+    try {
+      const pendingDetect = sessionStorage.getItem('kadergo_pending_detect_group');
+      if (pendingDetect && window.location.href.includes('/account')) {
+        if (Cabinet && typeof Cabinet.handlePendingAccountGroupDetection === 'function') {
+          Cabinet.handlePendingAccountGroupDetection(pendingDetect);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Standard UI init on target pages
+    if (UI && typeof UI.init === 'function') {
+      UI.init();
+    }
+
+    // 3. Check if returning from /account and should re-open modal
+    try {
+      if (sessionStorage.getItem('kadergo_reopen_modal') === 'true') {
+        sessionStorage.removeItem('kadergo_reopen_modal');
+        const detectedGroup = sessionStorage.getItem('kadergo_fop_group');
+        sessionStorage.removeItem('kadergo_fop_group'); // Clean up right away so future manual opens start clean
+
+        setTimeout(() => {
+          if (UI && typeof UI.openExportModal === 'function') {
+            UI.openExportModal({
+              initialMode: 'income_book',
+              detectedGroup: detectedGroup || null
+            });
+          }
+        }, 350);
+      }
+    } catch (e) {}
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => UI.init());
+    document.addEventListener('DOMContentLoaded', bootstrap);
   } else {
-    UI.init();
+    bootstrap();
   }
 })();

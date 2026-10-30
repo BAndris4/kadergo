@@ -47,6 +47,7 @@ import { ToastNotice } from "./components/common/ToastNotice";
 import { DocumentGeneratorView } from "./views/DocumentGeneratorView";
 import { SplashScreen } from "./components/common/SplashScreen";
 import { ViewTransition } from "./components/common/ViewTransition";
+import { BeanAvatar } from "./components/common/BeanAvatar";
 import { MagnifyingGlassIcon, PlusIcon, FolderPlusIcon } from "@heroicons/react/24/outline";
 import "./App.css";
 
@@ -426,6 +427,24 @@ export default function App() {
     }
   };
 
+  const handleDatabaseRestored = async () => {
+    try {
+      const activeData = await fetchFops();
+      setFops(activeData);
+      const grps = await fetchFolderGroups();
+      setFolderGroups(grps);
+      if (activeData.length > 0) {
+        setSelectedFopId(activeData[0].id);
+        setExpandedFopIds([activeData[0].id]);
+      } else {
+        setSelectedFopId(null);
+        setExpandedFopIds([]);
+      }
+    } catch (err) {
+      console.warn("Failed to reload data after DB restore:", err);
+    }
+  };
+
   const handleUpdateFolderAndGroup = async (
     fopId: number,
     folderPath: string | null,
@@ -745,9 +764,13 @@ export default function App() {
                 className="bg-white/95 backdrop-blur-md rounded-[28px] border-2 border-[#133b47] overflow-hidden select-none ring-4 ring-[#f8a44c]/30 p-6 flex items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-13 h-13 rounded-2xl bg-[#133b47] text-[#f8a44c] flex items-center justify-center font-black text-xl shadow-md shrink-0">
-                    {pointerDragState.fop.vezeteknev.charAt(0)}
-                  </div>
+                  <BeanAvatar
+                    id={pointerDragState.fop.id}
+                    familyName={pointerDragState.fop.vezeteknev}
+                    givenName={pointerDragState.fop.keresztnev}
+                    patronymicName={pointerDragState.fop.apai_nev}
+                    size="md"
+                  />
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-black text-lg text-[#133b47] font-heading tracking-tight">
@@ -807,6 +830,7 @@ export default function App() {
           setFops([]);
           setSelectedFopId(null);
         }}
+        onDatabaseRestored={handleDatabaseRestored}
       />
 
       <UpdateModal

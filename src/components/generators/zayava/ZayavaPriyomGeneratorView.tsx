@@ -14,9 +14,10 @@ import {
 } from "@heroicons/react/24/outline";
 import { FopData, Munkas, GenerateZayavaPriyomDocxRequest, InitialNakazData } from "../../../types/fop";
 import { generateZayavaPriyomDocx, ensureFopDirectory, openFolderInExplorer } from "../../../services/fopService";
-import { getWorkerGenitiveName, formatUkrainianDate } from "../../../utils/ukrainianDeclension";
+import { getWorkerGenitiveName, getWorkerGenitiveNameAsync, formatUkrainianDate } from "../../../utils/ukrainianDeclension";
 import { CustomDatePicker } from "../../pickers/CustomDatePicker";
 import { CreateNakazPromptModal } from "../../modals/CreateNakazPromptModal";
+import { BeanAvatar } from "../../common/BeanAvatar";
 
 interface ZayavaPriyomGeneratorViewProps {
   activeFop: FopData | null;
@@ -148,15 +149,30 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
     return [activeFop.vezeteknev, activeFop.keresztnev, activeFop.apai_nev].filter(Boolean).join(" ");
   }, [activeFop]);
 
-  // Derived Worker Genitive Name (e.g. Васюка Івана Петровича)
-  const workerGenitiveName = useMemo(() => {
-    if (!selectedWorker) return "";
-    return getWorkerGenitiveName(
+  // Derived Worker Genitive Name (e.g. Васюка Івана Петровича) via shevchenko.js
+  const [workerGenitiveName, setWorkerGenitiveName] = useState<string>(() =>
+    selectedWorker
+      ? getWorkerGenitiveName(selectedWorker.vezeteknev, selectedWorker.keresztnev, selectedWorker.apai_nev, selectedWorker.nem)
+      : ""
+  );
+
+  useEffect(() => {
+    if (!selectedWorker) {
+      setWorkerGenitiveName("");
+      return;
+    }
+    let cancelled = false;
+    getWorkerGenitiveNameAsync(
       selectedWorker.vezeteknev,
       selectedWorker.keresztnev,
       selectedWorker.apai_nev,
       selectedWorker.nem
-    );
+    ).then((res) => {
+      if (!cancelled) setWorkerGenitiveName(res);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedWorker]);
 
   // Derived Worker Short Name (e.g. Васюк І.П.)
@@ -352,12 +368,19 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
         }
       }
 
+      const freshGenitiveName = await getWorkerGenitiveNameAsync(
+        selectedWorker.vezeteknev,
+        selectedWorker.keresztnev,
+        selectedWorker.apai_nev,
+        selectedWorker.nem
+      );
+
       const req: GenerateZayavaPriyomDocxRequest = {
         zayava_type: selectedZayavaType,
         fop_id: activeFop.id,
         worker_id: selectedWorker.id,
         fop_name: fopName,
-        worker_genitive_name: workerGenitiveName,
+        worker_genitive_name: freshGenitiveName || workerGenitiveName,
         position,
         start_date:
           selectedZayavaType === "zvilnennya"
@@ -627,9 +650,14 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
                 >
                   {selectedWorker ? (
                     <div className="flex items-center gap-3 truncate">
-                      <div className="w-7 h-7 rounded-xl bg-[#133b47] text-[#f8a44c] text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
-                        {selectedWorker.vezeteknev.charAt(0)}
-                      </div>
+                      <BeanAvatar
+                        gender={selectedWorker.nem}
+                        vezeteknev={selectedWorker.vezeteknev}
+                        keresztnev={selectedWorker.keresztnev}
+                        apai_nev={selectedWorker.apai_nev}
+                        id={selectedWorker.id}
+                        size="xs"
+                      />
                       <span className="truncate font-bold text-[#133b47]">{selectedWorkerFullName}</span>
                     </div>
                   ) : (
@@ -682,13 +710,14 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
                               }`}
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div
-                                  className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                                    isSelected ? "bg-[#f8a44c] text-[#133b47]" : "bg-[#133b47] text-[#f8a44c]"
-                                  }`}
-                                >
-                                  {m.vezeteknev.charAt(0)}
-                                </div>
+                                <BeanAvatar
+                                  gender={m.nem}
+                                  vezeteknev={m.vezeteknev}
+                                  keresztnev={m.keresztnev}
+                                  apai_nev={m.apai_nev}
+                                  id={m.id}
+                                  size="xs"
+                                />
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-xs sm:text-sm font-bold truncate">{name}</span>
                                   <span className={`text-[11px] font-medium truncate ${isSelected ? "text-[#c3d9d6]" : "text-[#556e75]"}`}>
@@ -846,7 +875,7 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
             if (selectedZayavaType === "priyom") {
               onNavigateToNakaz({
                 type: "priyom",
-                date: effectiveStartDate,
+                date: effectiveRequestDate,
                 workerIds: selectedWorker ? [selectedWorker.id] : undefined,
               });
             } else if (selectedZayavaType === "zvilnennya") {
@@ -860,7 +889,13 @@ export const ZayavaPriyomGeneratorView: React.FC<ZayavaPriyomGeneratorViewProps>
         }}
         docTitle={selectedZayavaType === "zvilnennya" ? "Заяву на звільнення" : "Заяву на прийом"}
         nakazTitle={selectedZayavaType === "zvilnennya" ? "Звільнення з роботи" : "Прийняття на роботу"}
-        dateStr={selectedZayavaType === "zvilnennya" ? formattedDismissalDate : formattedStartDate}
+        dateStr={
+          selectedZayavaType === "zvilnennya"
+            ? formattedDismissalDate
+            : selectedZayavaType === "priyom"
+            ? (formatDotDate(effectiveRequestDate) || formattedRequestDate)
+            : formattedStartDate
+        }
         workerName={selectedWorkerFullName || undefined}
         filePath={lastGeneratedDocPath}
       />

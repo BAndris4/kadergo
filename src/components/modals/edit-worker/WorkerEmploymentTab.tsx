@@ -144,12 +144,12 @@ export const WorkerEmploymentTab: React.FC<WorkerEmploymentTabProps> = ({
 
         <div className="flex flex-col gap-2">
           <label className="text-xs font-black uppercase tracking-wider text-[#354f57]">
-            Дата заяви працівника
+            Дата видання наказу
           </label>
           <DatePicker
             value={formData.kerelem_datum}
             onChange={(val) => onFieldChange("kerelem_datum", val)}
-            placeholder="Дата заяви"
+            placeholder="Дата видання наказу"
           />
         </div>
 

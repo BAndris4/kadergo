@@ -15,6 +15,7 @@ import {
   FolderArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { pickRootFolder, saveRootFolder, saveMinWage, deleteAllFops, exportChromeExtension } from "../../services/fopService";
+import { DatabaseSettingsSection } from "./settings/DatabaseSettingsSection";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface SettingsModalProps {
   onShowToast: (msg: string) => void;
   onScanFolders: () => void;
   onFopsCleared?: () => void;
+  onDatabaseRestored?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -38,6 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onShowToast,
   onScanFolders,
   onFopsCleared,
+  onDatabaseRestored,
 }) => {
   const [localMinWage, setLocalMinWage] = useState<number>(minWage);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
@@ -213,7 +216,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Chrome Extension */}
+          {/* Section 3: Database & Portability */}
+          <DatabaseSettingsSection
+            onShowToast={onShowToast}
+            onDatabaseRestored={onDatabaseRestored}
+          />
+
+          {/* Section 4: Chrome Extension */}
           <div className="p-6 rounded-3xl bg-gradient-to-br from-[#f0f9f5] to-[#e8f5ef] border-2 border-[#bce2d1] flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
