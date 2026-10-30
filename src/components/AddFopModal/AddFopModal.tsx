@@ -15,6 +15,7 @@ import { Step1PersonalInfo } from "./Step1PersonalInfo";
 import { Step2Address } from "./Step2Address";
 import { Step3Document } from "./Step3Document";
 import { pickFopFolder, parseFopFolderInfo } from "../../services/fopService";
+import { detectIsFemale } from "../common/BeanAvatar";
 
 interface AddFopModalProps {
   isOpen: boolean;
@@ -35,7 +36,22 @@ export const AddFopModal: React.FC<AddFopModalProps> = ({ isOpen, onClose, onSub
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "nem") {
+      setFormData((prev) => ({ ...prev, nem: value }));
+    } else {
+      setFormData((prev) => {
+        let nextNem = prev.nem;
+        if (!nextNem && (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev")) {
+          const nextV = name === "vezeteknev" ? value : prev.vezeteknev;
+          const nextK = name === "keresztnev" ? value : prev.keresztnev;
+          const nextA = name === "apai_nev" ? value : prev.apai_nev;
+          if (nextK || nextA) {
+            nextNem = detectIsFemale(null, nextK, nextA, nextV) ? "Жінка" : "Чоловік";
+          }
+        }
+        return { ...prev, [name]: value, ...(nextNem ? { nem: nextNem } : {}) };
+      });
+    }
 
     if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev" || name === "kod") {
       setErrors((prev) => ({ ...prev, [name]: undefined }));

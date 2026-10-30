@@ -226,7 +226,7 @@ window.KaderGo = window.KaderGo || {};
 
     // 3. Чекаємо відповіді сервера та появи списку пропозицій
     const start = Date.now();
-    const maxWaitMs = (window.KaderGo.Config && window.KaderGo.Config.MAX_AUTOCOMPLETE_WAIT_MS) || 9500;
+    const maxWaitMs = (window.KaderGo.Config && window.KaderGo.Config.MAX_AUTOCOMPLETE_WAIT_MS) || 3500;
 
     while (Date.now() - start < maxWaitMs) {
       items = getAutocompleteListItems();
@@ -273,9 +273,19 @@ window.KaderGo = window.KaderGo || {};
     });
   }
 
-  async function discoverAllFiscalNumbers() {
+  async function discoverAllFiscalNumbers(preferredFn) {
     const foundMap = new Map();
     const Scraper = window.KaderGo.Scraper;
+    const auto = findAutocompleteElements();
+
+    // 0. Спочатку перевіряємо вже активний або вказаний фіскальний номер
+    const curFn = preferredFn || getCurrentlySelectedFiscalNumber();
+    if (curFn) {
+      const currentInputVal = (auto && auto.input && auto.input.value && auto.input.value.trim() !== '400')
+        ? auto.input.value.trim()
+        : curFn;
+      foundMap.set(curFn, { fn: curFn, label: currentInputVal });
+    }
 
     // 1. Фіскальні номери в уже завантаженій таблиці (якщо є)
     const table = Scraper ? Scraper.findTable() : document.querySelector('table');
@@ -283,38 +293,53 @@ window.KaderGo = window.KaderGo || {};
       const tds = table.querySelectorAll('tbody td');
       for (const td of tds) {
         const text = (td.textContent || '').trim();
-        const match = text.match(/\b(400\d{5,})\b/) || text.match(/\b(400\d{3,})\b/);
+        const match = text.match(/\b(400\d{3,})\b/) || text.match(/\b(\d{7,12})\b/);
         if (match && !foundMap.has(match[1])) {
           foundMap.set(match[1], { fn: match[1], label: match[1] });
         }
       }
     }
 
-    // 2. ЗАВЖДИ запитуємо список пропозицій по '400', щоб знайти всі РРО
-    const items = await openAutocompleteSuggestions('400');
-    console.log(`[KaderGo] Отримано ${items.length} пропозицій для '400'`);
-
-    for (const item of items) {
-      const text = (item.textContent || '').trim();
-      const match = text.match(/\b(400\d{5,})\b/) || text.match(/\b(400\d{3,})\b/) || text.match(/\b(\d{7,12})\b/);
-      if (match) {
-        foundMap.set(match[1], { fn: match[1], label: text });
-      } else if (text.startsWith('400')) {
-        const fn = text.split(/\s+/)[0];
-        if (fn.length >= 6) {
-          foundMap.set(fn, { fn, label: text });
+    // 2. Якщо є кнопка випадаючого списку (PrimeNG dropdown button) — відкриваємо без затирання поля!
+    if (auto && auto.dropdownBtn) {
+      try {
+        auto.dropdownBtn.click();
+        await delay(300);
+        const ddItems = getAutocompleteListItems();
+        for (const item of ddItems) {
+          const text = (item.textContent || '').trim();
+          const match = text.match(/\b(400\d{3,})\b/) || text.match(/\b(\d{7,12})\b/);
+          if (match) {
+            foundMap.set(match[1], { fn: match[1], label: text });
+          }
         }
-      }
+        closeAutocompletePanel();
+      } catch (e) {}
     }
 
-    // Якщо все ще нічого не знайдено, але в полі вводу було значення (не просто 400)
-    const auto = findAutocompleteElements();
-    if (foundMap.size === 0 && auto && auto.input && auto.input.value) {
-      const val = auto.input.value.trim();
-      if (val !== '400') {
-        const m = val.match(/\b(400\d{3,})\b/) || val.match(/\b(\d{7,12})\b/);
+    // 3. Тільки якщо досі нічого не знайдено — пробуємо безпечний запит пропозицій
+    if (foundMap.size === 0 && auto && auto.input) {
+      const origVal = auto.input.value;
+      const items = await openAutocompleteSuggestions('400');
+      for (const item of items) {
+        const text = (item.textContent || '').trim();
+        const match = text.match(/\b(400\d{3,})\b/) || text.match(/\b(\d{7,12})\b/);
+        if (match) {
+          foundMap.set(match[1], { fn: match[1], label: text });
+        } else if (text.startsWith('400')) {
+          const fn = text.split(/\s+/)[0];
+          if (fn.length >= 6) {
+            foundMap.set(fn, { fn, label: text });
+          }
+        }
+      }
+      closeAutocompletePanel();
+
+      // Якщо пошук по '400' нічого не дав, відновлюємо початковий стан
+      if (foundMap.size === 0 && origVal && origVal.trim() !== '400') {
+        const m = origVal.match(/\b(400\d{3,})\b/) || origVal.match(/\b(\d{7,12})\b/);
         if (m) {
-          foundMap.set(m[1], { fn: m[1], label: val });
+          foundMap.set(m[1], { fn: m[1], label: origVal.trim() });
         }
       }
     }
@@ -866,6 +891,12 @@ window.KaderGo = window.KaderGo || {};
         sessionStorage.setItem('kadergo_fop_group', grp);
         sessionStorage.setItem('kadergo_reopen_modal', 'true');
 
+        try {
+          const tp = getTaxpayerInfo();
+          if (tp.name) sessionStorage.setItem('kadergo_taxpayer_name', tp.name);
+          if (tp.code) sessionStorage.setItem('kadergo_taxpayer_code', tp.code);
+        } catch (e) {}
+
         const textEl = toast.querySelector('.kg-nav-text');
         const spinnerEl = toast.querySelector('.kg-nav-spinner');
         if (textEl) textEl.textContent = `KaderGo: Знайдено: ${grp} група! Повернення...`;
@@ -891,6 +922,46 @@ window.KaderGo = window.KaderGo || {};
         }, 600);
       }
     }, 120);
+  }
+
+  function getTaxpayerInfo() {
+    let name = '';
+    let code = '';
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        name = sessionStorage.getItem('kadergo_taxpayer_name') || '';
+        code = sessionStorage.getItem('kadergo_taxpayer_code') || '';
+      }
+      if (!name || !code) {
+        const headerText = document.querySelector('header, .navbar, .header, app-header, nav, .user-profile, .user-name')?.innerText || '';
+        if (!code) {
+          const m = headerText.match(/\b\d{8,10}\b/);
+          if (m) code = m[0];
+        }
+        if (!name) {
+          const pibMatch = headerText.match(/([А-ЯІЇЄҐ'][а-яіїєґ']+\s+[А-ЯІЇЄҐ'][а-яіїєґ']+\s+[А-ЯІЇЄҐ'][а-яіїєґ']+)/);
+          if (pibMatch) name = pibMatch[1];
+        }
+      }
+      if (!name || !code) {
+        const checkStorage = (store) => {
+          for (let i = 0; i < store.length; i++) {
+            const k = store.key(i);
+            const v = store.getItem(k);
+            if (v && v.includes('{') && (v.includes('fullName') || v.includes('name') || v.includes('tin') || v.includes('ipn') || v.includes('edrpou'))) {
+              try {
+                const p = JSON.parse(v);
+                if (!name && (p.fullName || p.name || p.fio)) name = p.fullName || p.name || p.fio;
+                if (!code && (p.tin || p.ipn || p.edrpou || p.taxId || p.code)) code = String(p.tin || p.ipn || p.edrpou || p.taxId || p.code);
+              } catch (e) {}
+            }
+          }
+        };
+        if (typeof sessionStorage !== 'undefined') checkStorage(sessionStorage);
+        if (typeof localStorage !== 'undefined') checkStorage(localStorage);
+      }
+    } catch (e) {}
+    return { name, code };
   }
 
   function detectFopGroup() {
@@ -922,6 +993,7 @@ window.KaderGo = window.KaderGo || {};
     extractFopGroupFromDom,
     navigateToAccountForGroupDetection,
     handlePendingAccountGroupDetection,
-    detectFopGroup
+    detectFopGroup,
+    getTaxpayerInfo
   };
 })();

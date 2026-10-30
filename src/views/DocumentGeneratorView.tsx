@@ -238,6 +238,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
               <div className="flex items-center gap-3 truncate">
                 <BeanAvatar
                   id={activeFop.id}
+                  gender={activeFop.nem}
                   familyName={activeFop.vezeteknev}
                   givenName={activeFop.keresztnev}
                   patronymicName={activeFop.apai_nev}
@@ -319,6 +320,7 @@ export const DocumentGeneratorView: React.FC<DocumentGeneratorViewProps> = ({
                         <div className="flex items-center gap-3 min-w-0">
                           <BeanAvatar
                             id={f.id}
+                            gender={f.nem}
                             familyName={f.vezeteknev}
                             givenName={f.keresztnev}
                             patronymicName={f.apai_nev}

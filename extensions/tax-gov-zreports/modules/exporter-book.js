@@ -20,7 +20,22 @@ window.KaderGo = window.KaderGo || {};
       return { success: false, error: 'Завантаження вже триває' };
     }
 
-    const { year, intervals: customIntervals, fromStr, toStr, onProgress, onStart, onFilesGenerated, onEnd, flow, includeQuarters } = options;
+    const {
+      year,
+      targetFn,
+      intervals: customIntervals,
+      fromStr,
+      toStr,
+      onProgress,
+      onStart,
+      onFilesGenerated,
+      onEnd,
+      flow,
+      includeQuarters,
+      taxSystem,
+      taxpayerName,
+      taxpayerCode
+    } = options;
     const isAborted = () => flow && typeof flow.isAborted === 'function' && flow.isAborted();
     const exportFormat = options.exportFormat || 'zip';
     const { BASE_COLUMNS, RETURN_COLUMNS } = window.KaderGo.Config;
@@ -43,7 +58,7 @@ window.KaderGo = window.KaderGo || {};
     const { fromInput, toInput } = Cabinet.getPeriodInputs();
     const origFrom = (fromInput && fromInput.value) || '';
     const origTo = (toInput && toInput.value) || '';
-    const origFn = Cabinet.getCurrentlySelectedFiscalNumber();
+    const origFn = targetFn || Cabinet.getCurrentlySelectedFiscalNumber();
 
     if (ExportState) ExportState.isDownloading = true;
     if (typeof onStart === 'function') onStart();
@@ -52,22 +67,28 @@ window.KaderGo = window.KaderGo || {};
     let wasCancelled = false;
     const monthlyFiles = [];
     const monthlyData = {};
+    const dailyData = {};
 
     try {
       if (typeof onProgress === 'function') {
         onProgress({
           statusText: 'Пошук РРО у кабінеті...',
+          stepText: 'Пошук',
           detailText: 'Виявлення активних фіскальних номерів...',
-          progressPercent: 5
+          progressPercent: 6
         });
       }
 
-      const fns = await Cabinet.discoverAllFiscalNumbers();
+      let fns = await Cabinet.discoverAllFiscalNumbers(origFn);
       if (!fns || fns.length === 0) {
-        const msg = 'Не знайдено жодного фіскального номера РРО. Перевірте наявність РРО у кабінеті.';
-        alert(msg);
-        if (ExportState) ExportState.isDownloading = false;
-        return { success: false, error: msg };
+        if (origFn) {
+          fns = [{ fn: origFn, label: origFn }];
+        } else {
+          const msg = 'Не знайдено жодного фіскального номера РРО. Перевірте наявність РРО у кабінеті.';
+          alert(msg);
+          if (ExportState) ExportState.isDownloading = false;
+          return { success: false, error: msg };
+        }
       }
 
       const targetYear = year || (info && info.targetYear);
@@ -167,6 +188,20 @@ window.KaderGo = window.KaderGo || {};
 
           monthSales += salesVal;
           monthReturns += returnVal;
+
+          const rawDate = obj['Дата і час документа'] || obj['Дата'] || '';
+          const match = String(rawDate).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+          if (match) {
+            const d = match[1].padStart(2, '0');
+            const m = match[2].padStart(2, '0');
+            const y = match[3];
+            const dateKey = `${y}-${m}-${d}`;
+            if (!dailyData[dateKey]) {
+              dailyData[dateKey] = { sales: 0, returns: 0 };
+            }
+            dailyData[dateKey].sales += salesVal;
+            dailyData[dateKey].returns += returnVal;
+          }
         }
 
         monthSales = Math.round(monthSales * 100) / 100;
@@ -198,22 +233,42 @@ window.KaderGo = window.KaderGo || {};
         }
       }
 
-      // 5. Формуємо саму "Книга обліку доходів єдиний за {year} рік.xlsx"
+      for (const dk in dailyData) {
+        if (Object.prototype.hasOwnProperty.call(dailyData, dk)) {
+          dailyData[dk].sales = Math.round(dailyData[dk].sales * 100) / 100;
+          dailyData[dk].returns = Math.round(dailyData[dk].returns * 100) / 100;
+        }
+      }
+
+      const isGeneralTax = taxSystem === 'general_tax';
+
+      // 5. Формуємо саму Книгу доходів (.xlsx)
       if (typeof onProgress === 'function') {
         onProgress({
-          statusText: 'Книга обліку доходів',
-          detailText: 'Розрахунок сум та річних підсумків',
-          monthName: 'Книга обліку доходів',
+          statusText: isGeneralTax ? 'Книга доходів і витрат (загальна)' : 'Книга обліку доходів',
+          detailText: isGeneralTax ? 'Розрахунок щоденних сум та річних підсумків' : 'Розрахунок сум та річних підсумків',
+          monthName: isGeneralTax ? 'Загальна система' : 'Книга обліку доходів',
           stepText: `Рік ${targetYear}`,
           progressPercent: 90
         });
       }
 
-      const incomeBookRes = IncomeBookExcel.buildIncomeBookXlsxData({
-        year: targetYear,
-        monthlyData,
-        includeQuarters: includeQuarters !== false
-      });
+      let bookRes;
+      if (isGeneralTax && window.KaderGo.GeneralBookExcel) {
+        const tp = (Cabinet && typeof Cabinet.getTaxpayerInfo === 'function') ? Cabinet.getTaxpayerInfo() : {};
+        bookRes = window.KaderGo.GeneralBookExcel.buildGeneralBookXlsxData({
+          year: targetYear,
+          dailyData,
+          taxpayerName: taxpayerName || tp.name || '',
+          taxpayerCode: taxpayerCode || tp.code || ''
+        });
+      } else {
+        bookRes = IncomeBookExcel.buildIncomeBookXlsxData({
+          year: targetYear,
+          monthlyData,
+          includeQuarters: includeQuarters !== false
+        });
+      }
 
       const isZip = exportFormat === 'zip';
       let zipData = null;
@@ -223,28 +278,32 @@ window.KaderGo = window.KaderGo || {};
         if (typeof onProgress === 'function') {
           onProgress({
             statusText: 'Архів ZIP',
-            detailText: 'Пакування Книги доходів та помісячних звітів',
+            detailText: isGeneralTax ? 'Пакування Книги (загальна система) та помісячних звітів' : 'Пакування Книги доходів та помісячних звітів',
             monthName: 'Архів ZIP',
             stepText: `${monthlyFiles.length + 1} файлів`,
             progressPercent: 95
           });
         }
         const zip = new window.KaderGo.Zip.SimpleZip();
-        // Спочатку додаємо Книгу обліку доходів
-        zip.addFile(incomeBookRes.fileName, incomeBookRes.uint8);
+        // Спочатку додаємо Книгу
+        zip.addFile(bookRes.fileName, bookRes.uint8);
         // Додаємо щомісячні файли обороту
         for (const mf of monthlyFiles) {
           zip.addFile(mf.fileName, mf.uint8);
         }
 
         zipData = zip.toUint8Array();
-        zipFileName = `Книга_обліку_доходів_${targetYear}_рік.zip`;
+        zipFileName = isGeneralTax
+          ? (bookRes.surname ? `книга_загальна_система_${bookRes.surname}_${targetYear}.zip` : `книга_загальна_система_${targetYear}.zip`)
+          : `Книга_обліку_доходів_${targetYear}_рік.zip`;
       }
 
       // 1. Анімація переходить у ПИПУ
       if (typeof onFilesGenerated === 'function') {
         await onFilesGenerated({
-          title: isZip ? 'Книгу доходів та архів сформовано!' : 'Книгу доходів успішно сформовано!',
+          title: isZip
+            ? (isGeneralTax ? 'Книгу (загальна система) та архів сформовано!' : 'Книгу доходів та архів сформовано!')
+            : (isGeneralTax ? 'Книгу (загальна система) успішно сформовано!' : 'Книгу доходів успішно сформовано!'),
           subtitle: 'Оберіть місце для збереження...'
         });
       }
@@ -258,8 +317,8 @@ window.KaderGo = window.KaderGo || {};
           lastSavedFileName = downloadRes.fileName;
         }
       } else {
-        // Тільки файл Книги обліку доходів (.xlsx)
-        const bookDl = await Downloader.performDownload(incomeBookRes.uint8, incomeBookRes.fileName, { saveAs: true });
+        // Тільки файл Книги (.xlsx)
+        const bookDl = await Downloader.performDownload(bookRes.uint8, bookRes.fileName, { saveAs: true });
         if (bookDl.cancelled) {
           wasCancelled = true;
         } else {

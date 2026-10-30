@@ -41,19 +41,27 @@ export function detectIsFemale(
     const g = gender.toLowerCase().trim();
     if (
       g === "жінка" ||
+      g === "жіноча" ||
+      g === "ж" ||
       g === "nő" ||
       g === "female" ||
       g === "f" ||
-      g === "feminine"
+      g === "feminine" ||
+      g.startsWith("ж") ||
+      g.startsWith("n")
     ) {
       return true;
     }
     if (
       g === "чоловік" ||
+      g === "чоловіча" ||
+      g === "ч" ||
       g === "férfi" ||
       g === "male" ||
       g === "m" ||
-      g === "masculine"
+      g === "masculine" ||
+      g.startsWith("ч") ||
+      g.startsWith("fér")
     ) {
       return false;
     }
@@ -133,9 +141,9 @@ export const BeanAvatar: React.FC<BeanAvatarProps> = ({
   className = "",
   isDismissed = false,
 }) => {
-  const effectiveV = familyName || vezeteknev || "";
-  const effectiveK = givenName || keresztnev || "";
-  const effectiveA = patronymicName || apai_nev || "";
+  const effectiveV = (familyName || vezeteknev || "").trim();
+  const effectiveK = (givenName || keresztnev || "").trim();
+  const effectiveA = (patronymicName || apai_nev || "").trim();
 
   // If a combined name was provided without separate parts, split it
   const parts = useMemo(() => {
@@ -149,21 +157,27 @@ export const BeanAvatar: React.FC<BeanAvatarProps> = ({
     if (name) {
       const split = name.trim().split(/\s+/);
       return {
-        v: split[0] || "",
-        k: split[1] || "",
-        a: split[2] || "",
+        v: (split[0] || "").trim(),
+        k: (split[1] || "").trim(),
+        a: (split[2] || "").trim(),
       };
     }
     return { v: "", k: "", a: "" };
-  }, [vezeteknev, keresztnev, apai_nev, name]);
+  }, [effectiveV, effectiveK, effectiveA, name]);
 
   const isFemale = useMemo(() => {
     return detectIsFemale(gender, parts.k, parts.a, parts.v);
   }, [gender, parts.k, parts.a, parts.v]);
 
-  // Seed for consistent, distinct character features per person
+  // Seed for consistent, distinct character features per person:
+  // Derived strictly from canonical name so it NEVER mutates when selecting,
+  // before/after saving (id assigned), or across different views and modals.
   const seed = useMemo(() => {
-    const seedString = `${parts.v}_${parts.k}_${parts.a}_${id || ""}`;
+    const fullNameKey = [parts.v, parts.k, parts.a]
+      .filter(Boolean)
+      .join("_")
+      .toLowerCase();
+    const seedString = fullNameKey || String(id || "kadergo_person");
     return simpleHash(seedString);
   }, [parts.v, parts.k, parts.a, id]);
 

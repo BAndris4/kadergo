@@ -766,6 +766,7 @@ export default function App() {
                 <div className="flex items-center gap-4 min-w-0">
                   <BeanAvatar
                     id={pointerDragState.fop.id}
+                    gender={pointerDragState.fop.nem}
                     familyName={pointerDragState.fop.vezeteknev}
                     givenName={pointerDragState.fop.keresztnev}
                     patronymicName={pointerDragState.fop.apai_nev}

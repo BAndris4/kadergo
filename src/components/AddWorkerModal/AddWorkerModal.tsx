@@ -7,6 +7,7 @@ import { StepEmployment } from "./StepEmployment";
 import { Step2Address } from "../AddFopModal/Step2Address";
 import { Step3Document } from "../AddFopModal/Step3Document";
 import { getSavedMinWage } from "../../services/fopService";
+import { detectIsFemale } from "../common/BeanAvatar";
 
 interface AddWorkerModalProps {
   isOpen: boolean;
@@ -125,8 +126,21 @@ export const AddWorkerModal: React.FC<AddWorkerModalProps> = ({
     const { name, value, type } = e.target;
     if (type === "number") {
       setFormData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    } else if (name === "nem") {
+      setFormData((prev) => ({ ...prev, nem: value }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => {
+        let nextNem = prev.nem;
+        if (!nextNem && (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev")) {
+          const nextV = name === "vezeteknev" ? value : prev.vezeteknev;
+          const nextK = name === "keresztnev" ? value : prev.keresztnev;
+          const nextA = name === "apai_nev" ? value : prev.apai_nev;
+          if (nextK || nextA) {
+            nextNem = detectIsFemale(null, nextK, nextA, nextV) ? "Жінка" : "Чоловік";
+          }
+        }
+        return { ...prev, [name]: value, ...(nextNem ? { nem: nextNem } : {}) };
+      });
     }
 
     if (name === "vezeteknev" || name === "keresztnev" || name === "apai_nev" || name === "foglalkozas_megnevezes") {

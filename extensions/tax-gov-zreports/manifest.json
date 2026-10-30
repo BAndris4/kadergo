@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KaderGo - Експорт в Excel",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Експорт та завантаження даних про оборот з кабінету платника податків у файл Excel (.xlsx) для системи KaderGo.",
   "permissions": [
     "activeTab",
@@ -39,6 +39,7 @@
         "modules/zip.js",
         "modules/excel.js",
         "modules/income-book-excel.js",
+        "modules/general-book-excel.js",
         "modules/downloader.js",
         "modules/date-utils.js",
         "modules/cabinet-interactor.js",

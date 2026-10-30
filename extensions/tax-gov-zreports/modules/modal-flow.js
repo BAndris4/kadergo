@@ -81,7 +81,7 @@ window.KaderGo = window.KaderGo || {};
       if (svgEl) {
         svgEl.setAttribute('class', 'kadergo-flow-svg state-spinner');
       }
-      if (monthNameEl) monthNameEl.textContent = 'Завантаження та обробка даних...';
+      if (monthNameEl) monthNameEl.textContent = 'Завантаження звітів...';
       if (stepTagEl) stepTagEl.textContent = 'Синхронізація';
 
       return true;

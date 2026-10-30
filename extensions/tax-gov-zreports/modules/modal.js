@@ -99,6 +99,7 @@ window.KaderGo = window.KaderGo || {};
       let singleFormat = 'zip';
       let allFormat = 'zip';
       let bookFormat = 'book'; // 'book' (single xlsx) | 'zip' (book + monthly files)
+      let bookTaxSystem = initialOptions.initialTaxSystem || 'single_tax'; // 'single_tax' | 'general_tax'
       const cachedGroup = (function () {
         if (initialOptions.detectedGroup) return initialOptions.detectedGroup;
         try {
@@ -131,6 +132,8 @@ window.KaderGo = window.KaderGo || {};
         tabsWrap,
         yearSection,
         yearChipsContainer,
+        systemSection,
+        systemChipsWrap,
         formatSection,
         formatOptionsWrap,
         incomeQuartersRow,
@@ -239,14 +242,30 @@ window.KaderGo = window.KaderGo || {};
         }
       }
 
+      if (systemChipsWrap) {
+        systemChipsWrap.querySelectorAll('.kadergo-system-chip').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const sys = btn.getAttribute('data-sys');
+            if (!sys || sys === bookTaxSystem) return;
+            bookTaxSystem = sys;
+            systemChipsWrap.querySelectorAll('.kadergo-system-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateView();
+          });
+        });
+      }
+
       if (incomeQuartersRow) {
         incomeQuartersRow.addEventListener('click', (e) => {
-          if (e.target.closest('#kg-btn-detect-group') || e.target.closest('.kadergo-switch')) {
+          if (e.target.closest('#kg-btn-detect-group')) {
             return;
           }
           if (incomeQuartersToggle) {
-            incomeQuartersToggle.checked = !incomeQuartersToggle.checked;
-            incomeQuartersToggle.dispatchEvent(new Event('change'));
+            if (!e.target.closest('.kadergo-switch')) {
+              incomeQuartersToggle.checked = !incomeQuartersToggle.checked;
+              incomeQuartersToggle.dispatchEvent(new Event('change'));
+            }
           }
         });
       }
@@ -323,7 +342,11 @@ window.KaderGo = window.KaderGo || {};
         }
 
         if (incomeQuartersRow) {
-          incomeQuartersRow.style.setProperty('display', (activeMode === 'income_book') ? 'flex' : 'none', 'important');
+          incomeQuartersRow.style.setProperty('display', (activeMode === 'income_book' && bookTaxSystem === 'single_tax') ? 'flex' : 'none', 'important');
+        }
+        if (systemSection) {
+          systemSection.style.setProperty('display', (activeMode === 'income_book') ? 'flex' : 'none', 'important');
+          systemSection.classList.toggle('hidden', activeMode !== 'income_book');
         }
 
         // Re-evaluate period & RRO state in case inputs changed in background
@@ -551,11 +574,24 @@ window.KaderGo = window.KaderGo || {};
           yearSection.classList.remove('hidden');
           yearSection.style.setProperty('display', 'flex', 'important');
 
+          const isGeneral = bookTaxSystem === 'general_tax';
+
+          if (systemSection) {
+            systemSection.classList.remove('hidden');
+            systemSection.style.setProperty('display', 'flex', 'important');
+            if (systemChipsWrap) {
+              systemChipsWrap.querySelectorAll('.kadergo-system-chip').forEach((btn) => {
+                const sys = btn.getAttribute('data-sys');
+                btn.classList.toggle('active', sys === bookTaxSystem);
+              });
+            }
+          }
+
           heroIconBox.innerHTML = icons.bookOpen;
-          heroTag.textContent = 'Єдиний податок';
-          heroTitle.textContent = 'Книга обліку доходів';
+          heroTag.textContent = isGeneral ? 'Загальна система' : 'Єдиний податок';
+          heroTitle.textContent = isGeneral ? 'Книга доходів і витрат' : 'Книга обліку доходів';
           heroBadge.textContent = `${selectedYear} рік`;
-          modeVal.textContent = 'Всі РРО';
+          modeVal.textContent = isGeneral ? 'Загальна система' : 'Всі РРО';
           modeVal.style.color = '';
 
           const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
@@ -583,8 +619,10 @@ window.KaderGo = window.KaderGo || {};
           formatSection.classList.remove('hidden');
           formatSection.style.setProperty('display', 'flex', 'important');
           if (incomeQuartersRow) {
-            incomeQuartersRow.style.setProperty('display', 'flex', 'important');
-            incomeQuartersRow.classList.toggle('active', bookQuarters);
+            incomeQuartersRow.style.setProperty('display', isGeneral ? 'none' : 'flex', 'important');
+            if (!isGeneral) {
+              incomeQuartersRow.classList.toggle('active', bookQuarters);
+            }
           }
           formatOptionsWrap.innerHTML = `
             <button type="button" class="kadergo-format-btn ${bookFormat === 'book' ? 'active' : ''}" data-fmt="book">
@@ -598,10 +636,21 @@ window.KaderGo = window.KaderGo || {};
           `;
 
           fileChipsWrap.innerHTML = '';
+          let generalSurname = '';
+          if (isGeneral && Cabinet && typeof Cabinet.getTaxpayerInfo === 'function') {
+            const tp = Cabinet.getTaxpayerInfo();
+            if (window.KaderGo.GeneralBookExcel && typeof window.KaderGo.GeneralBookExcel.extractTaxpayerSurname === 'function') {
+              generalSurname = window.KaderGo.GeneralBookExcel.extractTaxpayerSurname(tp.name);
+            }
+          }
+
           if (bookFormat === 'zip') {
             const zipChip = document.createElement('span');
             zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
-            zipChip.innerHTML = `${icons.archive}<span>Книга_обліку_доходів_${selectedYear}_рік.zip</span>`;
+            const zipName = isGeneral
+              ? (generalSurname ? `книга_загальна_система_${generalSurname}_${selectedYear}.zip` : `книга_загальна_система_${selectedYear}.zip`)
+              : `Книга_обліку_доходів_${selectedYear}_рік.zip`;
+            zipChip.innerHTML = `${icons.archive}<span>${zipName}</span>`;
             fileChipsWrap.appendChild(zipChip);
             effectiveIntervals.forEach((it, idx) => {
               const chip = document.createElement('span');
@@ -613,7 +662,10 @@ window.KaderGo = window.KaderGo || {};
           } else {
             const bookChip = document.createElement('span');
             bookChip.className = 'kadergo-file-chip kadergo-file-chip-gold';
-            bookChip.innerHTML = `${icons.bookOpen}<span>Книга обліку доходів єдиний за ${selectedYear} рік.xlsx</span>`;
+            const fileName = isGeneral
+              ? (generalSurname ? `книга загальна система ${generalSurname} ${selectedYear}.xlsx` : `книга загальна система ${selectedYear}.xlsx`)
+              : `Книга обліку доходів єдиний за ${selectedYear} рік.xlsx`;
+            bookChip.innerHTML = `${icons.bookOpen}<span>${fileName}</span>`;
             fileChipsWrap.appendChild(bookChip);
           }
 
@@ -715,12 +767,14 @@ window.KaderGo = window.KaderGo || {};
           resolve({
             proceed: true,
             mode: 'income_book',
+            targetFn,
             format: bookFormat,
             year: selectedYear,
             fromStr,
             toStr,
             intervals,
             includeQuarters: bookQuarters,
+            taxSystem: bookTaxSystem,
             flow
           });
         }

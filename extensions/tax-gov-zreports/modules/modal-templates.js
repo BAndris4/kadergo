@@ -158,6 +158,33 @@
       });
     }
 
+    // 3b. Tax System Selector (Visible in income_book mode ONLY)
+    const systemSection = document.createElement('div');
+    systemSection.id = 'kg-system-section';
+    systemSection.className = 'kadergo-system-section' + (activeMode !== 'income_book' ? ' hidden' : '');
+    if (activeMode !== 'income_book') {
+      systemSection.style.setProperty('display', 'none', 'important');
+    }
+    systemSection.innerHTML = `
+      <div class="kadergo-system-section-header">
+        <div class="kadergo-system-section-title">
+          <span class="kadergo-system-title-icon">${icons?.documentText || ''}</span>
+          <span>Система оподаткування:</span>
+        </div>
+      </div>
+      <div class="kadergo-system-chips-wrap" id="kg-system-chips-wrap">
+        <button type="button" class="kadergo-system-chip active" data-sys="single_tax">
+          <span class="kadergo-system-chip-icon">${icons?.bookOpen || ''}</span>
+          <span class="kadergo-system-chip-title">Спрощена (ЄП)</span>
+        </button>
+        <button type="button" class="kadergo-system-chip" data-sys="general_tax">
+          <span class="kadergo-system-chip-icon">${icons?.layers || ''}</span>
+          <span class="kadergo-system-chip-title">Загальна система</span>
+        </button>
+      </div>
+    `;
+    const systemChipsWrap = systemSection.querySelector('#kg-system-chips-wrap');
+
     // 4. Details Grid (Period & Mode)
     const grid = document.createElement('div');
     grid.className = 'kadergo-modal-grid';
@@ -288,6 +315,7 @@
     body.appendChild(tabsWrap);
     body.appendChild(heroCard);
     body.appendChild(yearSection);
+    body.appendChild(systemSection);
     body.appendChild(grid);
     body.appendChild(formatSection);
     body.appendChild(fileSection);
@@ -377,6 +405,8 @@
       heroCard,
       yearSection,
       yearChipsContainer,
+      systemSection,
+      systemChipsWrap,
       grid,
       formatSection,
       formatOptionsWrap: formatSection.querySelector('#kg-format-options'),

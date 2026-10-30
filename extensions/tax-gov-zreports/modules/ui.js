@@ -13,6 +13,10 @@ window.KaderGo = window.KaderGo || {};
   let labelEl = null;
   let pollInterval = null;
 
+  // Heroicons SVG
+  const downloadIconSvg = '<svg class="kadergo-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>';
+  const spinnerSvg = '<svg class="kadergo-loading-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8a44c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>';
+
   function isTargetPage() {
     try {
       const href = window.location.href;
@@ -60,10 +64,6 @@ window.KaderGo = window.KaderGo || {};
     wrapperEl = document.createElement('div');
     wrapperEl.id = 'tax-gov-kadergo-btn-wrapper';
     wrapperEl.className = 'p-mb-2 p-mr-2';
-
-    // Heroicons SVG
-    const downloadIconSvg = '<svg class="kadergo-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>';
-    const spinnerSvg = '<svg class="kadergo-loading-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f8a44c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>';
 
     // Єдина уніфікована кнопка експорту KaderGo
     btnEl = document.createElement('button');
@@ -181,50 +181,58 @@ window.KaderGo = window.KaderGo || {};
         }
       };
 
-      // 1. Обраний РРО
-      if (modalRes.mode === 'single') {
-        const res = await window.KaderGo.Exporter.downloadSingleFiscalReports({
-          exportFormat: modalRes.format || 'xlsx',
-          targetFn: modalRes.targetFn,
-          intervals: modalRes.intervals,
-          flow: modalRes.flow,
-          onStart: () => setLoadingState(true, 'Підготовка...'),
-          onProgress: progressCallback,
-          onFilesGenerated: filesGeneratedCallback,
-          onEnd: endCallback
-        });
-        handleDone(res);
+      try {
+        // 1. Обраний РРО
+        if (modalRes.mode === 'single') {
+          const res = await window.KaderGo.Exporter.downloadSingleFiscalReports({
+            exportFormat: modalRes.format || 'xlsx',
+            targetFn: modalRes.targetFn,
+            intervals: modalRes.intervals,
+            flow: modalRes.flow,
+            onStart: () => setLoadingState(true, 'Підготовка...'),
+            onProgress: progressCallback,
+            onFilesGenerated: filesGeneratedCallback,
+            onEnd: endCallback
+          });
+          handleDone(res);
 
-      // 2. Всі РРО
-      } else if (modalRes.mode === 'all') {
-        const res = await window.KaderGo.Exporter.downloadAllFiscalReports({
-          exportFormat: modalRes.format || 'xlsx',
-          intervals: modalRes.intervals,
-          flow: modalRes.flow,
-          onStart: () => setLoadingState(true, 'Пошук РРО...'),
-          onProgress: progressCallback,
-          onFilesGenerated: filesGeneratedCallback,
-          onEnd: endCallback
-        });
-        handleDone(res);
+        // 2. Всі РРО
+        } else if (modalRes.mode === 'all') {
+          const res = await window.KaderGo.Exporter.downloadAllFiscalReports({
+            exportFormat: modalRes.format || 'xlsx',
+            intervals: modalRes.intervals,
+            flow: modalRes.flow,
+            onStart: () => setLoadingState(true, 'Пошук РРО...'),
+            onProgress: progressCallback,
+            onFilesGenerated: filesGeneratedCallback,
+            onEnd: endCallback
+          });
+          handleDone(res);
 
-      // 3. Книга обліку доходів за рік
-      } else if (modalRes.mode === 'income_book') {
-        const currentYear = new Date().getFullYear();
-        const res = await window.KaderGo.Exporter.downloadYearIncomeBookAndReports({
-          year: modalRes.year || currentYear,
-          fromStr: modalRes.fromStr,
-          toStr: modalRes.toStr,
-          intervals: modalRes.intervals,
-          exportFormat: modalRes.format || 'book',
-          includeQuarters: modalRes.includeQuarters !== false,
-          flow: modalRes.flow,
-          onStart: () => setLoadingState(true, 'Підготовка...'),
-          onProgress: progressCallback,
-          onFilesGenerated: filesGeneratedCallback,
-          onEnd: endCallback
-        });
-        handleDone(res);
+        // 3. Книга обліку доходів за рік
+        } else if (modalRes.mode === 'income_book') {
+          const currentYear = new Date().getFullYear();
+          const res = await window.KaderGo.Exporter.downloadYearIncomeBookAndReports({
+            year: modalRes.year || currentYear,
+            targetFn: modalRes.targetFn,
+            fromStr: modalRes.fromStr,
+            toStr: modalRes.toStr,
+            intervals: modalRes.intervals,
+            exportFormat: modalRes.format || 'book',
+            includeQuarters: modalRes.includeQuarters !== false,
+            taxSystem: modalRes.taxSystem || 'single_tax',
+            flow: modalRes.flow,
+            onStart: () => setLoadingState(true, 'Підготовка...'),
+            onProgress: progressCallback,
+            onFilesGenerated: filesGeneratedCallback,
+            onEnd: endCallback
+          });
+          handleDone(res);
+        }
+      } catch (err) {
+        console.error('[KaderGo] Помилка виконання експорту:', err);
+        alert('Помилка виконання експорту: ' + (err.message || 'Невідома помилка'));
+        await endCallback();
       }
   }
 

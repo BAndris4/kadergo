@@ -777,6 +777,7 @@ const EXT_MOD_CONFIG: &str = include_str!("../../../extensions/tax-gov-zreports/
 const EXT_MOD_ZIP: &str = include_str!("../../../extensions/tax-gov-zreports/modules/zip.js");
 const EXT_MOD_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/excel.js");
 const EXT_MOD_INCOME_BOOK_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/income-book-excel.js");
+const EXT_MOD_GENERAL_BOOK_EXCEL: &str = include_str!("../../../extensions/tax-gov-zreports/modules/general-book-excel.js");
 const EXT_MOD_DOWNLOADER: &str = include_str!("../../../extensions/tax-gov-zreports/modules/downloader.js");
 const EXT_MOD_DATE_UTILS: &str = include_str!("../../../extensions/tax-gov-zreports/modules/date-utils.js");
 const EXT_MOD_CABINET: &str = include_str!("../../../extensions/tax-gov-zreports/modules/cabinet-interactor.js");
@@ -951,6 +952,12 @@ pub fn export_chrome_extension(as_zip: Option<bool>) -> Result<Option<String>, S
     fs::write(
         modules_dir.join("income-book-excel.js"),
         get_extension_file_str("modules/income-book-excel.js", EXT_MOD_INCOME_BOOK_EXCEL),
+    )
+    .map_err(|e| e.to_string())?;
+
+    fs::write(
+        modules_dir.join("general-book-excel.js"),
+        get_extension_file_str("modules/general-book-excel.js", EXT_MOD_GENERAL_BOOK_EXCEL),
     )
     .map_err(|e| e.to_string())?;
 
