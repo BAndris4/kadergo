@@ -89,11 +89,11 @@ window.KaderGo = window.KaderGo || {};
     btnEl.appendChild(spinnerEl);
     btnEl.appendChild(labelEl);
 
-    // Click Handler: Відкриває єдине уніфіковане модальне вікно з 3 режимами
+    // Click Handler: Відкриває єдине уніфіковане модальне вікно (за замовчуванням: Книга доходів)
     btnEl.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      await openExportModal();
+      await openExportModal({ initialMode: 'income_book' });
     });
 
     wrapperEl.appendChild(btnEl);
@@ -164,6 +164,9 @@ window.KaderGo = window.KaderGo || {};
       };
 
       const endCallback = async () => {
+        try {
+          sessionStorage.removeItem('kadergo_fullscreen_flow_active');
+        } catch (e) {}
         if (flow) {
           await flow.closeWithOutro();
         }
@@ -236,6 +239,143 @@ window.KaderGo = window.KaderGo || {};
       }
   }
 
+  
+  let isGeneralExportRunning = false;
+
+  async function resumeGeneralBookExport(job = {}) {
+    if (isGeneralExportRunning) {
+      console.log('[KaderGo] General export already running, skipping duplicate invocation');
+      return;
+    }
+    isGeneralExportRunning = true;
+    console.log('[KaderGo] Resuming general book export with single persistent overlay:', job);
+    ensureButtonCreated();
+
+    // 1. Get existing flow controller from persistent overlay
+    const flow = (window.KaderGo.ModalFlow && typeof window.KaderGo.ModalFlow.ensurePersistentFlowOverlay === 'function')
+      ? window.KaderGo.ModalFlow.ensurePersistentFlowOverlay({
+          title: 'Генерація книги доходів і витрат',
+          subtitle: 'Обробка Z-звітів та підсумкових сум...',
+          stepText: 'Експорт',
+          progressPercent: 20
+        })
+      : null;
+
+    const setLoadingState = (loading, initialStatus) => {
+      if (btnEl) {
+        if (loading) {
+          btnEl.disabled = true;
+          btnEl.classList.add('loading');
+          if (spinnerEl) {
+            spinnerEl.innerHTML = spinnerSvg;
+            spinnerEl.style.display = 'inline-flex';
+          }
+          if (labelEl) labelEl.textContent = initialStatus || 'Підготовка...';
+        } else {
+          btnEl.classList.remove('loading');
+          if (spinnerEl) {
+            spinnerEl.innerHTML = '';
+            spinnerEl.style.display = 'none';
+          }
+          if (labelEl) labelEl.textContent = 'Завантажити в Excel';
+          updateUI();
+        }
+      }
+    };
+
+    const progressCallback = ({ statusText, detailText, progressPercent, ...info }) => {
+      if (flow) {
+        const rawMonth = info.monthName || (info.interval ? info.interval.monthName : null);
+        const capMonth = rawMonth ? (rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1)) : null;
+        flow.setProgress({
+          title: statusText || 'Обробка даних...',
+          subtitle: detailText || (capMonth ? `${capMonth} ${info.year || ''}` : ''),
+          progressPercent,
+          monthName: capMonth,
+          year: info.year || (info.interval ? info.interval.year : null),
+          monthStep: info.monthStep || info.step || null,
+          monthTotal: info.monthTotal || info.total || null,
+          stepText: info.stepText || null,
+          rroStep: info.rroStep || null,
+          rroTotal: info.rroTotal || null,
+          fn: info.fn || null
+        });
+      }
+      if (statusText && labelEl) labelEl.textContent = statusText;
+    };
+
+    const filesGeneratedCallback = async ({ title, subtitle } = {}) => {
+      if (flow) {
+        await flow.setSuccess({ title, subtitle });
+      }
+    };
+
+    const endCallback = async () => {
+      try {
+        sessionStorage.removeItem('kadergo_fullscreen_flow_active');
+        sessionStorage.removeItem('kadergo_flow_progress');
+        sessionStorage.removeItem('kadergo_auto_start_general_export');
+        sessionStorage.removeItem('kadergo_pending_general_export');
+      } catch (e) {}
+      if (flow) {
+        await flow.closeWithOutro();
+      }
+      setLoadingState(false);
+      isGeneralExportRunning = false;
+    };
+
+    const handleDone = (res) => {
+      if (res && res.success && !res.cancelled && labelEl) {
+        labelEl.textContent = res.empty ? 'Немає даних' : 'Збережено!';
+        setTimeout(() => {
+          if (!window.KaderGo.Exporter.isDownloading() && labelEl) {
+            labelEl.textContent = 'Завантажити в Excel';
+          }
+        }, 2200);
+      }
+    };
+
+    try {
+      const currentYear = new Date().getFullYear();
+      const targetYear = parseInt(job.year, 10) || currentYear;
+      const dates = (window.KaderGo.DateUtils)
+        ? { fromStr: job.fromStr || `01.01.${targetYear}`, toStr: job.toStr || `31.12.${targetYear}` }
+        : { fromStr: `01.01.${targetYear}`, toStr: `31.12.${targetYear}` };
+
+      const intervals = (window.KaderGo.DateUtils && typeof window.KaderGo.DateUtils.splitDateRangeIntoMonthlyIntervals === 'function')
+        ? window.KaderGo.DateUtils.splitDateRangeIntoMonthlyIntervals(dates.fromStr, dates.toStr)
+        : [];
+
+      const res = await window.KaderGo.Exporter.downloadYearIncomeBookAndReports({
+        year: targetYear,
+        targetFn: job.targetFn || null,
+        fromStr: dates.fromStr,
+        toStr: dates.toStr,
+        intervals,
+        exportFormat: job.format || 'book',
+        includeQuarters: job.includeQuarters !== false,
+        taxSystem: 'general_tax',
+        flow,
+        onStart: () => setLoadingState(true, 'Підготовка...'),
+        onProgress: progressCallback,
+        onFilesGenerated: filesGeneratedCallback,
+        onEnd: endCallback
+      });
+      handleDone(res);
+    } catch (err) {
+      isGeneralExportRunning = false;
+      try {
+        sessionStorage.removeItem('kadergo_fullscreen_flow_active');
+        sessionStorage.removeItem('kadergo_flow_progress');
+        sessionStorage.removeItem('kadergo_auto_start_general_export');
+        sessionStorage.removeItem('kadergo_pending_general_export');
+      } catch (e) {}
+      console.error('[KaderGo] Помилка виконання експорту загальної книги:', err);
+      alert('Помилка виконання експорту: ' + (err.message || 'Невідома помилка'));
+      await endCallback();
+    }
+  }
+
   function updateUI() {
     if (!isTargetPage()) {
       if (wrapperEl && wrapperEl.parentNode) {
@@ -305,6 +445,7 @@ window.KaderGo = window.KaderGo || {};
     ensureButtonCreated,
     updateUI,
     openExportModal,
+    resumeGeneralBookExport,
     init: startObserverAndPolling
   };
 })();

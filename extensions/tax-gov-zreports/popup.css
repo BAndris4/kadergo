@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Popup CSS - KaderGo Design Language (Підібраний & Лаконічний)
+   KaderGo Extension Popup - Signature Modal Design Language
+   Compact, minimal text, Heroicons, animated pulse & live reload
    ========================================================================== */
 
 * {
@@ -9,222 +10,416 @@
 }
 
 body {
-  width: 300px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f8faf9; /* Світлий фон модальних вікон KaderGo */
+  width: 340px;
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8faf9;
   color: #133b47;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.35;
   user-select: none;
+  overflow: hidden;
 }
 
-.popup-container {
-  padding: 14px 16px;
+.popup-modal {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  background-color: #f8faf9;
 }
 
-.header {
-  border-bottom: 1.5px solid #e2eceb;
-  padding-bottom: 8px;
-}
-
-.logo-area {
+/* --------------------------------------------------------------------------
+   Modal Header & Top Animated Shimmer
+   -------------------------------------------------------------------------- */
+.modal-header {
+  background: #f8faf9;
+  padding: 9px 12px 8px 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
 }
 
-.kadergo-logo-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+.shimmer-line {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #133b47 0%, #f8a44c 35%, #10b981 70%, #133b47 100%);
+  background-size: 250% 100%;
+  animation: kgShimmer 4s ease-in-out infinite;
+}
+
+@keyframes kgShimmer {
+  0% { background-position: 250% 0; }
+  100% { background-position: -250% 0; }
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.brand-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
   object-fit: contain;
   flex-shrink: 0;
-  filter: drop-shadow(0 2px 5px rgba(19, 59, 71, 0.22));
+  filter: drop-shadow(0 1.5px 3px rgba(19, 59, 71, 0.2));
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.title {
-  font-size: 15px;
-  font-weight: 800;
+.brand-icon:hover {
+  transform: scale(1.1) rotate(-4deg);
+}
+
+.brand-title {
+  font-size: 13.5px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+
+.brand-teal {
   color: #133b47;
-  letter-spacing: -0.2px;
-  line-height: 1.1;
 }
 
-.subtitle {
+.brand-amber {
+  color: #f8a44c;
+}
+
+.header-divider {
+  width: 1.5px;
+  height: 12px;
+  background: #cbd8d6;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.version-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #133b47;
+  color: #f8a44c;
   font-size: 10px;
-  color: #556e75;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 3px rgba(19, 59, 71, 0.18);
 }
 
-.status-card {
+.header-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #cbd8d6;
+  gap: 3px;
 }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #cbd8d6;
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #718a8d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.icon-btn:hover {
+  background: #e2eceb;
+  color: #133b47;
+}
+
+.icon-btn.spinning svg {
+  animation: kgSpin 0.5s ease-in-out;
+}
+
+@keyframes kgSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Modal Body
+   -------------------------------------------------------------------------- */
+.modal-body {
+  padding: 9px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Feature Cards with Heroicons (Single-line, minimal & punchy)
+   -------------------------------------------------------------------------- */
+.features-card {
+  background: #ffffff;
+  border: 1.5px solid #cbd8d6;
+  border-radius: 14px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.03);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.feature-item:hover {
+  background: #f8faf9;
+  transform: translateX(2px);
+}
+
+.feature-icon-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.feature-item:hover .feature-icon-box {
+  transform: scale(1.08);
+}
+
+.feature-icon-box.teal {
+  background: #eef6f6;
+  border: 1px solid #cce2e0;
+  color: #133b47;
+}
+
+.feature-icon-box.amber {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #ea580c;
+}
+
+.feature-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #133b47;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.micro-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #556e75;
+  background: #f0f5f4;
+  border: 1px solid #d5e2e0;
+  border-radius: 999px;
+  padding: 1.5px 6px;
+  flex-shrink: 0;
+}
+
+.micro-badge.highlight {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
+   Live Radar / Beacon Status
+   -------------------------------------------------------------------------- */
+.tab-status-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #ffffff;
+  border: 1.5px dashed #cbd8d6;
+  border-radius: 11px;
+  padding: 6px 10px;
   transition: all 0.2s ease;
 }
 
-.status-indicator.ready {
-  background-color: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
-}
-
-.status-indicator.not-found {
-  background-color: #f8a44c;
-}
-
-.status-text {
-  font-size: 11px;
-  color: #133b47;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Селектор мови формули Excel */
-.formula-section {
+.beacon-wrap {
+  position: relative;
+  width: 12px;
+  height: 12px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: #ffffff;
-  border: 1px solid #e2eceb;
-  border-radius: 10px;
-  padding: 8px 10px;
-}
-
-.section-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #556e75;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.formula-group {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-}
-
-.formula-btn {
-  border: 1px solid #cbd8d6;
-  background: #f8faf9;
-  color: #133b47;
-  border-radius: 6px;
-  padding: 5px 2px;
-  font-size: 10.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  flex-shrink: 0;
 }
 
-.formula-btn .flag {
-  font-size: 8.5px;
-  font-weight: 600;
+.beacon-core {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cbd8d6;
+  position: relative;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.beacon-wave {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: transparent;
+  z-index: 1;
+}
+
+/* Active Status: Green Pulsing Beacon */
+.tab-status-card.active {
+  border-color: #a7f3d0;
+  background: #fafffd;
+}
+
+.tab-status-card.active .beacon-core {
+  background-color: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.7);
+}
+
+.tab-status-card.active .beacon-wave {
+  background: rgba(16, 185, 129, 0.4);
+  animation: kgPulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Inactive Status: Amber Beacon */
+.tab-status-card.inactive .beacon-core {
+  background-color: #f8a44c;
+  box-shadow: 0 0 5px rgba(248, 164, 76, 0.5);
+}
+
+.tab-status-card.inactive .beacon-wave {
+  background: rgba(248, 164, 76, 0.3);
+  animation: kgPulse 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes kgPulse {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+}
+
+.status-domain {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #133b47;
+}
+
+.status-label {
+  font-size: 9.5px;
+  font-weight: 700;
   color: #718a8d;
 }
 
-.formula-btn:hover {
-  background: #edf3f2;
-  border-color: #9cb5b2;
+.tab-status-card.active .status-label {
+  color: #059669;
 }
 
-.formula-btn.active {
-  background: #133b47;
-  color: #ffffff;
-  border-color: #133b47;
-  box-shadow: 0 2px 4px rgba(19, 59, 71, 0.25);
-}
-
-.formula-btn.active .flag {
-  color: #f8a44c;
-  font-weight: 700;
-}
-
-/* Головна кнопка дії */
-.primary-btn {
+/* --------------------------------------------------------------------------
+   Action Buttons
+   -------------------------------------------------------------------------- */
+.open-cabinet-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 12px;
-  background: #133b47; /* Основний колір KaderGo */
-  color: #f8a44c; /* Фірмовий теплий помаранчевий */
-  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid #cbd8d6;
+  color: #133b47;
+  font-family: inherit;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.18s ease;
-  box-shadow: 0 3px 8px rgba(19, 59, 71, 0.18);
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
-.primary-btn:hover:not(:disabled) {
-  background: #0f2e38;
+.open-cabinet-btn:hover {
+  background: #133b47;
+  color: #f8a44c;
+  border-color: #133b47;
   transform: translateY(-1px);
-  box-shadow: 0 5px 12px rgba(19, 59, 71, 0.26);
+  box-shadow: 0 3px 8px rgba(19, 59, 71, 0.16);
 }
 
-.primary-btn:disabled {
-  background: #e2eceb;
-  color: #8fa8aa;
-  cursor: not-allowed;
-  box-shadow: none;
+.open-cabinet-btn:hover svg {
+  transform: translate(1px, -1px);
 }
 
-.primary-btn.all-btn {
-  border: 1.5px solid #f8a44c;
+.open-cabinet-btn svg {
+  transition: transform 0.15s ease;
 }
 
-.primary-btn.all-btn:hover:not(:disabled) {
-  border-color: #f8a44c;
-  background: #0f2e38;
-}
-
-
-.result-message {
-  font-size: 11px;
-  text-align: center;
-  min-height: 14px;
-  font-weight: 600;
-}
-
-.result-message.success {
-  color: #10b981;
-}
-
-.result-message.error {
-  color: #ef4444;
-}
-
-.footer {
+/* Danger / Uninstall Button (Full width) */
+.danger-btn {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-sizing: border-box;
+}
+
+.danger-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.2);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   Modal Footer
+   -------------------------------------------------------------------------- */
+.modal-footer {
+  background: #f8faf9;
   border-top: 1.5px solid #e2eceb;
-  padding-top: 6px;
-  font-size: 9.5px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-left {
+  font-size: 9px;
   color: #8fa8aa;
   font-weight: 600;
+}
+
+.footer-right {
+  font-size: 9.5px;
+  color: #133b47;
+  font-weight: 800;
+  letter-spacing: -0.2px;
 }

@@ -95,9 +95,9 @@ window.KaderGo = window.KaderGo || {};
     }
     return {
       monthNum: null,
-      monthName: 'оборот',
+      monthName: 'Оборот',
       periodLabel: `оборот з ${fromVal} по ${toVal}`,
-      defaultFileName: 'оборот.xlsx'
+      defaultFileName: 'Оборот.xlsx'
     };
   }
 

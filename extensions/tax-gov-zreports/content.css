@@ -217,6 +217,8 @@ svg.kadergo-btn-icon {
   padding: 16px !important;
   box-sizing: border-box !important;
   animation: kadergoOverlayIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  contain: strict !important;
+  isolation: isolate !important;
 }
 
 .kadergo-modal-overlay.minimized {
@@ -242,6 +244,9 @@ svg.kadergo-btn-icon {
   box-sizing: border-box !important;
   position: relative !important;
   animation: kadergoModalScale 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  contain: layout paint !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
 }
 
 @keyframes kadergoModalScale {
@@ -259,7 +264,7 @@ svg.kadergo-btn-icon {
 .kadergo-modal-header {
   background: #f8faf9 !important;
   border-bottom: 2px solid #e2eceb !important;
-  padding: 14px 22px !important;
+  padding: 10px 18px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -332,72 +337,136 @@ svg.kadergo-btn-icon {
 
 /* Modal Body */
 .kadergo-modal-body {
-  padding: 18px 22px !important;
+  padding: 11px 16px !important;
   background: #ffffff !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  gap: 7px !important;
   box-sizing: border-box !important;
 }
 
-/* Segmented Mode Tabs (3 Options) */
+/* =====================================================
+   Compact Single-Row Mode Arrangement
+   ===================================================== */
 .kadergo-mode-tabs {
   display: flex !important;
-  background: #f1f5f4 !important;
-  border: 1.5px solid #e2eceb !important;
-  border-radius: 16px !important;
-  padding: 4px !important;
-  gap: 4px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
   box-sizing: border-box !important;
 }
 
-.kadergo-mode-tab {
-  flex: 1 !important;
+/* 1. Featured Primary Mode: Книга доходів */
+.kadergo-mode-tab.kadergo-mode-featured {
+  flex: 1.15 !important;
+  height: 38px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
-  padding: 8px 6px !important;
-  border: 1.5px solid transparent !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
   border-radius: 12px !important;
-  background: transparent !important;
-  color: #556e75 !important;
+  border: 1.5px solid #cbd8d6 !important;
+  background: #ffffff !important;
+  color: #133b47 !important;
   font-family: inherit !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   cursor: pointer !important;
-  transition: all 0.16s ease !important;
-  user-select: none !important;
   outline: none !important;
+  user-select: none !important;
   white-space: nowrap !important;
+  transition: all 0.16s ease !important;
   box-sizing: border-box !important;
 }
 
-.kadergo-mode-tab .kadergo-heroicon {
-  width: 15px !important;
-  height: 15px !important;
+.kadergo-mode-tab.kadergo-mode-featured .kadergo-heroicon {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2.2 !important;
+  color: #0d9488 !important;
+}
+
+.kadergo-mode-tab.kadergo-mode-featured:hover:not(.active) {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+  color: #133b47 !important;
+}
+
+.kadergo-mode-tab.kadergo-mode-featured.active {
+  background: #133b47 !important;
+  border-color: #133b47 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(19, 59, 71, 0.22) !important;
+}
+
+.kadergo-mode-tab.kadergo-mode-featured.active .kadergo-heroicon {
+  color: #f8a44c !important;
+}
+
+/* 2. Side Options Group (Обраний РРО & Всі РРО) */
+.kadergo-mode-side-group {
+  flex: 1.15 !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #f1f5f4 !important;
+  border: 1.5px solid #e2eceb !important;
+  border-radius: 12px !important;
+  padding: 3px !important;
+  gap: 3px !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-mode-tab.kadergo-mode-side {
+  flex: 1 !important;
+  height: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid transparent !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-family: inherit !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+.kadergo-mode-tab.kadergo-mode-side .kadergo-heroicon {
+  width: 13px !important;
+  height: 13px !important;
   stroke-width: 2.2 !important;
   color: currentColor !important;
 }
 
-.kadergo-mode-tab:hover:not(.active):not(.disabled) {
+.kadergo-mode-tab.kadergo-mode-side:hover:not(.active):not(.disabled) {
   background: rgba(255, 255, 255, 0.7) !important;
   color: #133b47 !important;
 }
 
-.kadergo-mode-tab.active {
+.kadergo-mode-tab.kadergo-mode-side.active {
   background: #ffffff !important;
   border-color: #cbd8d6 !important;
   color: #133b47 !important;
   box-shadow: 0 2px 6px rgba(19, 59, 71, 0.08) !important;
 }
 
-.kadergo-mode-tab.active .kadergo-heroicon {
+.kadergo-mode-tab.kadergo-mode-side.active .kadergo-heroicon {
   color: #f8a44c !important;
 }
 
-.kadergo-mode-tab.disabled,
-.kadergo-mode-tab[disabled] {
+.kadergo-mode-tab.kadergo-mode-side.disabled,
+.kadergo-mode-tab.kadergo-mode-side[disabled] {
   opacity: 0.35 !important;
   cursor: not-allowed !important;
   color: #94a3b8 !important;
@@ -406,17 +475,11 @@ svg.kadergo-btn-icon {
   box-shadow: none !important;
 }
 
-.kadergo-mode-tab.disabled:hover,
-.kadergo-mode-tab[disabled]:hover {
+.kadergo-mode-tab.kadergo-mode-side.disabled:hover,
+.kadergo-mode-tab.kadergo-mode-side[disabled]:hover {
   background: transparent !important;
   color: #94a3b8 !important;
   cursor: not-allowed !important;
-}
-
-.kadergo-mode-tab.disabled .kadergo-heroicon,
-.kadergo-mode-tab[disabled] .kadergo-heroicon {
-  opacity: 0.4 !important;
-  color: #94a3b8 !important;
 }
 
 /* Visual Hero Banner (Signature KaderGo Card) */
@@ -1184,14 +1247,7 @@ svg.kadergo-btn-icon {
 
 /* File Section */
 .kadergo-file-section {
-  background: #f8faf9 !important;
-  border: 2px solid #e2eceb !important;
-  border-radius: 16px !important;
-  padding: 11px 13px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  box-sizing: border-box !important;
+  display: none !important;
 }
 
 .kadergo-file-section-title {
@@ -1298,13 +1354,13 @@ svg.kadergo-btn-icon {
 
 /* Footer: KaderGo Light Footer with Signature Amber Action Button */
 .kadergo-modal-footer {
-  padding: 14px 22px !important;
+  padding: 8px 16px 11px 16px !important;
   background: #f8faf9 !important;
   border-top: 2px solid #e2eceb !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px !important;
+  gap: 10px !important;
 }
 
 .kadergo-modal-btn-cancel {
@@ -1314,7 +1370,7 @@ svg.kadergo-btn-icon {
   font-weight: 900 !important;
   font-size: 12.5px !important;
   border-radius: 14px !important;
-  padding: 9px 18px !important;
+  padding: 7px 16px !important;
   cursor: pointer !important;
   transition: all 0.16s ease !important;
   outline: none !important;
@@ -1331,7 +1387,7 @@ svg.kadergo-btn-icon {
   font-weight: 900 !important;
   font-size: 12.5px !important;
   border-radius: 14px !important;
-  padding: 9px 22px !important;
+  padding: 7px 20px !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -1388,11 +1444,11 @@ svg.kadergo-btn-icon {
 .kadergo-year-section {
   background: #ffffff !important;
   border: 1.5px solid #e2eceb !important;
-  border-radius: 16px !important;
-  padding: 12px 16px !important;
+  border-radius: 14px !important;
+  padding: 7px 12px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 5px !important;
 }
 
 .kadergo-year-section.hidden,
@@ -1429,9 +1485,9 @@ svg.kadergo-btn-icon {
   background: #ffffff !important;
   border: 1.5px solid #cbd8d6 !important;
   border-radius: 12px !important;
-  padding: 6px 18px !important;
+  padding: 4px 12px !important;
   font-family: inherit !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 800 !important;
   color: #133b47 !important;
   cursor: pointer !important;
@@ -1468,11 +1524,11 @@ svg.kadergo-btn-icon {
 .kadergo-system-section {
   background: #f8faf9 !important;
   border: 1.5px solid #e2eceb !important;
-  border-radius: 16px !important;
-  padding: 10px 14px 12px 14px !important;
+  border-radius: 14px !important;
+  padding: 6px 12px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 5px !important;
   box-sizing: border-box !important;
 }
 
@@ -1643,9 +1699,10 @@ svg.kadergo-btn-icon {
   align-items: center !important;
   justify-content: center !important;
   margin-bottom: 12px !important;
-  contain: layout paint !important;
+  contain: strict !important;
   will-change: transform !important;
   transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
   transition: transform 0.25s ease !important;
 }
 
@@ -1660,6 +1717,7 @@ svg.kadergo-btn-icon {
   align-items: center !important;
   max-width: 440px !important;
   width: 100% !important;
+  position: relative !important;
 }
 
 /* Premium Stage Card Panel */
@@ -2144,4 +2202,604 @@ svg.kadergo-btn-icon {
   background: #fee2e2 !important;
   color: #ef4444 !important;
   transform: scale(1.05) !important;
+}
+
+
+/* ==============================================================================
+   KaderGo - Worker Salary Prompt Card Styles (State-Prompt / Question Mark)
+   ============================================================================== */
+
+.kadergo-flow-stage-card {
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.kadergo-flow-stage-card.fade-out {
+  opacity: 0 !important;
+  transform: translateY(-12px) scale(0.97) !important;
+  pointer-events: none !important;
+}
+
+.kadergo-flow-prompt-wrap {
+  width: 100% !important;
+  max-width: 440px !important;
+  display: none;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in {
+  display: block !important;
+  animation: kgPromptSlideUpIn 0.70s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.kadergo-flow-prompt-wrap.slide-down-out {
+  animation: kgPromptSlideDownOut 0.35s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes kgPromptSlideUpIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes kgPromptSlideDownOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+/* Staggered, slow and elegant text animations */
+@keyframes kgTextFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-prompt-badge {
+  animation: kgTextFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-prompt-title {
+  animation: kgTextFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-prompt-desc {
+  animation: kgTextFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-worker-rows {
+  animation: kgTextFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-prompt-actions {
+  animation: kgTextFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.52s both;
+}
+
+.kadergo-flow-prompt-wrap.slide-up-in .kg-prompt-footer {
+  animation: kgTextFadeUp 0.80s cubic-bezier(0.16, 1, 0.3, 1) 0.62s both;
+}
+
+.kg-prompt-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 25px -5px rgba(19, 59, 71, 0.08);
+  text-align: left;
+}
+
+.kg-prompt-header {
+  margin-bottom: 14px;
+}
+
+.kg-prompt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.kg-prompt-dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+.kg-prompt-title {
+  margin: 0 0 4px 0 !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  letter-spacing: -0.2px;
+}
+
+.kg-prompt-desc {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  line-height: 1.4 !important;
+}
+
+.kg-worker-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 12px;
+}
+
+.kg-worker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  transition: all 0.18s ease;
+}
+
+.kg-worker-row:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.kg-worker-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #133b47;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kg-worker-badge svg {
+  color: #f59533;
+}
+
+.kg-worker-amount-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 5px 10px;
+  transition: all 0.15s ease;
+  flex: 1;
+  max-width: 170px;
+  margin-left: auto;
+}
+
+.kg-worker-amount-wrap:focus-within {
+  border-color: #f59533;
+  box-shadow: 0 0 0 3px rgba(245, 149, 51, 0.18);
+}
+
+.kg-worker-salary {
+  width: 100% !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #133b47 !important;
+  padding: 0 !important;
+  text-align: right;
+}
+
+.kg-worker-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.kg-worker-del-btn {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #94a3b8 !important;
+  border-radius: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+  padding: 0 !important;
+}
+
+.kg-worker-del-btn:hover:not(:disabled) {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  border-color: #fca5a5 !important;
+}
+
+.kg-worker-empty-notice {
+  text-align: center;
+  padding: 16px 12px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: italic;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+}
+
+.kg-prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kg-add-worker-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #f0fdf4 !important;
+  border: 1.5px dashed #86efac !important;
+  color: #166534 !important;
+  border-radius: 10px !important;
+  padding: 7px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.kg-add-worker-btn:hover {
+  background: #dcfce7 !important;
+  border-color: #4ade80 !important;
+  color: #14532d !important;
+  transform: translateY(-1px);
+}
+
+.kg-prompt-total-badge {
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.kg-prompt-total-badge strong {
+  color: #133b47;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.kg-prompt-footer {
+  text-align: right;
+}
+
+.kg-prompt-submit-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  background: linear-gradient(135deg, #f59533 0%, #e08e36 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 16px rgba(245, 149, 51, 0.28) !important;
+  transition: all 0.18s ease !important;
+}
+
+.kg-prompt-submit-btn:hover {
+  background: linear-gradient(135deg, #f8a44c 0%, #ea8523 100%) !important;
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 8px 20px rgba(245, 149, 51, 0.38) !important;
+}
+
+
+/* =====================================================
+   Unified Settings Panel (Єдиний блок налаштувань)
+   ===================================================== */
+.kadergo-unified-panel {
+  background: #f8faf9 !important;
+  border: 1.5px solid #d5e2e0 !important;
+  border-radius: 16px !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 4px rgba(19, 59, 71, 0.04) !important;
+}
+
+/* Sections inside Unified Panel become transparent rows */
+.kadergo-unified-panel .kadergo-year-section {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 0 7px 0 !important;
+  border-bottom: 1px solid #e5eded !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+.kadergo-unified-panel .kadergo-year-section.hidden,
+.kadergo-unified-panel .kadergo-year-section[style*="display: none"],
+.kadergo-unified-panel .kadergo-year-section[style*="display:none"] {
+  display: none !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.kadergo-unified-panel .kadergo-year-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  color: #556e75 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+}
+
+.kadergo-unified-panel .kadergo-year-chips-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex-wrap: wrap !important;
+}
+
+.kadergo-unified-panel .kadergo-year-chip {
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 8px !important;
+  padding: 4px 12px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #133b47 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(19, 59, 71, 0.03) !important;
+}
+
+.kadergo-unified-panel .kadergo-year-chip:hover:not(.disabled):not(.active) {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+}
+
+.kadergo-unified-panel .kadergo-year-chip.active {
+  background: #133b47 !important;
+  border-color: #133b47 !important;
+  color: #f8a44c !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.18) !important;
+}
+
+/* System Section inside Unified Panel */
+.kadergo-unified-panel .kadergo-system-section {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 0 7px 0 !important;
+  border-bottom: 1px solid #e5eded !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+.kadergo-unified-panel .kadergo-system-section.hidden,
+.kadergo-unified-panel .kadergo-system-section[style*="display: none"],
+.kadergo-unified-panel .kadergo-system-section[style*="display:none"] {
+  display: none !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.kadergo-unified-panel .kadergo-system-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  color: #556e75 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+}
+
+.kadergo-unified-panel .kadergo-system-chips-wrap {
+  display: flex !important;
+  gap: 6px !important;
+}
+
+.kadergo-unified-panel .kadergo-system-chip {
+  flex: 1 !important;
+  height: 33px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 9px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #556e75 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(19, 59, 71, 0.03) !important;
+}
+
+.kadergo-unified-panel .kadergo-system-chip:hover:not(.active) {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+  color: #133b47 !important;
+}
+
+.kadergo-unified-panel .kadergo-system-chip.active {
+  background: #133b47 !important;
+  border-color: #133b47 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.18) !important;
+}
+
+.kadergo-unified-panel .kadergo-system-chip.active .kadergo-heroicon,
+.kadergo-unified-panel .kadergo-system-chip.active .kadergo-system-chip-icon .kadergo-heroicon {
+  color: #f8a44c !important;
+}
+
+/* Grid inside Unified Panel */
+.kadergo-unified-panel .kadergo-modal-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 6px !important;
+  padding: 0 0 7px 0 !important;
+  border-bottom: 1px solid #e5eded !important;
+}
+
+.kadergo-unified-panel .kadergo-grid-card {
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 9px !important;
+  padding: 6px 9px !important;
+  box-shadow: 0 1px 2px rgba(19, 59, 71, 0.03) !important;
+}
+
+.kadergo-unified-panel .kadergo-grid-card-interactive:hover {
+  border-color: #0d9488 !important;
+  background: #f0fdfa !important;
+}
+
+.kadergo-unified-panel .kadergo-grid-change-badge {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  color: #0d9488 !important;
+  background: #e6f6f4 !important;
+  border: 1px solid #bce6e1 !important;
+  border-radius: 4px !important;
+  padding: 1px 4px !important;
+}
+
+/* Format Section inside Unified Panel */
+.kadergo-unified-panel .kadergo-format-section {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.kadergo-unified-panel .kadergo-format-title {
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  color: #556e75 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+}
+
+.kadergo-unified-panel .kadergo-format-options {
+  display: flex !important;
+  gap: 6px !important;
+}
+
+.kadergo-unified-panel .kadergo-format-btn {
+  flex: 1 !important;
+  height: 33px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 9px !important;
+  font-family: inherit !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: #556e75 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px rgba(19, 59, 71, 0.03) !important;
+}
+
+.kadergo-unified-panel .kadergo-format-btn:hover:not(.active) {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+  color: #133b47 !important;
+}
+
+.kadergo-unified-panel .kadergo-format-btn.active {
+  background: #133b47 !important;
+  border-color: #133b47 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(19, 59, 71, 0.18) !important;
+}
+
+.kadergo-unified-panel .kadergo-format-btn.active .kadergo-heroicon {
+  color: #f8a44c !important;
+}
+
+/* Quarters Row inside Unified Panel */
+.kadergo-unified-panel .kadergo-quarters-row {
+  background: #ffffff !important;
+  border: 1px solid #cbd8d6 !important;
+  border-radius: 9px !important;
+  padding: 0 9px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-shadow: 0 1px 2px rgba(19, 59, 71, 0.03) !important;
+  cursor: pointer !important;
+  margin-top: 1px !important;
+}
+
+.kadergo-unified-panel .kadergo-quarters-row:hover {
+  background: #f0f7f6 !important;
+  border-color: #133b47 !important;
+}
+
+
+.kadergo-format-title,
+.kadergo-format-options,
+#kg-format-options {
+  display: none !important;
 }

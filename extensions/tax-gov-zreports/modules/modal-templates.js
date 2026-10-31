@@ -82,22 +82,25 @@
     const body = document.createElement('div');
     body.className = 'kadergo-modal-body';
 
-    // 1. Mode Tabs
+    // 1. Mode Tabs (Compact single row: Featured Книга доходів + Side RRO group)
     const tabsWrap = document.createElement('div');
     tabsWrap.className = 'kadergo-mode-tabs';
     tabsWrap.innerHTML = `
-      <button type="button" class="kadergo-mode-tab ${activeMode === 'single' ? 'active' : ''} ${isSingleDisabled ? 'disabled' : ''}" ${isSingleDisabled ? 'disabled' : ''} data-mode="single" title="${singleTitle}">
-        ${icons?.documentText || ''}
-        <span>Обраний РРО</span>
-      </button>
-      <button type="button" class="kadergo-mode-tab ${activeMode === 'all' ? 'active' : ''} ${isAllDisabled ? 'disabled' : ''}" ${isAllDisabled ? 'disabled' : ''} data-mode="all" title="${allTitle}">
-        ${icons?.layers || ''}
-        <span>Всі РРО</span>
-      </button>
-      <button type="button" class="kadergo-mode-tab ${activeMode === 'income_book' ? 'active' : ''}" data-mode="income_book" title="Книга обліку доходів за обраний рік">
+      <button type="button" class="kadergo-mode-tab kadergo-mode-featured ${activeMode === 'income_book' ? 'active' : ''}" data-mode="income_book" title="Книга обліку доходів">
         ${icons?.bookOpen || ''}
         <span>Книга доходів</span>
       </button>
+
+      <div class="kadergo-mode-side-group">
+        <button type="button" class="kadergo-mode-tab kadergo-mode-side ${activeMode === 'single' ? 'active' : ''} ${isSingleDisabled ? 'disabled' : ''}" ${isSingleDisabled ? 'disabled' : ''} data-mode="single" title="${singleTitle}">
+          ${icons?.documentText || ''}
+          <span>Обраний РРО</span>
+        </button>
+        <button type="button" class="kadergo-mode-tab kadergo-mode-side ${activeMode === 'all' ? 'active' : ''} ${isAllDisabled ? 'disabled' : ''}" ${isAllDisabled ? 'disabled' : ''} data-mode="all" title="${allTitle}">
+          ${icons?.layers || ''}
+          <span>Всі РРО</span>
+        </button>
+      </div>
     `;
 
     // 2. Visual Hero Card
@@ -257,13 +260,12 @@
       </div>
     `;
 
-    // 5. Format Switcher
+    // 5. Quarters & Format Row
     const formatSection = document.createElement('div');
     formatSection.className = 'kadergo-format-section hidden';
     formatSection.style.setProperty('display', 'none', 'important');
     formatSection.innerHTML = `
-      <div class="kadergo-format-title">Формат:</div>
-      <div class="kadergo-format-options" id="kg-format-options"></div>
+      <div id="kg-format-options" style="display: none !important;"></div>
       <div class="kadergo-quarters-row" id="kg-income-quarters-row" title="Додати розрахунок по кварталах (I–IV кв.) та залишок ліміту 3 групи" style="display: none;">
         <div class="kadergo-quarters-row-left">
           <span class="kadergo-quarters-icon">${icons?.chartBar || ''}</span>
@@ -314,10 +316,16 @@
 
     body.appendChild(tabsWrap);
     body.appendChild(heroCard);
-    body.appendChild(yearSection);
-    body.appendChild(systemSection);
-    body.appendChild(grid);
-    body.appendChild(formatSection);
+
+    // Unified Configuration Card
+    const configPanel = document.createElement('div');
+    configPanel.className = 'kadergo-unified-panel';
+    configPanel.appendChild(yearSection);
+    configPanel.appendChild(systemSection);
+    configPanel.appendChild(grid);
+    configPanel.appendChild(formatSection);
+    body.appendChild(configPanel);
+
     body.appendChild(fileSection);
 
     card.appendChild(header);

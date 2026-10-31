@@ -61,7 +61,7 @@ window.KaderGo = window.KaderGo || {};
    * @param {string} [params.taxpayerCode] - e.g. "3254413922"
    * @returns {{ uint8: Uint8Array, blob: Blob, fileName: string }}
    */
-  function buildGeneralBookXlsxData({ year, dailyData = {}, taxpayerName = '', taxpayerCode = '' }) {
+  function buildGeneralBookXlsxData({ year, dailyData = {}, taxpayerName = '', taxpayerCode = '', workerSalaries = [], taxPayments = [] }) {
     const { SimpleZip } = window.KaderGo.Zip;
     const zip = new SimpleZip();
     const numYear = parseInt(year, 10) || new Date().getFullYear();
@@ -202,9 +202,83 @@ window.KaderGo = window.KaderGo || {};
 
     const isLeapYear = (numYear % 4 === 0 && numYear % 100 !== 0) || (numYear % 400 === 0);
 
+    // Build Daily Expenses Map (Column E: Doc, Column G: Labor/CPH, Column H: Taxes/Licenses)
+    const dailyExpenses = {};
+    function getExpenseEntry(y, m, d) {
+      const k = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (!dailyExpenses[k]) {
+        dailyExpenses[k] = { g: 0, h: 0, doc: [] };
+      }
+      return dailyExpenses[k];
+    }
+
+    // A) Process Tax Account Payments (License, ESV self, ESV workers/CPH)
+    // ONLY the 3 approved tax codes: 71010000, 71040000, 22011100
+    // And worker salary is ONLY added when ESV for workers (71010000) was actually paid!
+    let totalMonthlyWorkerSalary = 0;
+    if (Array.isArray(workerSalaries)) {
+      totalMonthlyWorkerSalary = workerSalaries.reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0);
+    } else if (typeof workerSalaries === 'number') {
+      totalMonthlyWorkerSalary = workerSalaries;
+    }
+    totalMonthlyWorkerSalary = Math.round(totalMonthlyWorkerSalary * 100) / 100;
+
+    const monthsWithWorkerSalaryAdded = new Set();
+
+    if (Array.isArray(taxPayments)) {
+      // Sort payments chronologically
+      const sortedPayments = [...taxPayments].sort((a, b) => {
+        return (a.year || numYear) - (b.year || numYear) || (a.month - b.month) || (a.day - b.day);
+      });
+
+      sortedPayments.forEach((p) => {
+        if (!p || !p.month || !p.day || !p.amount || p.amount <= 0) return;
+        const rawCode = String(p.taxCode || p.code || p.rawCode || '').trim();
+        let normalizedCode = '';
+        if (rawCode.includes('7071040000') || rawCode.includes('71040000')) {
+          normalizedCode = '71040000';
+        } else if (rawCode.includes('71010000')) {
+          normalizedCode = '71010000';
+        } else if (rawCode.includes('22011100')) {
+          normalizedCode = '22011100';
+        } else {
+          return; // Ignore other taxes
+        }
+
+        const payYear = parseInt(p.year, 10) || numYear;
+        const entry = getExpenseEntry(payYear, p.month, p.day);
+
+        if (normalizedCode === '71010000') {
+          // ЄСВ за найманих працівників / ЦПХ -> Col G
+          // Csak akkor van munkásfizu, amikor neki van єсв befizetve!
+          // "G oszlop munkás fizu (13k) + цпх", "irjam egybe a єсвvel a цпх-ssal"
+          let salaryToAdd = 0;
+          if (totalMonthlyWorkerSalary > 0 && !monthsWithWorkerSalaryAdded.has(p.month)) {
+            salaryToAdd = totalMonthlyWorkerSalary;
+            monthsWithWorkerSalaryAdded.add(p.month);
+          }
+
+          const combinedAmount = Math.round((p.amount + salaryToAdd) * 100) / 100;
+          entry.g = Math.round((entry.g + combinedAmount) * 100) / 100;
+
+          if (salaryToAdd > 0) {
+            entry.doc.push(`${p.docInfo || p.opName || 'Сплата ЄСВ'} (ЄСВ: ${p.amount} грн + з/п: ${salaryToAdd} грн)`);
+          } else {
+            entry.doc.push(p.docInfo || p.opName || 'Сплата ЄСВ за працівників');
+          }
+        } else if (normalizedCode === '71040000' || normalizedCode === '22011100') {
+          // Ліцензії (22011100) + ЄСВ за себе (71040000 / 7071040000) -> Col H
+          entry.h = Math.round((entry.h + p.amount) * 100) / 100;
+          entry.doc.push(p.docInfo || p.opName || (normalizedCode === '22011100' ? 'Плата за ліцензію' : 'Сплата ЄСВ за себе'));
+        }
+      });
+    }
+
     let totalYearSales = 0;
     let totalYearReturns = 0;
     let totalYearNet = 0;
+    let totalYearG = 0;
+    let totalYearH = 0;
 
     // Generate All 12 Months
     for (let mi = 0; mi < 12; mi++) {
@@ -212,6 +286,8 @@ window.KaderGo = window.KaderGo || {};
       let monthSales = 0;
       let monthReturns = 0;
       let monthNet = 0;
+      let monthG = 0;
+      let monthH = 0;
 
       for (let r = m.startRow; r <= m.endRow; r++) {
         const day = r - m.startRow + 1;
@@ -241,19 +317,37 @@ window.KaderGo = window.KaderGo || {};
           : 0;
         monthNet += netDailyVal;
 
-        const cellD = `<c r="D${r}" s="14"><f>(B${r}-C${r})/1.05</f><v>${netDailyVal}</v></c>`;
-        const cellK = `<c r="K${r}" s="14"><f>D${r}-F${r}-G${r}-H${r}-I${r}-J${r}</f><v>${netDailyVal}</v></c>`;
+        // Daily expenses from tax payments or worker salary
+        const exp = getExpenseEntry(numYear, m.num, day);
+        const dayG = Math.round(exp.g * 100) / 100;
+        const dayH = Math.round(exp.h * 100) / 100;
+        monthG += dayG;
+        monthH += dayH;
 
-        rowsXml.push(`<row r="${r}">${cellA}${cellB}${cellC}${cellD}<c r="E${r}" s="14"/><c r="F${r}" s="14"/><c r="G${r}" s="14"/><c r="H${r}" s="14"/><c r="I${r}" s="14"/><c r="J${r}" s="14"/>${cellK}<c r="L${r}" s="25"/><c r="M${r}" s="25"/><c r="N${r}" s="25"/><c r="O${r}" s="25"/></row>`);
+        const docStr = exp.doc.length > 0 ? exp.doc.join('; ') : '';
+        const cellE = docStr ? `<c r="E${r}" s="14" t="s"><v>${addString(docStr)}</v></c>` : `<c r="E${r}" s="14"/>`;
+        const cellG = dayG > 0 ? `<c r="G${r}" s="14"><v>${dayG}</v></c>` : `<c r="G${r}" s="14"/>`;
+        const cellH = dayH > 0 ? `<c r="H${r}" s="14"><v>${dayH}</v></c>` : `<c r="H${r}" s="14"/>`;
+
+        const netDailyProfit = Math.round((netDailyVal - dayG - dayH) * 100) / 100;
+        const cellD = `<c r="D${r}" s="14"><f>(B${r}-C${r})/1.05</f><v>${netDailyVal}</v></c>`;
+        const cellK = `<c r="K${r}" s="14"><f>D${r}-F${r}-G${r}-H${r}-I${r}-J${r}</f><v>${netDailyProfit}</v></c>`;
+
+        rowsXml.push(`<row r="${r}">${cellA}${cellB}${cellC}${cellD}${cellE}<c r="F${r}" s="14"/>${cellG}${cellH}<c r="I${r}" s="14"/><c r="J${r}" s="14"/>${cellK}<c r="L${r}" s="25"/><c r="M${r}" s="25"/><c r="N${r}" s="25"/><c r="O${r}" s="25"/></row>`);
       }
 
       monthSales = Math.round(monthSales * 100) / 100;
       monthReturns = Math.round(monthReturns * 100) / 100;
       monthNet = Math.round(monthNet * 100) / 100;
+      monthG = Math.round(monthG * 100) / 100;
+      monthH = Math.round(monthH * 100) / 100;
+      const monthProfit = Math.round((monthNet - monthG - monthH) * 100) / 100;
 
       totalYearSales += monthSales;
       totalYearReturns += monthReturns;
       totalYearNet += monthNet;
+      totalYearG += monthG;
+      totalYearH += monthH;
 
       // 1. Excise Row (before month total): B = D{totalRow}*0.05
       const exciseVal = Math.round(monthNet * 0.05 * 100) / 100;
@@ -267,18 +361,21 @@ window.KaderGo = window.KaderGo || {};
       const totStyleLO = isDec ? 27 : 25;
       const totHt = isDec ? '33' : '33.75';
 
-      rowsXml.push(`<row r="${m.totalRow}" ht="${totHt}" customHeight="1"><c r="A${m.totalRow}" s="${totStyleA}" t="s"><v>${sstMonthSummaries[mi]}</v></c><c r="B${m.totalRow}" s="${totStyleB}"><f>SUM(B${m.startRow}:B${m.endRow})</f><v>${monthSales}</v></c><c r="C${m.totalRow}" s="${totStyleRest}"><f>SUM(C${m.startRow}:C${m.endRow})</f><v>${monthReturns}</v></c><c r="D${m.totalRow}" s="${totStyleRest}"><f>SUM(D${m.startRow}:D${m.endRow})</f><v>${monthNet}</v></c><c r="E${m.totalRow}" s="${totStyleRest}"><f>SUM(E${m.startRow}:E${m.endRow})</f><v>0</v></c><c r="F${m.totalRow}" s="${totStyleRest}"><f>SUM(F${m.startRow}:F${m.endRow})</f><v>0</v></c><c r="G${m.totalRow}" s="${totStyleRest}"><f>SUM(G${m.startRow}:G${m.endRow})</f><v>0</v></c><c r="H${m.totalRow}" s="${totStyleRest}"><f>SUM(H${m.startRow}:H${m.endRow})</f><v>0</v></c><c r="I${m.totalRow}" s="${totStyleRest}"><f>SUM(I${m.startRow}:I${m.endRow})</f><v>0</v></c><c r="J${m.totalRow}" s="${totStyleRest}"><f>SUM(J${m.startRow}:J${m.endRow})</f><v>0</v></c><c r="K${m.totalRow}" s="${totStyleRest}"><f>D${m.totalRow}-F${m.totalRow}-G${m.totalRow}-H${m.totalRow}</f><v>${monthNet}</v></c><c r="L${m.totalRow}" s="${totStyleLO}"/><c r="M${m.totalRow}" s="${totStyleLO}"/><c r="N${m.totalRow}" s="${totStyleLO}"/><c r="O${m.totalRow}" s="${totStyleLO}"/></row>`);
+      rowsXml.push(`<row r="${m.totalRow}" ht="${totHt}" customHeight="1"><c r="A${m.totalRow}" s="${totStyleA}" t="s"><v>${sstMonthSummaries[mi]}</v></c><c r="B${m.totalRow}" s="${totStyleB}"><f>SUM(B${m.startRow}:B${m.endRow})</f><v>${monthSales}</v></c><c r="C${m.totalRow}" s="${totStyleRest}"><f>SUM(C${m.startRow}:C${m.endRow})</f><v>${monthReturns}</v></c><c r="D${m.totalRow}" s="${totStyleRest}"><f>SUM(D${m.startRow}:D${m.endRow})</f><v>${monthNet}</v></c><c r="E${m.totalRow}" s="${totStyleRest}"><f>SUM(E${m.startRow}:E${m.endRow})</f><v>0</v></c><c r="F${m.totalRow}" s="${totStyleRest}"><f>SUM(F${m.startRow}:F${m.endRow})</f><v>0</v></c><c r="G${m.totalRow}" s="${totStyleRest}"><f>SUM(G${m.startRow}:G${m.endRow})</f><v>${monthG}</v></c><c r="H${m.totalRow}" s="${totStyleRest}"><f>SUM(H${m.startRow}:H${m.endRow})</f><v>${monthH}</v></c><c r="I${m.totalRow}" s="${totStyleRest}"><f>SUM(I${m.startRow}:I${m.endRow})</f><v>0</v></c><c r="J${m.totalRow}" s="${totStyleRest}"><f>SUM(J${m.startRow}:J${m.endRow})</f><v>0</v></c><c r="K${m.totalRow}" s="${totStyleRest}"><f>D${m.totalRow}-F${m.totalRow}-G${m.totalRow}-H${m.totalRow}</f><v>${monthProfit}</v></c><c r="L${m.totalRow}" s="${totStyleLO}"/><c r="M${m.totalRow}" s="${totStyleLO}"/><c r="N${m.totalRow}" s="${totStyleLO}"/><c r="O${m.totalRow}" s="${totStyleLO}"/></row>`);
     }
 
     totalYearSales = Math.round(totalYearSales * 100) / 100;
     totalYearReturns = Math.round(totalYearReturns * 100) / 100;
     totalYearNet = Math.round(totalYearNet * 100) / 100;
+    totalYearG = Math.round(totalYearG * 100) / 100;
+    totalYearH = Math.round(totalYearH * 100) / 100;
+    const totalYearProfit = Math.round((totalYearNet - totalYearG - totalYearH) * 100) / 100;
 
     // Row 404: Year Total (summing all 12 monthly totals)
     const monthTotals = [46, 77, 110, 142, 175, 207, 240, 273, 305, 338, 370, 403];
     const sumTotalFormula = (col) => monthTotals.map(r => `${col}${r}`).join('+');
 
-    rowsXml.push(`<row r="404"><c r="A404" s="30" t="s"><v>${sstYearSummary}</v></c><c r="B404" s="31"><f>${sumTotalFormula('B')}</f><v>${totalYearSales}</v></c><c r="C404" s="31"><f>${sumTotalFormula('C')}</f><v>${totalYearReturns}</v></c><c r="D404" s="31"><f>${sumTotalFormula('D')}</f><v>${totalYearNet}</v></c><c r="E404" s="31"><f>${sumTotalFormula('E')}</f><v>0</v></c><c r="F404" s="31"><f>${sumTotalFormula('F')}</f><v>0</v></c><c r="G404" s="31"><f>${sumTotalFormula('G')}</f><v>0</v></c><c r="H404" s="31"><f>${sumTotalFormula('H')}</f><v>0</v></c><c r="I404" s="31"><f>${sumTotalFormula('I')}</f><v>0</v></c><c r="J404" s="31"><f>${sumTotalFormula('J')}</f><v>0</v></c><c r="K404" s="31"><f>D404-F404-G404-H404</f><v>${totalYearNet}</v></c><c r="L404" s="27"/><c r="M404" s="27"/><c r="N404" s="27"/><c r="O404" s="27"/></row>`);
+    rowsXml.push(`<row r="404"><c r="A404" s="30" t="s"><v>${sstYearSummary}</v></c><c r="B404" s="31"><f>${sumTotalFormula('B')}</f><v>${totalYearSales}</v></c><c r="C404" s="31"><f>${sumTotalFormula('C')}</f><v>${totalYearReturns}</v></c><c r="D404" s="31"><f>${sumTotalFormula('D')}</f><v>${totalYearNet}</v></c><c r="E404" s="31"><f>${sumTotalFormula('E')}</f><v>0</v></c><c r="F404" s="31"><f>${sumTotalFormula('F')}</f><v>0</v></c><c r="G404" s="31"><f>${sumTotalFormula('G')}</f><v>${totalYearG}</v></c><c r="H404" s="31"><f>${sumTotalFormula('H')}</f><v>${totalYearH}</v></c><c r="I404" s="31"><f>${sumTotalFormula('I')}</f><v>0</v></c><c r="J404" s="31"><f>${sumTotalFormula('J')}</f><v>0</v></c><c r="K404" s="31"><f>D404-F404-G404-H404</f><v>${totalYearProfit}</v></c><c r="L404" s="27"/><c r="M404" s="27"/><c r="N404" s="27"/><c r="O404" s="27"/></row>`);
 
     // Footnotes (Rows 406..409)
     rowsXml.push(`<row r="406" ht="15.75"><c r="A406" s="47" t="s"><v>${sstFootUnderline}</v></c><c r="B406" s="47"/><c r="C406" s="47"/><c r="D406" s="47"/><c r="E406" s="47"/><c r="F406" s="47"/><c r="G406" s="47"/><c r="H406" s="47"/><c r="I406" s="47"/><c r="J406" s="47"/><c r="K406" s="47"/></row>`);
@@ -408,8 +505,8 @@ window.KaderGo = window.KaderGo || {};
     const uint8 = zip.toUint8Array();
     const surname = extractTaxpayerSurname(taxpayerName);
     const fileName = surname
-      ? `книга загальна система ${surname} ${numYear}.xlsx`
-      : `книга загальна система ${numYear}.xlsx`;
+      ? `Книга загальна система ${surname} ${numYear}.xlsx`
+      : `Книга загальна система ${numYear}.xlsx`;
     const blob = (typeof Blob !== 'undefined')
       ? new Blob([uint8], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       : null;

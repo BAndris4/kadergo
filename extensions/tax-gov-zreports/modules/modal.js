@@ -18,10 +18,11 @@ window.KaderGo = window.KaderGo || {};
       if (window.KaderGo.ModalDock) {
         window.KaderGo.ModalDock.remove();
       }
-      if (currentModalEl && currentModalEl.parentNode) {
-        currentModalEl.remove();
-        currentModalEl = null;
-      }
+      // Strictly remove any existing modal overlays in the DOM so there is never a duplicate
+      document.querySelectorAll('#tax-gov-kadergo-modal-overlay, #kg-modal-overlay, .kadergo-modal-overlay').forEach(el => {
+        try { el.remove(); } catch (e) {}
+      });
+      currentModalEl = null;
       currentRestoreFn = null;
 
       const { DateUtils, Cabinet, ModalPeriod, ModalFlow } = window.KaderGo || {};
@@ -38,7 +39,7 @@ window.KaderGo = window.KaderGo || {};
         ? (DateUtils.splitDateRangeIntoMonthlyIntervals(origFrom, origTo) || [])
         : [];
 
-      let activeMode = initialOptions.initialMode || initialOptions.defaultMode || 'all'; // 'single' | 'all' | 'income_book'
+      let activeMode = initialOptions.initialMode || initialOptions.defaultMode || 'income_book'; // 'single' | 'all' | 'income_book'
       let targetFn = initialOptions.targetFn || null;
 
       // 1. Single Mode check
@@ -130,6 +131,7 @@ window.KaderGo = window.KaderGo || {};
         closeBtn,
         minimizeBtn,
         tabsWrap,
+        heroCard,
         yearSection,
         yearChipsContainer,
         systemSection,
@@ -411,6 +413,9 @@ window.KaderGo = window.KaderGo || {};
 
           yearSection.classList.add('hidden');
           yearSection.style.setProperty('display', 'none', 'important');
+          if (heroCard) {
+            heroCard.style.setProperty('display', 'flex', 'important');
+          }
 
           const fnText = targetFn ? `РРО ${targetFn}` : 'Обраний РРО';
           heroIconBox.innerHTML = icons.fileSpreadsheet;
@@ -427,31 +432,17 @@ window.KaderGo = window.KaderGo || {};
               : '1 файл';
             heroBadge.textContent = fileCountText;
 
-            if (cabinetIntervals.length > 1) {
-              formatSection.classList.remove('hidden');
-              formatSection.style.setProperty('display', 'flex', 'important');
-              if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
-              formatOptionsWrap.innerHTML = `
-                <button type="button" class="kadergo-format-btn ${singleFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
-                  <span class="kadergo-format-btn-icon">${icons.archive}</span>
-                  <span>Архів ZIP</span>
-                </button>
-                <button type="button" class="kadergo-format-btn ${singleFormat === 'xlsx' ? 'active' : ''}" data-fmt="xlsx">
-                  <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
-                  <span>Окремі файли Excel</span>
-                </button>
-              `;
-            } else {
-              formatSection.classList.add('hidden');
-              formatSection.style.setProperty('display', 'none', 'important');
-              if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
-            }
+            singleFormat = 'zip';
+            formatSection.classList.add('hidden');
+            formatSection.style.setProperty('display', 'none', 'important');
+            if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
+            formatOptionsWrap.innerHTML = '';
 
             fileChipsWrap.innerHTML = '';
             if (singleFormat === 'zip') {
               const zipChip = document.createElement('span');
               zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
-              const cleanZipName = `оборот_${origFrom}_${origTo}.zip`
+              const cleanZipName = `Оборот_${origFrom}_${origTo}.zip`
                 .replace(/\./g, '_')
                 .replace(/_+/g, '_')
                 .replace(/_zip$/, '.zip');
@@ -497,6 +488,9 @@ window.KaderGo = window.KaderGo || {};
         } else if (activeMode === 'all') {
           yearSection.classList.add('hidden');
           yearSection.style.setProperty('display', 'none', 'important');
+          if (heroCard) {
+            heroCard.style.setProperty('display', 'flex', 'important');
+          }
 
           heroIconBox.innerHTML = icons.layers;
           heroTag.textContent = 'Автоматичний збір';
@@ -510,25 +504,17 @@ window.KaderGo = window.KaderGo || {};
             const badgeText = allFormat === 'zip' ? 'Архів ZIP' : 'Окремі файли';
             heroBadge.textContent = badgeText;
 
-            formatSection.classList.remove('hidden');
-            formatSection.style.setProperty('display', 'flex', 'important');
+            allFormat = 'zip';
+            formatSection.classList.add('hidden');
+            formatSection.style.setProperty('display', 'none', 'important');
             if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
-            formatOptionsWrap.innerHTML = `
-              <button type="button" class="kadergo-format-btn ${allFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
-                <span class="kadergo-format-btn-icon">${icons.archive}</span>
-                <span>Архів ZIP</span>
-              </button>
-              <button type="button" class="kadergo-format-btn ${allFormat === 'xlsx' ? 'active' : ''}" data-fmt="xlsx">
-                <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
-                <span>Окремі файли Excel</span>
-              </button>
-            `;
+            formatOptionsWrap.innerHTML = '';
 
             fileChipsWrap.innerHTML = '';
             if (allFormat === 'zip') {
               const zipChip = document.createElement('span');
               zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
-              const cleanZipName = `оборот_${origFrom}_${origTo}.zip`
+              const cleanZipName = `Оборот_${origFrom}_${origTo}.zip`
                 .replace(/\./g, '_')
                 .replace(/_+/g, '_')
                 .replace(/_zip$/, '.zip');
@@ -571,6 +557,9 @@ window.KaderGo = window.KaderGo || {};
           }
 
         } else if (activeMode === 'income_book') {
+          if (heroCard) {
+            heroCard.style.setProperty('display', 'none', 'important');
+          }
           yearSection.classList.remove('hidden');
           yearSection.style.setProperty('display', 'flex', 'important');
 
@@ -591,7 +580,7 @@ window.KaderGo = window.KaderGo || {};
           heroTag.textContent = isGeneral ? 'Загальна система' : 'Єдиний податок';
           heroTitle.textContent = isGeneral ? 'Книга доходів і витрат' : 'Книга обліку доходів';
           heroBadge.textContent = `${selectedYear} рік`;
-          modeVal.textContent = isGeneral ? 'Загальна система' : 'Всі РРО';
+          modeVal.textContent = isGeneral ? 'Загальна система' : 'Єдиний податок';
           modeVal.style.color = '';
 
           const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
@@ -616,24 +605,20 @@ window.KaderGo = window.KaderGo || {};
             effectiveIntervals = DateUtils.splitDateRangeIntoMonthlyIntervals(currentFromStr, currentToStr);
           }
 
-          formatSection.classList.remove('hidden');
-          formatSection.style.setProperty('display', 'flex', 'important');
-          if (incomeQuartersRow) {
-            incomeQuartersRow.style.setProperty('display', isGeneral ? 'none' : 'flex', 'important');
-            if (!isGeneral) {
+          bookFormat = 'book';
+          formatOptionsWrap.innerHTML = '';
+          if (isGeneral) {
+            formatSection.classList.add('hidden');
+            formatSection.style.setProperty('display', 'none', 'important');
+            if (incomeQuartersRow) incomeQuartersRow.style.setProperty('display', 'none', 'important');
+          } else {
+            formatSection.classList.remove('hidden');
+            formatSection.style.setProperty('display', 'flex', 'important');
+            if (incomeQuartersRow) {
+              incomeQuartersRow.style.setProperty('display', 'flex', 'important');
               incomeQuartersRow.classList.toggle('active', bookQuarters);
             }
           }
-          formatOptionsWrap.innerHTML = `
-            <button type="button" class="kadergo-format-btn ${bookFormat === 'book' ? 'active' : ''}" data-fmt="book">
-              <span class="kadergo-format-btn-icon">${icons.fileSpreadsheet}</span>
-              <span>Тільки Книга (.xlsx)</span>
-            </button>
-            <button type="button" class="kadergo-format-btn ${bookFormat === 'zip' ? 'active' : ''}" data-fmt="zip">
-              <span class="kadergo-format-btn-icon">${icons.archive}</span>
-              <span>Книга + щомісячні (ZIP)</span>
-            </button>
-          `;
 
           fileChipsWrap.innerHTML = '';
           let generalSurname = '';
@@ -648,7 +633,7 @@ window.KaderGo = window.KaderGo || {};
             const zipChip = document.createElement('span');
             zipChip.className = 'kadergo-file-chip kadergo-file-chip-zip';
             const zipName = isGeneral
-              ? (generalSurname ? `книга_загальна_система_${generalSurname}_${selectedYear}.zip` : `книга_загальна_система_${selectedYear}.zip`)
+              ? (generalSurname ? `Книга_загальна_система_${generalSurname}_${selectedYear}.zip` : `Книга_загальна_система_${selectedYear}.zip`)
               : `Книга_обліку_доходів_${selectedYear}_рік.zip`;
             zipChip.innerHTML = `${icons.archive}<span>${zipName}</span>`;
             fileChipsWrap.appendChild(zipChip);
@@ -663,7 +648,7 @@ window.KaderGo = window.KaderGo || {};
             const bookChip = document.createElement('span');
             bookChip.className = 'kadergo-file-chip kadergo-file-chip-gold';
             const fileName = isGeneral
-              ? (generalSurname ? `книга загальна система ${generalSurname} ${selectedYear}.xlsx` : `книга загальна система ${selectedYear}.xlsx`)
+              ? (generalSurname ? `Книга загальна система ${generalSurname} ${selectedYear}.xlsx` : `Книга загальна система ${selectedYear}.xlsx`)
               : `Книга обліку доходів єдиний за ${selectedYear} рік.xlsx`;
             bookChip.innerHTML = `${icons.bookOpen}<span>${fileName}</span>`;
             fileChipsWrap.appendChild(bookChip);
@@ -719,6 +704,23 @@ window.KaderGo = window.KaderGo || {};
 
       updateView();
 
+      if (initialOptions.flowActive) {
+        card.classList.add('flow-active');
+        const flowWrapEl = card.querySelector('#kg-modal-flow-wrap');
+        if (flowWrapEl) flowWrapEl.style.removeProperty('display');
+        const formWrapEl = card.querySelector('#kg-modal-form-wrap');
+        if (formWrapEl) formWrapEl.style.display = 'none';
+      }
+
+      if (initialOptions.autoConfirm) {
+        card.classList.add('flow-active');
+        setTimeout(() => {
+          if (confirmBtn && !confirmBtn.disabled) {
+            confirmBtn.click();
+          }
+        }, 60);
+      }
+
       document.body.appendChild(overlay);
       currentModalEl = overlay;
 
@@ -731,6 +733,60 @@ window.KaderGo = window.KaderGo || {};
       confirmBtn.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (activeMode === 'income_book') {
+          const isGeneral = bookTaxSystem === 'general_tax';
+
+          // If General Tax, always navigate to /tax-account to scrape fresh data UNLESS already on /tax-account or just returned via autoConfirm
+          if (isGeneral && !initialOptions.autoConfirm && !window.location.href.includes('/tax-account')) {
+            const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
+            const pendingJob = {
+              action: 'GENERAL_EXPORT',
+              year: selectedYear,
+              format: bookFormat,
+              fromStr: dates.fromStr,
+              toStr: dates.toStr,
+              targetFn,
+              includeQuarters: bookQuarters,
+              taxSystem: 'general_tax',
+              returnUrl: window.location.href.includes('/cashregs/zreports') ? window.location.href : 'https://cabinet.tax.gov.ua/cashregs/zreports',
+              timestamp: Date.now()
+            };
+            sessionStorage.removeItem('kadergo_flow_progress');
+            sessionStorage.removeItem('kadergo_auto_start_general_export');
+            sessionStorage.setItem('kadergo_pending_general_export', JSON.stringify(pendingJob));
+            sessionStorage.setItem('kadergo_fullscreen_flow_active', 'true');
+            sessionStorage.setItem('kadergo_came_from_zreports', 'true');
+
+            // Immediately switch to full-screen flow animation (seamless continuous screen)
+            await flow.startIntro();
+            flow.update({
+              title: 'Стан розрахунків з бюджетом',
+              subtitle: 'Перехід до особових рахунків (ЄСВ, ліцензії)...',
+              stepText: 'Синхронізація',
+              progressPercent: 7
+            });
+
+            // Smooth SPA navigation: find and click sidebar menu link
+            const taxLink = Array.from(document.querySelectorAll('a')).find(a => {
+              const href = a.getAttribute('href') || '';
+              const txt = (a.textContent || '').trim().toLowerCase();
+              return href.includes('/tax-account') || txt.includes('стан розрахунків');
+            });
+
+            if (taxLink) {
+              taxLink.click();
+              setTimeout(() => {
+                if (!window.location.href.includes('/tax-account')) {
+                  window.location.href = 'https://cabinet.tax.gov.ua/tax-account';
+                }
+              }, 1200);
+            } else {
+              window.location.href = 'https://cabinet.tax.gov.ua/tax-account';
+            }
+            return;
+          }
+        }
 
         const introOk = await flow.startIntro();
         if (!introOk) {
@@ -756,6 +812,7 @@ window.KaderGo = window.KaderGo || {};
             flow
           });
         } else if (activeMode === 'income_book') {
+
           const dates = periodController ? periodController.getCurrentDates() : { fromStr: `01.01.${selectedYear}`, toStr: `31.12.${selectedYear}` };
           const fromStr = dates.fromStr;
           const toStr = dates.toStr;
@@ -851,10 +908,10 @@ window.KaderGo = window.KaderGo || {};
     if (window.KaderGo.ModalDock) {
       window.KaderGo.ModalDock.remove();
     }
-    if (currentModalEl && currentModalEl.parentNode) {
-      currentModalEl.remove();
-      currentModalEl = null;
-    }
+    document.querySelectorAll('#tax-gov-kadergo-modal-overlay, #kg-modal-overlay, .kadergo-modal-overlay').forEach(el => {
+      try { el.remove(); } catch (e) {}
+    });
+    currentModalEl = null;
     currentRestoreFn = null;
     try {
       sessionStorage.removeItem('kadergo_fop_group');

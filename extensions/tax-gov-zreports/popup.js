@@ -1,118 +1,86 @@
 // ==============================================================================
-// KaderGo - Popup Script (Direct .xlsx Turnover Download)
+// KaderGo - Extension Popup Controller
+// Provides extension information, status detection and management
 // ==============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const statusDot = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const btnLabel = document.getElementById('btnLabel');
-  const downloadAllBtn = document.getElementById('downloadAllBtn');
-  const btnAllLabel = document.getElementById('btnAllLabel');
-  const resultMessage = document.getElementById('resultMessage');
+  const versionBadge = document.getElementById('versionBadge');
+  const closeBtn = document.getElementById('closeBtn');
+  const reloadHeaderBtn = document.getElementById('reloadHeaderBtn');
+  const tabStatusCard = document.getElementById('tabStatusCard');
+  const statusLabel = document.getElementById('statusLabel');
+  const openCabinetBtn = document.getElementById('openCabinetBtn');
+  const uninstallBtn = document.getElementById('uninstallBtn');
 
-  let activeTab = null;
+  // 1. Display current version dynamically from manifest
+  try {
+    const manifest = chrome.runtime.getManifest();
+    if (manifest && manifest.version && versionBadge) {
+      versionBadge.innerText = 'v' + manifest.version;
+    }
+  } catch (e) {
+    // Fallback retains default HTML text
+  }
 
+  // 2. Close button handler
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      window.close();
+    });
+  }
+
+  // 3. Reload extension handler (Reloads unpacked extension directly from disk)
+  if (reloadHeaderBtn) {
+    reloadHeaderBtn.addEventListener('click', () => {
+      reloadHeaderBtn.classList.add('spinning');
+      setTimeout(() => {
+        if (chrome.runtime && typeof chrome.runtime.reload === 'function') {
+          chrome.runtime.reload();
+        } else {
+          window.location.reload();
+        }
+      }, 180);
+    });
+  }
+
+  // 4. Tab detection & status
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    activeTab = tabs && tabs[0];
-  } catch (e) {
-    //
-  }
+    const activeTab = tabs && tabs[0];
+    const targetDomain = 'cabinet.tax.gov.ua';
 
-  const targetPrefix = 'https://cabinet.tax.gov.ua/cashregs/zreports';
-
-  if (!activeTab || !activeTab.id || !activeTab.url || !activeTab.url.startsWith(targetPrefix)) {
-    statusDot.className = 'status-indicator not-found';
-    statusText.innerText = 'Відкрийте: /cashregs/zreports';
-    downloadBtn.disabled = true;
-    if (downloadAllBtn) downloadAllBtn.disabled = true;
-    return;
-  }
-
-  try {
-    chrome.tabs.sendMessage(activeTab.id, { action: 'GET_STATUS' }, (response) => {
-      if (chrome.runtime.lastError || !response) {
-        statusDot.className = 'status-indicator not-found';
-        statusText.innerText = 'Оновіть сторінку кабінету (F5)';
-        downloadBtn.disabled = true;
-        if (downloadAllBtn) downloadAllBtn.disabled = true;
-        return;
-      }
-
-      if (!response.hasPeriod) {
-        statusDot.className = 'status-indicator not-found';
-        statusText.innerText = 'Вкажіть період (дати «з» та «по»)';
-        downloadBtn.disabled = true;
-        if (downloadAllBtn) downloadAllBtn.disabled = true;
-      } else {
-        statusDot.className = 'status-indicator ready';
-        statusText.innerText = response.found ? `Дані знайдено (${response.count} рядків)` : 'Період вказано (готово до експорту)';
-        downloadBtn.disabled = false;
-        btnLabel.innerText = 'Завантажити поточний';
-        if (downloadAllBtn) downloadAllBtn.disabled = false;
-      }
-    });
+    if (activeTab && activeTab.url && activeTab.url.includes(targetDomain)) {
+      if (tabStatusCard) tabStatusCard.className = 'tab-status-card active';
+      if (statusLabel) statusLabel.innerText = 'Підключено';
+    } else {
+      if (tabStatusCard) tabStatusCard.className = 'tab-status-card inactive';
+      if (statusLabel) statusLabel.innerText = 'Очікує входу';
+    }
   } catch (err) {
-    statusDot.className = 'status-indicator not-found';
-    statusText.innerText = "Помилка зв'язку зі сторінкою";
-    downloadBtn.disabled = true;
-    if (downloadAllBtn) downloadAllBtn.disabled = true;
+    if (tabStatusCard) tabStatusCard.className = 'tab-status-card inactive';
+    if (statusLabel) statusLabel.innerText = 'Очікує входу';
   }
 
-  downloadBtn.addEventListener('click', () => {
-    downloadBtn.disabled = true;
-    if (downloadAllBtn) downloadAllBtn.disabled = true;
-    btnLabel.innerText = 'Формування...';
-    resultMessage.innerText = '';
-
-    chrome.tabs.sendMessage(activeTab.id, { action: 'TRIGGER_DOWNLOAD' }, (res) => {
-      btnLabel.innerText = 'Завантажити поточний';
-      downloadBtn.disabled = false;
-      if (downloadAllBtn) downloadAllBtn.disabled = false;
-
-      if (res && res.cancelled) {
-        resultMessage.className = 'result-message';
-        resultMessage.innerText = '';
-        return;
-      }
-
-      if (res && res.success) {
-        resultMessage.className = 'result-message success';
-        resultMessage.innerText = `${res.fileName || 'Звіт'} сформовано!`;
-      } else {
-        resultMessage.className = 'result-message error';
-        resultMessage.innerText = (res && res.error) || 'Не вдалося створити файл Excel.';
-      }
+  // 5. Open cabinet page button
+  if (openCabinetBtn) {
+    openCabinetBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://cabinet.tax.gov.ua/cashregs/zreports' });
+      window.close();
     });
-  });
+  }
 
-  if (downloadAllBtn) {
-    downloadAllBtn.addEventListener('click', () => {
-      downloadAllBtn.disabled = true;
-      downloadBtn.disabled = true;
-      btnAllLabel.innerText = 'Збір по всіх РРО...';
-      resultMessage.innerText = '';
-
-      chrome.tabs.sendMessage(activeTab.id, { action: 'TRIGGER_DOWNLOAD_ALL' }, (res) => {
-        btnAllLabel.innerText = 'Всі РРО в один Excel';
-        downloadAllBtn.disabled = false;
-        downloadBtn.disabled = false;
-
-        if (res && res.cancelled) {
-          resultMessage.className = 'result-message';
-          resultMessage.innerText = '';
-          return;
-        }
-
-        if (res && res.success) {
-          resultMessage.className = 'result-message success';
-          resultMessage.innerText = 'Всі РРО збережено в Excel!';
-        } else {
-          resultMessage.className = 'result-message error';
-          resultMessage.innerText = (res && res.error) || 'Не вдалося експортувати всі РРО.';
-        }
-      });
+  // 6. Delete / Uninstall extension button
+  if (uninstallBtn) {
+    uninstallBtn.addEventListener('click', () => {
+      if (chrome.management && typeof chrome.management.uninstallSelf === 'function') {
+        chrome.management.uninstallSelf({ showConfirmDialog: true }, () => {
+          if (chrome.runtime.lastError) {
+            // User cancelled the Chrome uninstallation dialog
+          }
+        });
+      } else {
+        alert('Для видалення перейдіть до меню розширень браузера: chrome://extensions');
+      }
     });
   }
 });

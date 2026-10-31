@@ -179,6 +179,16 @@ window.KaderGo = window.KaderGo || {};
         }
       }
 
+      if (wasCancelled || isAborted()) {
+        console.log('[KaderGo] Експорт скасовано користувачем, завантаження файлів скасовано.');
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          exportedFilesCount: 0
+        };
+      }
+
       if (exportedFilesCount === 0 && !wasCancelled) {
         alert('За вказаний період оборот по жодному РРО не знайдено.');
         return { success: true, empty: true, exportedFilesCount: 0 };
@@ -195,10 +205,19 @@ window.KaderGo = window.KaderGo || {};
           });
         }
         zipData = zip.toUint8Array();
-        zipFileName = `оборот_${origFrom}_${origTo}.zip`
+        zipFileName = `Оборот_${origFrom}_${origTo}.zip`
           .replace(/\./g, '_')
           .replace(/_+/g, '_')
           .replace(/_zip$/, '.zip');
+      }
+
+      if (wasCancelled || isAborted()) {
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          exportedFilesCount: 0
+        };
       }
 
       // 1. Анімація переходить у ПИПУ
@@ -209,8 +228,20 @@ window.KaderGo = window.KaderGo || {};
         });
       }
 
+      if (wasCancelled || isAborted()) {
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          exportedFilesCount: 0
+        };
+      }
+
       // 2. Mappaválasztás és mentés
       if (isZip && zipData) {
+        if (wasCancelled || isAborted()) {
+          return { success: false, cancelled: true, fileName: null, exportedFilesCount };
+        }
         const downloadRes = await Downloader.performDownload(zipData, zipFileName, { saveAs: true });
         if (downloadRes.cancelled) {
           wasCancelled = true;
@@ -219,6 +250,10 @@ window.KaderGo = window.KaderGo || {};
         }
       } else {
         for (const gf of generatedFiles) {
+          if (wasCancelled || isAborted()) {
+            wasCancelled = true;
+            break;
+          }
           const downloadRes = await Downloader.performDownload(gf.uint8, gf.defaultFileName, { saveAs: true });
           if (downloadRes.cancelled) {
             wasCancelled = true;

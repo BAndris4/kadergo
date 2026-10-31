@@ -75,7 +75,7 @@ window.KaderGo = window.KaderGo || {};
           statusText: 'Пошук РРО у кабінеті...',
           stepText: 'Пошук',
           detailText: 'Виявлення активних фіскальних номерів...',
-          progressPercent: 6
+          progressPercent: (taxSystem === 'general_tax') ? 20 : 6
         });
       }
 
@@ -94,12 +94,61 @@ window.KaderGo = window.KaderGo || {};
       const targetYear = year || (info && info.targetYear);
       console.log(`[KaderGo] Книга доходів ${targetYear}: Знайдено ${fns.length} РРО, місяців: ${intervalsToUse.length}`);
 
+      const isGeneralTax = taxSystem === 'general_tax';
+      let generalTaxData = null;
+      let workerSalaries = [];
+
+      // For General Tax System: Extract 3 tax codes FIRST, then show Question Mark prompt
+      if (isGeneralTax && window.KaderGo.TaxAccountScraper) {
+        const TaxScraper = window.KaderGo.TaxAccountScraper;
+        generalTaxData = await TaxScraper.fetchTaxAccountData(targetYear);
+        const workerCheck = generalTaxData && generalTaxData.workerCheck;
+        const hasWorkers = workerCheck ? Boolean(workerCheck.hasWorkers) : false;
+
+        if (hasWorkers && flow && typeof flow.promptWorkerSalaries === 'function') {
+          if (typeof onProgress === 'function') {
+            onProgress({ progressPercent: 22 });
+          }
+          workerSalaries = await flow.promptWorkerSalaries({
+            detectedTaxText: (workerCheck && workerCheck.details) || 'ЄСВ за найманих працівників'
+          });
+          if (isAborted() || wasCancelled || workerSalaries === null) {
+            console.log('[KaderGo] Експорт скасовано користувачем під час введення заробітної плати.');
+            return {
+              success: false,
+              cancelled: true,
+              fileName: null,
+              monthlyFilesCount: 0
+            };
+          }
+        }
+      }
+
       for (let m = 0; m < intervalsToUse.length; m++) {
         if (isAborted()) {
           wasCancelled = true;
           break;
         }
         const interval = intervalsToUse[m];
+        const capMonth = interval.monthName.charAt(0).toUpperCase() + interval.monthName.slice(1);
+
+        // Immediate progress update for month start so UI displays the active month without delay
+        if (typeof onProgress === 'function') {
+          const totalSteps = intervalsToUse.length * fns.length;
+          const currentStep = m * fns.length + 1;
+          const basePct = isGeneralTax ? 24 : 14;
+          const spanPct = isGeneralTax ? 64 : 70;
+          const progressPercent = Math.round(basePct + ((currentStep - 1) / totalSteps) * spanPct);
+          onProgress({
+            monthStep: m + 1,
+            monthTotal: intervalsToUse.length,
+            monthName: capMonth,
+            year: interval.year,
+            statusText: `${capMonth} ${interval.year || ''} • Місяць ${m + 1} з ${intervalsToUse.length}`,
+            detailText: 'Збір виторгу РРО',
+            progressPercent
+          });
+        }
 
         // 1. Встановлюємо дати цього календарного місяця
         await Cabinet.applyDateRangeToForm(interval.startStr, interval.endStr);
@@ -113,7 +162,9 @@ window.KaderGo = window.KaderGo || {};
           const fn = item.fn;
           const totalSteps = intervalsToUse.length * fns.length;
           const currentStep = m * fns.length + i + 1;
-          const progressPercent = Math.round(14 + (currentStep / totalSteps) * 70);
+          const basePct = isGeneralTax ? 24 : 14;
+          const spanPct = isGeneralTax ? 64 : 70;
+          const progressPercent = Math.round(basePct + (currentStep / totalSteps) * spanPct);
 
           const capMonth = interval.monthName.charAt(0).toUpperCase() + interval.monthName.slice(1);
           const statusText = `${capMonth} ${interval.year || ''} • Місяць ${m + 1} з ${intervalsToUse.length}`;
@@ -240,7 +291,15 @@ window.KaderGo = window.KaderGo || {};
         }
       }
 
-      const isGeneralTax = taxSystem === 'general_tax';
+      if (wasCancelled || isAborted()) {
+        console.log('[KaderGo] Експорт скасовано користувачем, формування та збереження файлу скасовано.');
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          monthlyFilesCount: 0
+        };
+      }
 
       // 5. Формуємо саму Книгу доходів (.xlsx)
       if (typeof onProgress === 'function') {
@@ -249,7 +308,7 @@ window.KaderGo = window.KaderGo || {};
           detailText: isGeneralTax ? 'Розрахунок щоденних сум та річних підсумків' : 'Розрахунок сум та річних підсумків',
           monthName: isGeneralTax ? 'Загальна система' : 'Книга обліку доходів',
           stepText: `Рік ${targetYear}`,
-          progressPercent: 90
+          progressPercent: 92
         });
       }
 
@@ -260,7 +319,9 @@ window.KaderGo = window.KaderGo || {};
           year: targetYear,
           dailyData,
           taxpayerName: taxpayerName || tp.name || '',
-          taxpayerCode: taxpayerCode || tp.code || ''
+          taxpayerCode: taxpayerCode || tp.code || '',
+          workerSalaries,
+          taxPayments: (generalTaxData && generalTaxData.operations) || []
         });
       } else {
         bookRes = IncomeBookExcel.buildIncomeBookXlsxData({
@@ -281,7 +342,7 @@ window.KaderGo = window.KaderGo || {};
             detailText: isGeneralTax ? 'Пакування Книги (загальна система) та помісячних звітів' : 'Пакування Книги доходів та помісячних звітів',
             monthName: 'Архів ZIP',
             stepText: `${monthlyFiles.length + 1} файлів`,
-            progressPercent: 95
+            progressPercent: 96
           });
         }
         const zip = new window.KaderGo.Zip.SimpleZip();
@@ -294,8 +355,18 @@ window.KaderGo = window.KaderGo || {};
 
         zipData = zip.toUint8Array();
         zipFileName = isGeneralTax
-          ? (bookRes.surname ? `книга_загальна_система_${bookRes.surname}_${targetYear}.zip` : `книга_загальна_система_${targetYear}.zip`)
+          ? (bookRes.surname ? `Книга_загальна_система_${bookRes.surname}_${targetYear}.zip` : `Книга_загальна_система_${targetYear}.zip`)
           : `Книга_обліку_доходів_${targetYear}_рік.zip`;
+      }
+
+      if (wasCancelled || isAborted()) {
+        console.log('[KaderGo] Експорт скасовано користувачем, завантаження файлу скасовано.');
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          monthlyFilesCount: 0
+        };
       }
 
       // 1. Анімація переходить у ПИПУ
@@ -308,8 +379,21 @@ window.KaderGo = window.KaderGo || {};
         });
       }
 
+      if (wasCancelled || isAborted()) {
+        console.log('[KaderGo] Експорт скасовано користувачем, завантаження файлу скасовано.');
+        return {
+          success: false,
+          cancelled: true,
+          fileName: null,
+          monthlyFilesCount: 0
+        };
+      }
+
       // 2. Mappaválasztás és mentés
       if (isZip && zipData) {
+        if (wasCancelled || isAborted()) {
+          return { success: false, cancelled: true, fileName: null, monthlyFilesCount: monthlyFiles.length };
+        }
         const downloadRes = await Downloader.performDownload(zipData, zipFileName, { saveAs: true });
         if (downloadRes.cancelled) {
           wasCancelled = true;
@@ -318,6 +402,9 @@ window.KaderGo = window.KaderGo || {};
         }
       } else {
         // Тільки файл Книги (.xlsx)
+        if (wasCancelled || isAborted()) {
+          return { success: false, cancelled: true, fileName: null, monthlyFilesCount: monthlyFiles.length };
+        }
         const bookDl = await Downloader.performDownload(bookRes.uint8, bookRes.fileName, { saveAs: true });
         if (bookDl.cancelled) {
           wasCancelled = true;

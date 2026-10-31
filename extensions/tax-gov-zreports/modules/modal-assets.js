@@ -160,17 +160,34 @@ const animatedKaderGoLogoSvg = `
 
   // Animated KaderGo Flow SVG (Spinner -> Success Checkmark -> Outro)
 
-const kadergoFlowSvg = `
-<svg class="kadergo-flow-svg state-intro" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="100%" height="100%">
+const kadergoFlowSvg = ` 
+<svg class="kadergo-flow-svg state-spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="100%" height="100%">
   <defs>
     <style>
+      /* GPU renderelési és élsimítási beállítások gyengébb gépekre és alacsonyabb DPI monitorokra */
+      svg.kadergo-flow-svg {
+        shape-rendering: geometricPrecision;
+        text-rendering: optimizeLegibility;
+      }
       /* Alapértelmezett transform-box és középpontok */
       .anim-folder, .anim-tab, .anim-doc, .anim-cutout,
       .anim-swoosh-teal, .anim-swoosh-amber, .anim-arrow,
-      .anim-person, .spinner-layer, .spinner-ring-teal,
-      .spinner-ring-amber, .spinner-core-dot,
-      .check-layer, .check-halo, .check-bg, .check-badge {
+      .anim-person,
+      .check-layer, .check-halo, .check-bg, .check-badge,
+      .error-layer, .error-shake-wrap, .error-halo, .error-bg, .error-badge,
+      .prompt-layer, .prompt-bounce-wrap, .prompt-halo, .prompt-bg, .prompt-badge {
         transform-box: fill-box;
+      }
+
+      /* Spinner elemek: precíz view-box koordinátarendszer (110, 110) CPU-reflow nélkül a maximális 60/120fps sebességért */
+      .spinner-layer,
+      .spinner-rotator-teal,
+      .spinner-rotator-amber,
+      .spinner-ring-teal,
+      .spinner-ring-amber,
+      .spinner-core-dot {
+        transform-box: view-box;
+        transform-origin: 110px 110px;
       }
       .anim-folder { transform-origin: bottom center; }
       .anim-tab { transform-origin: bottom right; }
@@ -178,32 +195,65 @@ const kadergoFlowSvg = `
       .anim-cutout, .anim-swoosh-teal, .anim-swoosh-amber, .anim-arrow { transform-origin: bottom left; }
       .anim-person { transform-origin: center bottom; }
 
-      /* A Spinner és Pipa rétegek alaphelyzetben rejtettek */
-      .spinner-layer {
+      /* Rejtett rétegek alaphelyzetben */
+      .spinner-layer, .check-layer, .error-layer, .prompt-layer {
         transform-origin: center;
         opacity: 0;
         pointer-events: none;
       }
-      .spinner-ring-teal, .spinner-ring-amber, .spinner-core-dot {
+      .spinner-ring-teal, .spinner-ring-amber, .spinner-core-dot,
+      .check-halo, .check-bg, .check-badge,
+      .error-shake-wrap, .error-halo, .error-bg, .error-badge,
+      .prompt-bounce-wrap, .prompt-halo, .prompt-bg, .prompt-badge {
         transform-origin: center;
       }
-      .check-layer {
-        transform-origin: center;
-        opacity: 0;
-        pointer-events: none;
-      }
-      .check-halo, .check-bg, .check-badge {
-        transform-origin: center;
+      .check-halo, .check-bg, .check-badge,
+      .error-halo, .error-bg, .error-badge,
+      .prompt-halo, .prompt-bg, .prompt-badge {
         transform: scale(0);
       }
-      .check-tick {
-        stroke-dasharray: 90;
-        stroke-dashoffset: 90;
+      .check-tick { stroke-dasharray: 90; stroke-dashoffset: 90; }
+      .error-line-1, .error-line-2 { stroke-dasharray: 60; stroke-dashoffset: 60; }
+      
+      /* Új kérdőjel rajzolási vonalhossz */
+      .prompt-hook { stroke-dasharray: 95; stroke-dashoffset: 95; }
+      .prompt-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); }
+
+      /* Folyamatos, megszakításmentes forgás és lüktetés a spinner elemein (különválasztott GPU rotátor és szaggatás) */
+      .spinner-rotator-teal {
+        animation: spinTeal 1.35s linear 0s infinite;
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      .spinner-rotator-amber {
+        animation: spinAmber 1.8s linear 0s infinite;
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      .spinner-ring-teal {
+        animation: dashTeal 1.6s ease-in-out 0s infinite;
+      }
+      .spinner-ring-amber {
+        animation: dashAmberSmooth 1.8s ease-in-out 0s infinite;
+      }
+      .spinner-core-dot {
+        animation: corePulse 1.4s ease-in-out 0s infinite;
       }
 
       /* =====================================================
          1. FÁZIS: MEGJELENÉS (STATE-INTRO)
          ===================================================== */
+      svg.state-intro .logo-base-group { opacity: 1 !important; display: block !important; }
+      svg.state-intro .spinner-layer,
+      svg.state-intro .prompt-layer,
+      svg.state-intro .check-layer,
+      svg.state-intro .error-layer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        display: none !important;
+      }
       svg.state-intro .anim-folder { animation: folderRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.0s both; }
       svg.state-intro .anim-tab { animation: tabTilt 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s both; }
       svg.state-intro .anim-doc { animation: docSlideOut 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both; }
@@ -216,116 +266,126 @@ const kadergoFlowSvg = `
       svg.state-intro .anim-person { animation: personPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.68s both; }
 
       /* =====================================================
-         2. FÁZIS: IKON -> LOADING SPINNER (STATE-SPINNER)
+         1b. FÁZIS: LOGO -> SPINNER MORPH (STATE-INTRO-MORPH)
+         Kizárólag a legelső induláskor, a Kadergo logó átalakulásakor fut le
          ===================================================== */
-      svg.state-spinner .anim-doc {
-        animation: docTuckIntoFolder 0.3s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
+      svg.state-intro-morph .logo-base-group { opacity: 1 !important; display: block !important; }
+      svg.state-intro-morph .prompt-layer,
+      svg.state-intro-morph .check-layer,
+      svg.state-intro-morph .error-layer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        display: none !important;
       }
-      svg.state-spinner .anim-person {
-        animation: personSwirlIn 0.35s cubic-bezier(0.55, 0, 1, 0.45) 0.05s forwards;
-      }
-      svg.state-spinner .anim-tab,
-      svg.state-spinner .anim-folder {
-        animation: folderMorphToCore 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.08s forwards;
-      }
-      svg.state-spinner .anim-swoosh-teal,
-      svg.state-spinner .anim-cutout {
-        animation: swooshCurlToRing 0.48s cubic-bezier(0.55, 0, 1, 0.45) 0.1s forwards;
-      }
-      svg.state-spinner .anim-swoosh-amber,
-      svg.state-spinner .anim-arrow {
-        animation: amberCurlToRing 0.48s cubic-bezier(0.55, 0, 1, 0.45) 0.14s forwards;
-      }
-
-      /* Pávakék-domináns Spinner réteg */
-      svg.state-spinner .spinner-layer {
+      svg.state-intro-morph .anim-doc { animation: docTuckIntoFolder 0.3s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards; }
+      svg.state-intro-morph .anim-person { animation: personSwirlIn 0.35s cubic-bezier(0.55, 0, 1, 0.45) 0.05s forwards; }
+      svg.state-intro-morph .anim-tab, svg.state-intro-morph .anim-folder { animation: folderMorphToCore 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.08s forwards; }
+      svg.state-intro-morph .anim-swoosh-teal, svg.state-intro-morph .anim-cutout { animation: swooshCurlToRing 0.48s cubic-bezier(0.55, 0, 1, 0.45) 0.1s forwards; }
+      svg.state-intro-morph .anim-swoosh-amber, svg.state-intro-morph .anim-arrow { animation: amberCurlToRing 0.48s cubic-bezier(0.55, 0, 1, 0.45) 0.14s forwards; }
+      svg.state-intro-morph .spinner-layer {
+        display: block !important;
         animation: spinnerAppear 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards;
       }
-      svg.state-spinner .spinner-ring-teal {
-        animation:
-          spinTeal 1.35s linear 0.25s infinite,
-          dashTeal 1.6s ease-in-out 0.25s infinite;
+
+      /* =====================================================
+         2. FÁZIS: FOLYAMATOS SPINNER (STATE-SPINNER)
+         Tiszta, megszakításmentes loading állapot logó és újratöltés nélkül
+         ===================================================== */
+      svg.state-spinner .logo-base-group,
+      svg.state-spinner .prompt-layer,
+      svg.state-spinner .check-layer,
+      svg.state-spinner .error-layer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        display: none !important;
       }
-      svg.state-spinner .spinner-ring-amber {
-        animation:
-          spinAmber 1.15s linear 0.25s infinite,
-          dashAmberSubtle 1.6s ease-in-out 0.25s infinite;
-      }
-      svg.state-spinner .spinner-core-dot {
-        animation: corePulse 1.4s ease-in-out 0.3s infinite;
+      svg.state-spinner .spinner-layer {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: scale(1) !important;
+        display: block !important;
       }
 
       /* =====================================================
-         3. FÁZIS: SPINNER -> PIPA (STATE-SUCCESS)
+         3. FÁZIS: SPINNER -> KÉRDŐJEL (STATE-PROMPT)
          ===================================================== */
-      svg.state-success .logo-base-group {
-        opacity: 0;
-        pointer-events: none;
+      svg.state-prompt .logo-base-group,
+      svg.state-prompt .check-layer,
+      svg.state-prompt .error-layer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        display: none !important;
       }
-      svg.state-success .spinner-layer {
+      svg.state-prompt .spinner-layer {
         opacity: 1;
-        animation: spinnerCollapseToCheck 0.42s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
+        animation: spinnerCollapseToBadge 0.45s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
       }
-      svg.state-success .spinner-ring-teal {
-        stroke-dasharray: 390;
-        stroke-dashoffset: 60;
-        animation: ringSeal 0.38s ease-out 0.0s forwards;
-      }
-      svg.state-success .spinner-ring-amber {
-        stroke-dasharray: 300;
-        stroke-dashoffset: 180;
-        animation: ringSeal 0.35s ease-out 0.0s forwards;
-      }
+      svg.state-prompt .spinner-ring-teal { stroke-dasharray: 390; stroke-dashoffset: 60; animation: ringSeal 0.42s ease-out 0.0s forwards; }
+      svg.state-prompt .spinner-ring-amber { stroke-dasharray: 300; stroke-dashoffset: 180; animation: ringSeal 0.38s ease-out 0.0s forwards; }
 
-      svg.state-success .check-layer {
+      svg.state-prompt .prompt-layer { opacity: 1 !important; display: block !important; }
+      svg.state-prompt .prompt-bounce-wrap {
+        animation: promptNudge 3.2s ease-in-out 0.5s infinite;
+      }
+      svg.state-prompt .prompt-halo { animation: haloExpand 0.70s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both; }
+      svg.state-prompt .prompt-bg { animation: badgeCirclePop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) 0.20s forwards; }
+      svg.state-prompt .prompt-badge { animation: badgeCirclePop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) 0.25s forwards; }
+      svg.state-prompt .prompt-hook { animation: drawPromptHook 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards; }
+      svg.state-prompt .prompt-dot { animation: dotPop 0.35s cubic-bezier(0.34, 1.5, 0.64, 1) 0.72s forwards; }
+
+      /* =====================================================
+         4. FÁZIS: KÉRDŐJEL -> SPINNER (STATE-PROMPT-TO-SPINNER)
+         ===================================================== */
+      svg.state-prompt-to-spinner .logo-base-group,
+      svg.state-prompt-to-spinner .check-layer,
+      svg.state-prompt-to-spinner .error-layer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        display: none !important;
+      }
+      svg.state-prompt-to-spinner .prompt-layer {
         opacity: 1;
+        animation: promptVanishToSpinner 0.32s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
       }
-      svg.state-success .check-halo {
-        animation: haloExpand 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+      svg.state-prompt-to-spinner .prompt-dot {
+        transform: scale(1);
+        animation: dotShrink 0.20s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
       }
-      svg.state-success .check-bg {
-        animation: checkCirclePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards;
+      svg.state-prompt-to-spinner .prompt-hook {
+        stroke-dasharray: 95; stroke-dashoffset: 0;
+        animation: hookRetract 0.24s cubic-bezier(0.55, 0, 1, 0.45) 0.04s forwards;
       }
-      svg.state-success .check-badge {
-        animation: checkCirclePop 0.55s cubic-bezier(0.34, 1.65, 0.64, 1) 0.25s forwards;
-      }
-      svg.state-success .check-tick {
-        animation: drawCheckTick 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
+      svg.state-prompt-to-spinner .spinner-layer {
+        opacity: 1;
+        animation: spinnerReappear 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.06s forwards;
       }
 
       /* =====================================================
-         4. FÁZIS: PIPA ELTŰNÉSE (STATE-CHECK-OUTRO)
+         5. FÁZISOK: SIKERES PIPA ÉS HIBA X
          ===================================================== */
-      svg.state-check-outro .logo-base-group,
-      svg.state-check-outro .spinner-layer {
-        opacity: 0;
-        pointer-events: none;
-      }
-      svg.state-check-outro .check-layer {
-        opacity: 1;
-      }
-      /* A pipa vonala a csúcsa irányába felszívódik */
-      svg.state-check-outro .check-tick {
-        stroke-dasharray: 90;
-        stroke-dashoffset: 0;
-        animation: checkTickSwipeOut 0.32s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards;
-      }
-      /* A belső pávakék érme és a borostyán perem enyhe előfeszítés után összezsugorodik */
-      svg.state-check-outro .check-badge {
-        transform: scale(1);
-        animation: checkCircleShrinkOut 0.42s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.10s forwards;
-      }
-      svg.state-check-outro .check-bg {
-        transform: scale(1);
-        animation: checkCircleShrinkOut 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) 0.15s forwards;
-      }
-      /* A külső auragyűrű végső hullámként szétterjed és elhalványul */
-      svg.state-check-outro .check-halo {
-        transform: scale(1);
-        animation: haloRippleOut 0.5s ease-out 0.08s forwards;
-      }
+      svg.state-success .logo-base-group, svg.state-success .prompt-layer { opacity: 0; pointer-events: none; }
+      svg.state-success .spinner-layer { opacity: 1; animation: spinnerCollapseToBadge 0.42s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards; }
+      svg.state-success .spinner-ring-teal { stroke-dasharray: 390; stroke-dashoffset: 60; animation: ringSeal 0.38s ease-out 0.0s forwards; }
+      svg.state-success .spinner-ring-amber { stroke-dasharray: 300; stroke-dashoffset: 180; animation: ringSeal 0.35s ease-out 0.0s forwards; }
+      svg.state-success .check-layer { opacity: 1; }
+      svg.state-success .check-halo { animation: haloExpand 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both; }
+      svg.state-success .check-bg { animation: badgeCirclePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards; }
+      svg.state-success .check-badge { animation: badgeCirclePop 0.55s cubic-bezier(0.34, 1.65, 0.64, 1) 0.25s forwards; }
+      svg.state-success .check-tick { animation: drawCheckTick 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards; }
 
-      /* --- KEYFRAMES: 1. INTRO --- */
+      svg.state-error .logo-base-group, svg.state-error .prompt-layer { opacity: 0; pointer-events: none; }
+      svg.state-error .spinner-layer { opacity: 1; animation: spinnerCollapseToBadge 0.38s cubic-bezier(0.55, 0, 1, 0.45) 0.0s forwards; }
+      svg.state-error .spinner-ring-teal { stroke-dasharray: 390; stroke-dashoffset: 60; animation: ringSeal 0.35s ease-out 0.0s forwards; }
+      svg.state-error .spinner-ring-amber { stroke-dasharray: 300; stroke-dashoffset: 180; animation: ringSeal 0.32s ease-out 0.0s forwards; }
+      svg.state-error .error-layer { opacity: 1; }
+      svg.state-error .error-shake-wrap { animation: errorShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.24s both; }
+      svg.state-error .error-halo { animation: haloExpand 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.20s both; }
+      svg.state-error .error-bg { animation: badgeCirclePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s forwards; }
+      svg.state-error .error-badge { animation: badgeCirclePop 0.5s cubic-bezier(0.34, 1.65, 0.64, 1) 0.22s forwards; }
+      svg.state-error .error-line-1 { animation: drawErrorLine 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.36s forwards; }
+      svg.state-error .error-line-2 { animation: drawErrorLine 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.48s forwards; }
+
+      /* --- KULCSKOCKÁK --- */
       @keyframes folderRise { 0% { opacity: 0; transform: translateY(18px) scaleY(0.82); } 100% { opacity: 1; transform: translateY(0) scaleY(1); } }
       @keyframes tabTilt { 0% { opacity: 0; transform: translateX(8px) rotate(12deg) scaleY(0.8); } 100% { opacity: 1; transform: translateX(0) rotate(0deg) scaleY(1); } }
       @keyframes docSlideOut { 0% { opacity: 0; transform: translateY(28px); } 100% { opacity: 1; transform: translateY(0); } }
@@ -334,123 +394,112 @@ const kadergoFlowSvg = `
       @keyframes arrowShoot { 0% { opacity: 0; transform: translate(-22px, 22px) scale(0.7); } 100% { opacity: 1; transform: translate(0, 0) scale(1); } }
       @keyframes personPop { 0% { opacity: 0; transform: scale(0) translateY(8px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
 
-      /* --- KEYFRAMES: 2. IKON -> SPINNER MORPH --- */
-      @keyframes docTuckIntoFolder {
-        0% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(26px) scale(0.85); }
-      }
-      @keyframes personSwirlIn {
-        0% { opacity: 1; transform: scale(1) translate(0, 0); }
-        100% { opacity: 0; transform: scale(0.2) translate(-40px, -10px); }
-      }
-      @keyframes folderMorphToCore {
-        0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
-        100% { opacity: 0; transform: translate(32px, -25px) scale(0.25) rotate(65deg); }
-      }
-      @keyframes swooshCurlToRing {
-        0% { opacity: 1; transform: scale(1) rotate(0deg); }
-        100% { opacity: 0; transform: translate(25px, -15px) scale(0.45) rotate(95deg); }
-      }
-      @keyframes amberCurlToRing {
-        0% { opacity: 1; transform: scale(1) rotate(0deg); }
-        100% { opacity: 0; transform: translate(-20px, -25px) scale(0.45) rotate(120deg); }
-      }
-      @keyframes spinnerAppear {
-        0% { opacity: 0; transform: scale(0.55) rotate(-90deg); }
-        100% { opacity: 1; transform: scale(1) rotate(0deg); }
-      }
-      @keyframes spinTeal {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      @keyframes spinAmber {
-        0% { transform: rotate(360deg); }
-        100% { transform: rotate(0deg); }
-      }
-      @keyframes dashTeal {
-        0% { stroke-dasharray: 55, 360; stroke-dashoffset: 0; }
-        50% { stroke-dasharray: 220, 360; stroke-dashoffset: -110; }
-        100% { stroke-dasharray: 55, 360; stroke-dashoffset: -389; }
-      }
-      @keyframes dashAmberSubtle {
-        0% { stroke-dasharray: 18, 310; stroke-dashoffset: 0; opacity: 0.75; }
-        50% { stroke-dasharray: 65, 310; stroke-dashoffset: 90; opacity: 0.95; }
-        100% { stroke-dasharray: 18, 310; stroke-dashoffset: 301; opacity: 0.75; }
-      }
-      @keyframes corePulse {
-        0%, 100% { transform: scale(0.85); opacity: 0.35; }
-        50% { transform: scale(1.15); opacity: 0.75; }
-      }
+      @keyframes docTuckIntoFolder { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(26px) scale(0.85); } }
+      @keyframes personSwirlIn { 0% { opacity: 1; transform: scale(1) translate(0, 0); } 100% { opacity: 0; transform: scale(0.2) translate(-40px, -10px); } }
+      @keyframes folderMorphToCore { 0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); } 100% { opacity: 0; transform: translate(32px, -25px) scale(0.25) rotate(65deg); } }
+      @keyframes swooshCurlToRing { 0% { opacity: 1; transform: scale(1) rotate(0deg); } 100% { opacity: 0; transform: translate(25px, -15px) scale(0.45) rotate(95deg); } }
+      @keyframes amberCurlToRing { 0% { opacity: 1; transform: scale(1) rotate(0deg); } 100% { opacity: 0; transform: translate(-20px, -25px) scale(0.45) rotate(120deg); } }
 
-      /* --- KEYFRAMES: 3. SPINNER -> PIPA MORPH --- */
-      @keyframes spinnerCollapseToCheck {
-        0% { opacity: 1; transform: scale(1) rotate(0deg); }
-        65% { opacity: 1; transform: scale(1.06) rotate(140deg); }
-        100% { opacity: 0; transform: scale(0.75) rotate(220deg); }
-      }
-      @keyframes ringSeal {
-        0% { stroke-dashoffset: 180; }
-        100% { stroke-dashoffset: 0; }
-      }
-      @keyframes haloExpand {
-        0% { opacity: 0; transform: scale(0.4); }
-        50% { opacity: 0.25; }
+      @keyframes spinnerAppear { 0% { opacity: 0; transform: scale(0.55) rotate(-90deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
+      @keyframes spinnerReappear {
+        0% { opacity: 0; transform: scale(0.85); }
         100% { opacity: 1; transform: scale(1); }
       }
-      @keyframes checkCirclePop {
-        0% { transform: scale(0) rotate(-25deg); }
-        100% { transform: scale(1) rotate(0deg); }
+      @keyframes spinTeal { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes spinAmber { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+      @keyframes dashTeal {
+        0% {
+          stroke-dasharray: 45, 345;
+          stroke-dashoffset: 0;
+        }
+        50% {
+          stroke-dasharray: 235, 155;
+          stroke-dashoffset: -120;
+        }
+        100% {
+          stroke-dasharray: 45, 345;
+          stroke-dashoffset: -390;
+        }
       }
-      @keyframes drawCheckTick {
-        0% { stroke-dashoffset: 90; }
-        100% { stroke-dashoffset: 0; }
+      @keyframes dashAmberSmooth {
+        0%, 100% {
+          stroke-dasharray: 65, 230;
+          stroke-dashoffset: 0;
+          opacity: 0.75;
+        }
+        50% {
+          stroke-dasharray: 105, 190;
+          stroke-dashoffset: 0;
+          opacity: 0.95;
+        }
+      }
+      @keyframes corePulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.85; } }
+
+      @keyframes spinnerCollapseToBadge { 0% { opacity: 1; transform: scale(1) rotate(0deg); } 65% { opacity: 1; transform: scale(1.06) rotate(140deg); } 100% { opacity: 0; transform: scale(0.75) rotate(220deg); } }
+      @keyframes ringSeal { 0% { stroke-dashoffset: 180; } 100% { stroke-dashoffset: 0; } }
+      @keyframes haloExpand { 0% { opacity: 0; transform: scale(0.4); } 50% { opacity: 0.25; } 100% { opacity: 1; transform: scale(1); } }
+      @keyframes badgeCirclePop { 0% { transform: scale(0) rotate(-25deg); } 100% { transform: scale(1) rotate(0deg); } }
+
+      @keyframes drawCheckTick { 0% { stroke-dashoffset: 90; } 100% { stroke-dashoffset: 0; } }
+      @keyframes drawErrorLine { 0% { stroke-dashoffset: 60; } 100% { stroke-dashoffset: 0; } }
+      @keyframes errorShake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-9px) rotate(-3deg); }
+        40% { transform: translateX(8px) rotate(3deg); }
+        60% { transform: translateX(-6px) rotate(-1.5deg); }
+        80% { transform: translateX(4px) rotate(1deg); }
       }
 
-      /* --- KEYFRAMES: 4. PIPA ELTŰNÉSE (CHECK OUTRO) --- */
-      @keyframes checkTickSwipeOut {
-        0% { stroke-dashoffset: 0; opacity: 1; }
-        100% { stroke-dashoffset: -90; opacity: 0; }
+      /* Kérdőjel finomhangolt kulcskockák */
+      @keyframes drawPromptHook { 0% { stroke-dashoffset: 95; } 100% { stroke-dashoffset: 0; } }
+      @keyframes dotPop { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      @keyframes promptNudge {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        35% { transform: translateY(-3px) rotate(2deg); }
+        50% { transform: translateY(0) rotate(0deg); }
+        65% { transform: translateY(-1.5px) rotate(-1.5deg); }
       }
-      @keyframes checkCircleShrinkOut {
-        0% { transform: scale(1) rotate(0deg); opacity: 1; }
-        30% { transform: scale(1.08) rotate(8deg); opacity: 1; }
-        100% { transform: scale(0) rotate(45deg); opacity: 0; }
+      @keyframes promptVanishToSpinner {
+        0% { opacity: 1; transform: scale(1) rotate(0deg); }
+        100% { opacity: 0; transform: scale(0.75) rotate(90deg); }
       }
-      @keyframes haloRippleOut {
-        0% { transform: scale(1); opacity: 0.14; }
-        50% { transform: scale(1.3); opacity: 0.22; }
-        100% { transform: scale(1.55); opacity: 0; }
-      }
+      @keyframes dotShrink { 0% { transform: scale(1); } 100% { transform: scale(0); } }
+      @keyframes hookRetract { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -95; } }
 
       @media (prefers-reduced-motion: reduce) {
         svg * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
       }
 </style>
-    <linearGradient id="kg-flow-tealMain" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="tealMain" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1e4e5e" />
       <stop offset="50%" stop-color="#133b47" />
       <stop offset="100%" stop-color="#0f2e38" />
     </linearGradient>
-    <linearGradient id="kg-flow-tealBack" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="tealBack" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#2a5b6c" />
       <stop offset="100%" stop-color="#0f2e38" />
     </linearGradient>
-    <linearGradient id="kg-flow-amberMain" x1="0%" y1="100%" x2="100%" y2="0%">
+    <linearGradient id="amberMain" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#e08e36" />
       <stop offset="50%" stop-color="#f59533" />
       <stop offset="100%" stop-color="#f8a44c" />
     </linearGradient>
-    <linearGradient id="kg-flow-amberShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="amberShadow" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f59533" />
       <stop offset="100%" stop-color="#d47a22" />
     </linearGradient>
+    <linearGradient id="crimsonMain" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c1121f" />
+      <stop offset="50%" stop-color="#e63946" />
+      <stop offset="100%" stop-color="#ff6b6b" />
+    </linearGradient>
 
-    <mask id="kg-flow-docCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
+    <mask id="docCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
       <rect x="0" y="0" width="220" height="220" fill="white" />
       <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 L 42 184 Z" fill="black" />
     </mask>
 
-    <mask id="kg-flow-folderCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
+    <mask id="folderCutout" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="220" height="220">
       <rect x="0" y="0" width="220" height="220" fill="white" />
       <path class="anim-cutout" d="M 38 194 C 46 136 94 96 148 34 L 194 34 C 142 106 86 138 64 194 Z" fill="black" />
     </mask>
@@ -458,7 +507,7 @@ const kadergoFlowSvg = `
 
   <!-- 1. RÉTEG: KADERGO ALAP IKON -->
   <g class="logo-base-group">
-    <g mask="url(#kg-flow-docCutout)">
+    <g mask="url(#docCutout)">
       <g class="anim-doc">
         <path d="M 48 34 L 84 34 L 98 48 L 98 62 L 48 62 Z" fill="none" stroke="#133b47" stroke-width="4.5" stroke-linejoin="round" />
         <path d="M 84 34 L 84 48 L 98 48" fill="none" stroke="#133b47" stroke-width="4" stroke-linejoin="round" />
@@ -467,26 +516,26 @@ const kadergoFlowSvg = `
       </g>
     </g>
 
-    <g mask="url(#kg-flow-folderCutout)">
-      <path class="anim-tab" d="M 30 62 C 23 63 19 69 20 76 L 38 190 L 46 190 L 34 61 Z" fill="url(#kg-flow-tealBack)" />
+    <g mask="url(#folderCutout)">
+      <path class="anim-tab" d="M 30 62 C 23 63 19 69 20 76 L 38 190 L 46 190 L 34 61 Z" fill="url(#tealBack)" />
       <g class="anim-folder">
-        <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 C 106 190 102 194 96 194 L 62 194 C 66 172 78 154 96 139 L 42 184 Z" fill="url(#kg-flow-tealMain)" />
+        <path d="M 42 54 C 42 49 46 46 51 46 L 73 46 L 80 54 L 97 54 C 102 54 106 58 106 63 L 106 184 C 106 190 102 194 96 194 L 62 194 C 66 172 78 154 96 139 L 42 184 Z" fill="url(#tealMain)" />
         <path d="M 65 194 L 96 194 C 102 194 106 190 106 184 L 106 144 C 86 158 72 175 65 194 Z" fill="#0f2e38" />
       </g>
     </g>
 
     <g class="anim-swoosh-teal">
-      <path d="M 42 180 C 52 130 96 92 150 34 L 170 34 C 120 92 76 128 42 180 Z" fill="url(#kg-flow-tealMain)" />
-      <path d="M 42 188 C 58 136 110 98 175 34 L 191 34 C 140 94 102 124 60 146 C 49 157 44 172 42 188 Z" fill="url(#kg-flow-tealMain)" />
+      <path d="M 42 180 C 52 130 96 92 150 34 L 170 34 C 120 92 76 128 42 180 Z" fill="url(#tealMain)" />
+      <path d="M 42 188 C 58 136 110 98 175 34 L 191 34 C 140 94 102 124 60 146 C 49 157 44 172 42 188 Z" fill="url(#tealMain)" />
     </g>
 
     <g class="anim-arrow">
-      <path d="M 104 142 L 128 122 L 154 148 L 178 124 L 169 115 L 204 106 L 197 142 L 189 134 L 156 168 L 194 194 L 150 194 C 142 194 136 190 130 183 L 104 142 Z" fill="url(#kg-flow-amberMain)" />
-      <path d="M 154 148 L 189 134 L 156 168 L 130 144 Z" fill="url(#kg-flow-amberShadow)" opacity="0.45" />
+      <path d="M 104 142 L 128 122 L 154 148 L 178 124 L 169 115 L 204 106 L 197 142 L 189 134 L 156 168 L 194 194 L 150 194 C 142 194 136 190 130 183 L 104 142 Z" fill="url(#amberMain)" />
+      <path d="M 154 148 L 189 134 L 156 168 L 130 144 Z" fill="url(#amberShadow)" opacity="0.45" />
     </g>
 
     <g class="anim-swoosh-amber">
-      <path d="M 42 188 C 48 152 78 128 134 114 C 106 138 70 156 42 188 Z" fill="url(#kg-flow-amberMain)" />
+      <path d="M 42 188 C 48 152 78 128 134 114 C 106 138 70 156 42 188 Z" fill="url(#amberMain)" />
       <path d="M 48 194 C 56 160 84 134 142 112 C 122 130 80 152 56 194 Z" fill="#f8a44c" opacity="0.85" />
     </g>
 
@@ -496,20 +545,48 @@ const kadergoFlowSvg = `
     </g>
   </g>
 
-  <!-- 2. RÉTEG: PÁVAKÉK-DOMINÁNS LOADING SPINNER (Finom borostyánsárga akcentussal) -->
+  <!-- 2. RÉTEG: LOADING SPINNER -->
   <g class="spinner-layer">
-    <circle cx="110" cy="110" r="62" fill="none" stroke="#133b47" stroke-width="11" opacity="0.10" />
-    <circle class="spinner-ring-teal" cx="110" cy="110" r="62" fill="none" stroke="url(#kg-flow-tealMain)" stroke-width="12" stroke-linecap="round" />
-    <circle class="spinner-ring-amber" cx="110" cy="110" r="47" fill="none" stroke="url(#kg-flow-amberMain)" stroke-width="5.5" stroke-linecap="round" />
+    <circle cx="110" cy="110" r="62" fill="none" stroke="#133b47" stroke-width="11" opacity="0.16" />
+    <g class="spinner-rotator-teal">
+      <circle class="spinner-ring-teal" cx="110" cy="110" r="62" fill="none" stroke="url(#tealMain)" stroke-width="12" stroke-linecap="round" />
+    </g>
+    <g class="spinner-rotator-amber">
+      <circle class="spinner-ring-amber" cx="110" cy="110" r="47" fill="none" stroke="url(#amberMain)" stroke-width="5.5" stroke-linecap="round" />
+    </g>
     <circle class="spinner-core-dot" cx="110" cy="110" r="7" fill="#133b47" />
   </g>
 
-  <!-- 3. RÉTEG: SIKERES PIPA (Pávakék érme + vékony borostyán szegély + fehér pipa) -->
+  <!-- 3. RÉTEG: KÖZÉPRE IGAZÍTOTT, PRECIZ KÉRDŐJEL -->
+  <g class="prompt-layer">
+    <g class="prompt-bounce-wrap">
+      <circle class="prompt-halo" cx="110" cy="110" r="74" fill="#f59533" opacity="0.14" />
+      <circle class="prompt-bg" cx="110" cy="110" r="62" fill="url(#amberMain)" />
+      <circle class="prompt-badge" cx="110" cy="110" r="56" fill="url(#tealMain)" />
+      <!-- Precíz kampó: szélesség 36px (92 -> 128), tengely X = 110 -->
+      <path class="prompt-hook" d="M 92 92 C 92 81 100 75 110 75 C 120 75 128 81 128 91 C 128 100 120 106 110 111 L 110 119" fill="none" stroke="#ffffff" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Pont pontosan X = 110, Y = 135 -->
+      <circle class="prompt-dot" cx="110" cy="135" r="5.8" fill="#ffffff" />
+    </g>
+  </g>
+
+  <!-- 4. RÉTEG: SIKERES PIPA -->
   <g class="check-layer">
     <circle class="check-halo" cx="110" cy="110" r="74" fill="#133b47" opacity="0.10" />
-    <circle class="check-bg" cx="110" cy="110" r="62" fill="url(#kg-flow-amberMain)" />
-    <circle class="check-badge" cx="110" cy="110" r="56" fill="url(#kg-flow-tealMain)" />
+    <circle class="check-bg" cx="110" cy="110" r="62" fill="url(#amberMain)" />
+    <circle class="check-badge" cx="110" cy="110" r="56" fill="url(#tealMain)" />
     <path class="check-tick" d="M 86 112 L 103 129 L 136 93" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- 5. RÉTEG: HIBA X -->
+  <g class="error-layer">
+    <g class="error-shake-wrap">
+      <circle class="error-halo" cx="110" cy="110" r="74" fill="#e63946" opacity="0.14" />
+      <circle class="error-bg" cx="110" cy="110" r="62" fill="url(#crimsonMain)" />
+      <circle class="error-badge" cx="110" cy="110" r="55" fill="url(#tealMain)" />
+      <line class="error-line-1" x1="90" y1="90" x2="130" y2="130" stroke="#ffffff" stroke-width="11" stroke-linecap="round" />
+      <line class="error-line-2" x1="130" y1="90" x2="90" y2="130" stroke="#ffffff" stroke-width="11" stroke-linecap="round" />
+    </g>
   </g>
 </svg>
   `;
